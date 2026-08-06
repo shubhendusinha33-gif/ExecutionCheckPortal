@@ -22,7 +22,8 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html _site/
-          printf '\n' > _site/.nojekyll
+          printf '
+' > _site/.nojekyll
           cp README.md _site/ 2>/dev/null || true
       - name: Setup Pages
         uses: actions/configure-pages@v5
