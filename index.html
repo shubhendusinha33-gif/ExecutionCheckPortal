@@ -381,6 +381,17 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
 .branch-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
 .branch-row .br-opt{font-size:12px;font-weight:700;min-width:80px;color:var(--text2)}
 .dept-chip{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:#E3F2FD;color:var(--blue);margin-left:6px}
+.ho-store-block{border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden;background:#fff}
+.ho-store-head{background:#F5F7FA;padding:10px 12px;font-weight:800;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.ho-issue-row{padding:12px;border-bottom:1px solid var(--border)}
+.ho-issue-row:last-child{border-bottom:none}
+.ho-act-row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:8px}
+.ho-act-row .form-group{margin:0;flex:1;min-width:140px}
+.ho-hist-tog{background:none;border:none;color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;padding:0;font-family:inherit}
+.ho-hist-box{display:none;margin-top:6px}
+.ho-hist-box.open{display:block}
+.ho-recent{font-size:12px;margin-top:6px;padding:6px 8px;background:#F5F7FA;border-radius:6px}
+.ho-remark{background:#FFF8E1;border-left:3px solid var(--amber);padding:6px 8px;margin:6px 0;font-size:12px;border-radius:0 6px 6px 0}
 
 /* additions */
 /* ---- v22 additions ---- */
@@ -460,8 +471,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     </div>
     <div class="form-group" id="loginDeptWrap" style="display:none">
       <label class="form-label">Your Department</label>
-      <input class="form-control" id="loginDept" placeholder="e.g. IT / Ops / Merch / Finance" autocomplete="off">
-      <div class="small text3" style="margin-top:4px">Free text — must match the department tagged on questions you own.</div>
+      <select class="form-control" id="loginDept"><option value="">— Select department —</option></select>
+      <div class="small text3" style="margin-top:4px">Pick from the department list maintained by Admin.</div>
     </div>
     <div class="form-group" id="loginPassWrap" style="display:none">
       <label class="form-label">Admin Password</label>
@@ -469,7 +480,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     </div>
     <div id="loginErr" class="small" style="color:var(--red);margin-bottom:8px;display:none"></div>
     <button class="btn btn-pink btn-lg btn-full" id="btnContinue">Continue →</button>
-    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v26 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v27 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
   </div>
 </div>
 
@@ -715,7 +726,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     <div style="flex:1"></div>
     <button class="btn btn-sm btn-outline" data-logout="1">Logout</button>
   </div>
-  <div class="page-body" style="max-width:980px;margin:0 auto;padding:14px">
+  <div class="page-body" style="max-width:1100px;margin:0 auto;padding:14px">
     <div class="kpi-grid" id="hoKpiGrid" style="margin-bottom:14px">
       <div class="kpi-card"><div class="kpi-v" style="color:var(--blue)" id="hoKpiTotal">0</div><div class="kpi-l">Total Issues</div></div>
       <div class="kpi-card" style="background:#E8F5E9"><div class="kpi-v" style="color:#2E7D32" id="hoKpiDone">0</div><div class="kpi-l">Done</div></div>
@@ -723,21 +734,27 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       <div class="kpi-card"><div class="kpi-v" style="color:var(--text2)" id="hoKpiNI">0</div><div class="kpi-l">Not Initiated</div></div>
     </div>
     <div class="card" style="margin-bottom:14px">
-      <div class="card-head"><span class="card-title">Questionnaire</span></div>
+      <div class="card-head"><span class="card-title">Filters</span></div>
       <div class="card-body">
-        <select class="form-control" id="hoSubject"><option value="">— Select subject —</option></select>
-        <div class="small text3" style="margin-top:6px">Shows negative answers (No / N / Not Working…) for questions tagged to your department, across all stores.</div>
+        <div class="grid-2" style="margin-bottom:8px">
+          <div class="form-group" style="margin:0"><label class="form-label">Questionnaire</label>
+            <select class="form-control" id="hoSubject"><option value="">— Select subject —</option></select></div>
+          <div class="form-group" style="margin:0"><label class="form-label">Status</label>
+            <select class="form-control" id="hoStatusFilter">
+              <option value="all">All status</option>
+              <option value="not_initiated">Not Initiated</option>
+              <option value="wip">WIP</option>
+              <option value="done">Done</option>
+            </select></div>
+        </div>
+        <div class="form-group" style="margin:0"><label class="form-label">Store filter (code / name) — search &amp; pick your stores</label>
+          <input class="form-control" id="hoStoreSearch" placeholder="Type store code or name… e.g. HH02 or Andheri" autocomplete="off">
+          <div class="small text3" style="margin-top:4px">Leave blank to see all stores (A→Z). Type to narrow to the ~15 stores you are working — teammates cover the rest.</div>
+        </div>
       </div>
     </div>
     <div class="card">
-      <div class="card-head"><span class="card-title">Dept Issues</span><span class="badge badge-blue" id="hoIssueCount">0</span><div style="flex:1"></div>
-        <select class="form-control" id="hoStatusFilter" style="max-width:150px">
-          <option value="all">All status</option>
-          <option value="not_initiated">Not Initiated</option>
-          <option value="wip">WIP</option>
-          <option value="done">Done</option>
-        </select>
-      </div>
+      <div class="card-head"><span class="card-title">Issues by store</span><span class="badge badge-blue" id="hoIssueCount">0</span></div>
       <div class="card-body" id="hoIssueList"><div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Select a questionnaire to load issues</div></div></div>
     </div>
   </div>
@@ -766,6 +783,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       <div class="nav-item" id="nav-settings"><span class="nav-icon">⚙️</span> Settings</div>
       <div class="sb-section">Manage</div>
       <div class="nav-item" id="nav-subjects"><span class="nav-icon">📋</span> Subjects</div>
+      <div class="nav-item" id="nav-depts"><span class="nav-icon">🏢</span> Departments</div>
       <div class="nav-item" id="nav-reviewers"><span class="nav-icon">✅</span> Reviewers</div>
       <div class="nav-item" id="nav-stores"><span class="nav-icon">🏪</span> Store Master</div>
     </div>
@@ -798,13 +816,13 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
             <div class="form-group"><label class="form-label">General guidelines for the whole task (optional, one per line)</label><textarea class="form-control" id="newGuidelines" rows="3" placeholder="Lighting must be bright&#10;No customers in frame"></textarea></div>
             <div class="form-group" style="margin-top:8px">
               <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="picDeptOn"><span class="tgl-sl"></span></span><span class="small"><b>Department tagging</b> — route this pic subject to an HO dept</span></label>
-              <input class="form-control" id="picDept" placeholder="Department name (free text)" style="display:none">
+              <select class="form-control" id="picDept" style="display:none"><option value="">— Select department —</option></select>
             </div>
           </div>
           <div id="dataFields" style="display:none">
             <div class="form-group"><label class="form-label">Data mode</label><select class="form-control" id="newDataMode"><option value="open">Raw Data (MS-Form style)</option><option value="sysphy">Sys vs Phy (Excel)</option></select></div>
             <div id="openBuilder">
-              <div class="info-box">Build a Microsoft Forms-style questionnaire. Types: Short answer, Paragraph, Number, Email, Phone, Date, Time, Single choice, Multiple choice, Dropdown, Rating (1–5), Physical Count Check. Per question: <b>Department</b> (Y/N + free text) and <b>Branching</b> (jump by answer). You can also build it in Excel and bulk-import below.</div>
+              <div class="info-box">Build a Microsoft Forms-style questionnaire. Types: Short answer, Paragraph, Number, Email, Phone, Date, Time, Single choice, Multiple choice, Dropdown, Rating (1–5), Physical Count Check. Per question: <b>Department</b> (from Admin Departments list) and <b>Branching</b> (jump by answer). You can also build it in Excel and bulk-import below.</div>
               <div class="flex gap wrap" style="margin-bottom:12px">
                 <button class="btn btn-outline btn-sm" id="btnQTemplate">⬇ Excel template</button>
                 <label class="btn btn-purple btn-sm" style="cursor:pointer">⬆ Import questions<input type="file" id="btnQImport" accept=".xlsx,.xls" style="display:none"></label>
@@ -822,7 +840,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
               <label class="flex center gap" style="margin-bottom:8px"><span class="tgl"><input type="checkbox" id="qRequired"><span class="tgl-sl"></span></span><span class="small"><b>Required</b></span></label>
               <label class="flex center gap" style="margin-bottom:8px"><span class="tgl"><input type="checkbox" id="qRemarks"><span class="tgl-sl"></span></span><span class="small"><b>Remarks box</b> — adds a free-text remarks box under this question</span></label>
               <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qDeptOn"><span class="tgl-sl"></span></span><span class="small"><b>Department</b> — Y/N · tag this question to an HO dept (issues from negative answers)</span></label>
-              <div class="form-group" id="qDeptWrap" style="display:none;margin-bottom:8px"><input class="form-control" id="qDept" placeholder="Department name (free text e.g. IT / Ops)"></div>
+              <div class="form-group" id="qDeptWrap" style="display:none;margin-bottom:8px"><select class="form-control" id="qDept"><option value="">— Select department —</option></select><div class="small text3" style="margin-top:4px">Manage list under <b>Departments</b> in the sidebar.</div></div>
               <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qBranchOn"><span class="tgl-sl"></span></span><span class="small"><b>Branching</b> — MS Forms style · jump by answer</span></label>
               <div id="qBranchBox" class="branch-box" style="display:none;margin-bottom:10px"></div>
               <button class="btn btn-blue btn-sm" id="btnAddQ">+ Add question</button>
@@ -897,6 +915,19 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         </div>
       </div>
 
+      <!-- DEPARTMENTS (admin master list) -->
+      <div id="pg-depts" style="display:none">
+        <div class="card"><div class="card-head"><span class="card-title">HO Departments</span></div><div class="card-body">
+          <div class="info-box">Free-text list maintained by Admin. HO Support login and question tagging use this dropdown. Add names exactly as you want them to appear (e.g. IT, Ops, Merch).</div>
+          <div class="flex gap wrap" style="margin-bottom:12px;align-items:flex-end">
+            <div class="form-group" style="margin:0;flex:1;min-width:200px"><label class="form-label">New department</label>
+              <input class="form-control" id="newDeptName" placeholder="e.g. IT / Ops / Finance"></div>
+            <button class="btn btn-blue" id="btnAddDept">+ Add</button>
+          </div>
+          <div id="deptListAdmin"></div>
+        </div></div>
+      </div>
+
       <!-- HO ISSUES (admin summary) -->
       <div id="pg-hoissues" style="display:none">
         <div class="kpi-grid" style="margin-bottom:14px">
@@ -909,9 +940,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           <div class="card-head"><span class="card-title">Filters</span></div>
           <div class="card-body">
             <div class="flex gap wrap" style="align-items:center">
-              <select class="form-control" id="admHoSubject" style="max-width:240px"><option value="">All subjects</option></select>
-              <input class="form-control" id="admHoDept" placeholder="Filter department…" style="max-width:180px">
-              <select class="form-control" id="admHoStatus" style="max-width:150px">
+              <select class="form-control" id="admHoSubject" style="max-width:220px"><option value="">All subjects</option></select>
+              <select class="form-control" id="admHoDept" style="max-width:160px"><option value="">All departments</option></select>
+              <select class="form-control" id="admHoZfm" style="max-width:160px"><option value="">All ZFM</option></select>
+              <select class="form-control" id="admHoAm" style="max-width:160px"><option value="">All AM</option></select>
+              <select class="form-control" id="admHoStatus" style="max-width:140px">
                 <option value="all">All status</option>
                 <option value="not_initiated">Not Initiated</option>
                 <option value="wip">WIP</option>
@@ -919,6 +952,17 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
               </select>
               <button class="btn btn-sm btn-outline" id="btnAdmHoRefresh">↻ Refresh</button>
               <button class="btn btn-sm btn-green" id="btnAdmHoXls">⬇ Export Excel</button>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-head"><span class="card-title">HO Issue Push Mail</span></div>
+          <div class="card-body">
+            <div class="info-box">Save mail IDs per department, then download Outlook <b>.eml</b> drafts (one per dept) with pending/WIP issue data — same style as store reject mailers.</div>
+            <div id="hoDeptMailList" style="margin-bottom:10px"></div>
+            <div class="flex gap wrap">
+              <button class="btn btn-sm btn-blue" id="btnSaveHoMails">💾 Save dept mails</button>
+              <button class="btn btn-sm btn-pink" id="btnHoPushMail">✉ Download HO issue .eml now</button>
             </div>
           </div>
         </div>
@@ -1076,6 +1120,23 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         <div class="card"><div class="card-head"><span class="card-title">Geo-fence Radius</span></div><div class="card-body">
           <div class="info-box">How close (in metres) a store must physically be to its mapped location to log in and capture photos. Larger = more lenient. <b>Default: 300 m.</b> Applies only when the store is geo-mapped in Store Master and Test Mode is OFF.</div>
           <div class="form-group" style="max-width:220px"><label class="form-label">Allowed distance (metres)</label><input class="form-control" type="number" id="setGeoRadius" min="20" max="5000" step="10"></div>
+        </div></div>
+        <div class="card"><div class="card-head"><span class="card-title">AI Data Chat (API key)</span></div><div class="card-body">
+          <div class="info-box">Paste your AI provider API key to enable Admin chat over portal data (subjects, submissions, HO issues) stored in Firestore. Key is saved in app config (Admin-only). Leave blank to keep chat disabled.</div>
+          <div class="form-group"><label class="form-label">API key</label>
+            <input class="form-control" id="setAiApiKey" type="password" placeholder="sk-… or provider key" autocomplete="off"></div>
+          <div class="form-group"><label class="form-label">Provider</label>
+            <select class="form-control" id="setAiProvider" style="max-width:220px">
+              <option value="openai">OpenAI</option>
+              <option value="gemini">Google Gemini</option>
+              <option value="other">Other / custom</option>
+            </select></div>
+          <div id="aiChatWrap" style="display:none;margin-top:10px;border:1px solid var(--border);border-radius:10px;padding:12px;background:#Fafbfd">
+            <div class="small text2" style="margin-bottom:8px">Chat with cloud data (placeholder — uses your key when set)</div>
+            <div id="aiChatLog" style="max-height:220px;overflow:auto;font-size:13px;margin-bottom:8px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px"></div>
+            <div class="flex gap"><input class="form-control" id="aiChatInput" placeholder="Ask about issues, pending stores, dept counts…"><button class="btn btn-blue" id="btnAiChatSend">Send</button></div>
+          </div>
+          <div class="small text3" id="aiChatHint" style="margin-top:8px">Chat unlocks after you save a non-empty API key.</div>
         </div></div>
         <div class="card"><div class="card-head"><span class="card-title">Maintenance</span></div><div class="card-body">
           <div class="small text2" id="setStoreInfo" style="margin-bottom:8px">Store master: checking…</div>
@@ -1406,8 +1467,16 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     } catch (e) { $('setupMsg').textContent = 'Firebase failed: ' + e.message; showScreen('scrSetup'); }
   }
   function loadConfig(done) {
-    db.collection('config').doc('app').get().then(function (d) { S.config = d.exists ? d.data() : { emailMode: 'manual', scheduleTime: '21:00', matchThreshold: 60, testMode: false, reviewers: {} }; if (!S.config.reviewers) S.config.reviewers = {}; if (S.config.geoRadius) GEO_RADIUS_M = S.config.geoRadius; done(); })
-      .catch(function () { S.config = { emailMode: 'manual', scheduleTime: '21:00', matchThreshold: 60, testMode: false, reviewers: {} }; done(); });
+    db.collection('config').doc('app').get().then(function (d) {
+      S.config = d.exists ? d.data() : { emailMode: 'manual', scheduleTime: '21:00', matchThreshold: 60, testMode: false, reviewers: {}, departments: [], hoDeptMails: {}, aiApiKey: '', aiProvider: 'openai' };
+      if (!S.config.reviewers) S.config.reviewers = {};
+      if (!Array.isArray(S.config.departments)) S.config.departments = [];
+      if (!S.config.hoDeptMails) S.config.hoDeptMails = {};
+      if (S.config.aiApiKey == null) S.config.aiApiKey = '';
+      if (!S.config.aiProvider) S.config.aiProvider = 'openai';
+      if (S.config.geoRadius) GEO_RADIUS_M = S.config.geoRadius;
+      done();
+    }).catch(function () { S.config = { emailMode: 'manual', scheduleTime: '21:00', matchThreshold: 60, testMode: false, reviewers: {}, departments: [], hoDeptMails: {}, aiApiKey: '', aiProvider: 'openai' }; done(); });
   }
   function saveConfig(done) { db.collection('config').doc('app').set(S.config, { merge: true }).then(function () { if (done) done(); }).catch(function (e) { toast('Save failed: ' + e.message); }); }
 
@@ -1420,7 +1489,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
      Identity is unknown at consent time by design, so it is back-filled on the
      first login from this device (e.g. HH01_SUMIT_6115513).
      ========================================================================== */
-  var APP_VERSION = 'v25';
+  var APP_VERSION = 'v27';
   var CONSENT_KEY = 'vmm_exec_consent_v22';
   var POLICY_KEY = 'vmm_exec_policy_v22';
   var DEVICE_KEY = 'vmm_exec_device_id';
@@ -1569,7 +1638,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   var gRole = 'STORE';
   function buildLogin() {
     pickRole('STORE');
-    $('loginCode').value = ''; $('loginName').value = ''; $('loginPass').value = ''; $('loginStore').value = ''; if ($('loginDept')) $('loginDept').value = '';
+    $('loginCode').value = ''; $('loginName').value = ''; $('loginPass').value = ''; $('loginStore').value = ''; fillAllDeptSelects(); if ($('loginDept')) $('loginDept').value = '';
     var d = $('loginDesig'); d.innerHTML = ''; DESIGNATIONS.forEach(function (x) { var o = document.createElement('option'); o.value = x; o.textContent = x; d.appendChild(o); });
     $('loginErr').style.display = 'none';
     $('testBanner').style.display = testMode() ? 'block' : 'none';
@@ -1579,7 +1648,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var btns = document.querySelectorAll('.role-btn'); for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].getAttribute('data-role') === r);
     $('storeFieldsWrap').style.display = r === 'STORE' ? 'block' : 'none';
     $('loginNameWrap').style.display = (r === 'STORE' || r === 'REVIEWER' || r === 'AM' || r === 'HOSUPPORT') ? 'block' : 'none';
-    if ($('loginDeptWrap')) $('loginDeptWrap').style.display = r === 'HOSUPPORT' ? 'block' : 'none';
+    if ($('loginDeptWrap')) { $('loginDeptWrap').style.display = r === 'HOSUPPORT' ? 'block' : 'none'; if (r === 'HOSUPPORT') fillAllDeptSelects(); }
     $('loginPassWrap').style.display = r === 'ADMIN' ? 'block' : 'none';
     $('loginCodeLbl').textContent = r === 'ADMIN' ? 'Enter your Admin E-Code' : (r === 'AM' ? 'Enter your AM Emp Code' : (r === 'HOSUPPORT' ? 'Enter your Emp Code' : 'Enter your Emp Code'));
     $('loginErr').style.display = 'none';
@@ -1617,7 +1686,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     }
     if (gRole === 'HOSUPPORT') {
       var dept = ($('loginDept') && $('loginDept').value || '').trim();
-      if (!dept) { lerr('Enter your Department (free text — must match question tags).'); return; }
+      if (!dept) { lerr('Select your Department from the Admin list.'); return; }
       S.role = 'hosupport'; S.empcode = code; S.empName = name; S.dept = dept;
       enterHOSupport(); return;
     }
@@ -2519,10 +2588,17 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   /* === 8. REVIEWER === */
   function enterReviewer() { try { linkConsentIdentity('reviewer', S.empcode, S.empName, ''); } catch (e) { } saveSession(); $('revWho').textContent = S.empName + ' · ' + S.empcode; showScreen('scrReviewer'); loadReviewQueue(); }
 
-  /* === v26 — HO SUPPORT: negative-answer issues + solutions === */
+
+  /* === v27 — HO SUPPORT (fast, store-centric) + dept master + mailer + AI key === */
   var _hoIssues = [];
-  var _hoSolMap = {};   // solDocId -> data
+  var _hoSolMap = {};
+  var _hoSubjCache = null;       // subject doc once loaded
+  var _hoStoreCache = null;      // code -> store master row
+  var _hoStoreCacheAt = 0;
+  var _admHoIssues = [];
+  var _admHoStoreMeta = {};      // storeCode -> {amName,zfmName,amCode,zfmCode}
   var NEG_EXACT = { 'n':1,'no':1,'no.':1,'n/a':1,'na':1,'nil':1,'none':1,'false':1,'fail':1,'failed':1,'not working':1,'notworking':1,'not ok':1,'not okay':1,'nw':1,'negative':1,'absent':1,'missing':1,'broken':1,'inactive':1,'down':1,'unavailable':1,'closed':1,'not available':1,'does not work':1,"doesn't work":1,'dont work':1,"don't work":1 };
+
   function normDept(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
   function isNegativeAnswer(val) {
     var s = String(val == null ? '' : val).trim().toLowerCase().replace(/\s+/g, ' ');
@@ -2533,9 +2609,76 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (/not\s+working/.test(s)) return true;
     return false;
   }
-  function hoSolId(subjectId, storeCode, qIdx) {
-    return String(subjectId || '') + '__' + String(storeCode || '') + '__q' + String(qIdx);
+  function hoSolId(subjectId, storeCode, qIdx) { return String(subjectId || '') + '__' + String(storeCode || '') + '__q' + String(qIdx); }
+  function deptList() {
+    var d = (S.config && S.config.departments) || [];
+    if (!Array.isArray(d)) d = [];
+    return d.map(function (x) { return String(x || '').trim(); }).filter(Boolean);
   }
+  function fillDeptSelect(sel, selected, withAll) {
+    if (!sel) return;
+    var cur = selected != null ? selected : sel.value;
+    var opts = withAll ? '<option value="">' + (withAll === true ? 'All departments' : withAll) + '</option>' : '<option value="">— Select department —</option>';
+    deptList().forEach(function (n) {
+      opts += '<option value="' + esc(n) + '"' + (normDept(n) === normDept(cur) ? ' selected' : '') + '>' + esc(n) + '</option>';
+    });
+    sel.innerHTML = opts;
+    if (cur && !withAll) sel.value = cur;
+  }
+  function fillAllDeptSelects() {
+    fillDeptSelect($('loginDept'), ($('loginDept') && $('loginDept').value) || '', false);
+    fillDeptSelect($('qDept'), ($('qDept') && $('qDept').value) || '', false);
+    fillDeptSelect($('picDept'), ($('picDept') && $('picDept').value) || '', false);
+    fillDeptSelect($('admHoDept'), ($('admHoDept') && $('admHoDept').value) || '', true);
+  }
+  function ensureConfigExtras() {
+    if (!S.config) S.config = {};
+    if (!Array.isArray(S.config.departments)) S.config.departments = [];
+    if (!S.config.hoDeptMails || typeof S.config.hoDeptMails !== 'object') S.config.hoDeptMails = {};
+    if (S.config.aiApiKey == null) S.config.aiApiKey = '';
+    if (!S.config.aiProvider) S.config.aiProvider = 'openai';
+  }
+
+  /* --- Admin Departments page --- */
+  function renderDepartments() {
+    ensureConfigExtras();
+    var box = $('deptListAdmin'); if (!box) return;
+    var list = deptList();
+    if (!list.length) { box.innerHTML = '<div class="empty"><div class="empty-i">🏢</div><div class="empty-t">No departments yet — add one above</div></div>'; return; }
+    box.innerHTML = '';
+    list.forEach(function (n) {
+      var row = document.createElement('div'); row.className = 'lrow';
+      row.innerHTML = '<div class="linfo"><div class="lname">' + esc(n) + '</div></div><div class="lactions"><button class="btn btn-xs btn-red" data-d="' + esc(n) + '">Remove</button></div>';
+      box.appendChild(row);
+    });
+    box.querySelectorAll('button[data-d]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var name = this.getAttribute('data-d');
+        S.config.departments = deptList().filter(function (x) { return normDept(x) !== normDept(name); });
+        saveConfig(function () { renderDepartments(); fillAllDeptSelects(); paintHoDeptMailList(); toast('Removed'); });
+      });
+    });
+  }
+  function addDepartment() {
+    ensureConfigExtras();
+    var n = ($('newDeptName') && $('newDeptName').value || '').trim();
+    if (!n) { toast('Enter department name'); return; }
+    if (deptList().some(function (x) { return normDept(x) === normDept(n); })) { toast('Already in list'); return; }
+    S.config.departments = deptList().concat([n]);
+    saveConfig(function () { if ($('newDeptName')) $('newDeptName').value = ''; renderDepartments(); fillAllDeptSelects(); paintHoDeptMailList(); toast('Department added'); });
+  }
+
+  /* --- Store master cache (speeds HO + admin filters) --- */
+  function loadStoreCache(cb) {
+    if (_hoStoreCache && (Date.now() - _hoStoreCacheAt) < 5 * 60 * 1000) { cb(_hoStoreCache); return; }
+    db.collection('stores').get().then(function (qs) {
+      var map = {};
+      qs.forEach(function (d) { var o = d.data(); o.code = o.code || d.id; map[o.code] = o; });
+      _hoStoreCache = map; _hoStoreCacheAt = Date.now();
+      cb(map);
+    }).catch(function () { cb(_hoStoreCache || {}); });
+  }
+
   function enterHOSupport() {
     try { linkConsentIdentity('hosupport', S.empcode, S.empName, ''); } catch (e) { }
     saveSession();
@@ -2545,90 +2688,59 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   function populateHOSubjects() {
     var sel = $('hoSubject'); if (!sel) return;
+    var keep = sel.value;
     sel.innerHTML = '<option value="">— Select subject —</option>';
-    loader(true, 'Loading subjects…');
-    db.collection('subjects').get().then(function (qs) {
-      loader(false);
+    // Fast path: only active data subjects (no full collection scan of inactive)
+    db.collection('subjects').where('active', '==', true).get().then(function (qs) {
       var arr = [];
       qs.forEach(function (d) {
         var o = d.data(); o.id = d.id;
-        if (o.type === 'data' && o.dataMode !== 'sysphy') {
-          var qs2 = o.questions || [];
-          var has = qs2.some(function (q) { return q && q.deptOn && normDept(q.dept) === normDept(S.dept); });
-          if (has) arr.push(o);
-        }
+        if (o.type !== 'data' || o.dataMode === 'sysphy') return;
+        var has = (o.questions || []).some(function (q) { return q && q.deptOn && normDept(q.dept) === normDept(S.dept); });
+        if (has) arr.push(o);
       });
       arr.sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
       arr.forEach(function (o) {
-        var opt = document.createElement('option'); opt.value = o.id; opt.textContent = (o.active === false ? '[off] ' : '') + (o.name || o.id);
+        var opt = document.createElement('option'); opt.value = o.id; opt.textContent = o.name || o.id;
         sel.appendChild(opt);
       });
-      if (!arr.length) toast('No questionnaires have questions tagged to dept “' + S.dept + '”');
-    }).catch(function (e) { loader(false); toast(e.message); });
+      if (keep) sel.value = keep;
+      if (!arr.length) toast('No active questionnaires tagged to dept “' + S.dept + '”');
+    }).catch(function (e) { toast(e.message); });
   }
+
   function loadHOIssues() {
     var sid = $('hoSubject') ? $('hoSubject').value : '';
     if (!sid) {
-      _hoIssues = [];
-      paintHOKpis({ total:0, done:0, wip:0, ni:0 });
+      _hoIssues = []; _hoSubjCache = null;
+      paintHOKpis({ total: 0, done: 0, wip: 0, ni: 0 });
       if ($('hoIssueList')) $('hoIssueList').innerHTML = '<div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Select a questionnaire to load issues</div></div>';
       return;
     }
-    loader(true, 'Loading dept issues…');
-    Promise.all([
-      db.collection('subjects').doc(sid).get(),
-      db.collection('submissions').where('subjectId', '==', sid).get(),
-      db.collection('hosolutions').where('subjectId', '==', sid).get()
-    ]).then(function (res) {
+    loader(true, 'Loading…');
+    var t0 = Date.now();
+    // Parallel: subject + submissions for subject + solutions for subject + store cache
+    var pSubj = db.collection('subjects').doc(sid).get();
+    var pSubs = db.collection('submissions').where('subjectId', '==', sid).get();
+    var pSol = db.collection('hosolutions').where('subjectId', '==', sid).get().catch(function () { return null; });
+    var pStores = new Promise(function (res) { loadStoreCache(res); });
+    Promise.all([pSubj, pSubs, pSol, pStores]).then(function (res) {
       loader(false);
       if (!res[0].exists) { toast('Subject not found'); return; }
-      var subj = res[0].data(); subj.id = sid;
-      var qs = subj.questions || [];
+      var subj = res[0].data(); subj.id = sid; _hoSubjCache = subj;
       _hoSolMap = {};
-      res[2].forEach(function (d) { _hoSolMap[d.id] = d.data(); });
-      var issues = [];
-      res[1].forEach(function (d) {
-        var o = d.data(); if (o.reviewStatus === 'rejected') return;
-        (o.answers || []).forEach(function (a, ai) {
-          var qIdx = (a.qIdx != null ? a.qIdx : ai);
-          var q = qs[qIdx] || qs.find(function (x) { return x && x.label === a.label; }) || {};
-          var deptOn = !!(a.deptOn || q.deptOn);
-          var dept = a.dept || q.dept || '';
-          if (!deptOn || normDept(dept) !== normDept(S.dept)) return;
-          if (!isNegativeAnswer(a.value)) return;
-          var id = hoSolId(sid, o.storeCode, qIdx);
-          var sol = _hoSolMap[id] || null;
-          var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : 'wip');
-          issues.push({
-            id: id, subjectId: sid, subjectName: subj.name || '', storeCode: o.storeCode, storeName: o.storeName || '',
-            qIdx: qIdx, qLabel: a.label || q.label || ('Q' + (qIdx + 1)), answer: a.value, remark: a.remark || '',
-            dept: dept, status: status, sol: sol, subTs: o.ts || ''
-          });
-        });
-      });
-      issues.sort(function (a, b) { return (a.storeCode || '').localeCompare(b.storeCode || '') || (a.qIdx - b.qIdx); });
-      _hoIssues = issues;
-      paintHOIssueList();
-    }).catch(function (e) {
-      // hosolutions query may fail if collection empty / no index — retry without it
-      loader(false);
-      console.warn(e);
-      db.collection('subjects').doc(sid).get().then(function (sd) {
-        if (!sd.exists) { toast('Subject not found'); return; }
-        var subj = sd.data(); subj.id = sid;
-        db.collection('submissions').where('subjectId', '==', sid).get().then(function (qs) {
-          _hoSolMap = {};
-          // load all solutions for subject via get of known ids later; try full collection scan limited
-          db.collection('hosolutions').get().then(function (all) {
-            all.forEach(function (d) { var o = d.data(); if (o.subjectId === sid) _hoSolMap[d.id] = o; });
-            finishHOBuild(subj, qs);
-          }).catch(function () { finishHOBuild(subj, qs); });
-        });
-      }).catch(function (e2) { toast(e2.message); });
-    });
+      if (res[2] && res[2].forEach) {
+        res[2].forEach(function (d) { _hoSolMap[d.id] = d.data(); });
+      } else {
+        // fallback: no index — skip full scan for speed; solutions stay empty until indexed
+      }
+      buildHOIssuesFromSnap(subj, res[1]);
+      console.log('[HO] loaded in', Date.now() - t0, 'ms · issues', _hoIssues.length);
+    }).catch(function (e) { loader(false); toast(e.message); });
   }
-  function finishHOBuild(subj, qsSnap) {
+  function buildHOIssuesFromSnap(subj, qsSnap) {
     var qs = subj.questions || [], issues = [], sid = subj.id;
+    var stores = _hoStoreCache || {};
     qsSnap.forEach(function (d) {
       var o = d.data(); if (o.reviewStatus === 'rejected') return;
       (o.answers || []).forEach(function (a, ai) {
@@ -2641,11 +2753,20 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         var id = hoSolId(sid, o.storeCode, qIdx);
         var sol = _hoSolMap[id] || null;
         var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : 'wip');
-        issues.push({ id: id, subjectId: sid, subjectName: subj.name || '', storeCode: o.storeCode, storeName: o.storeName || '', qIdx: qIdx, qLabel: a.label || q.label || ('Q' + (qIdx + 1)), answer: a.value, remark: a.remark || '', dept: dept, status: status, sol: sol, subTs: o.ts || '' });
+        var st = stores[o.storeCode] || {};
+        issues.push({
+          id: id, subjectId: sid, subjectName: subj.name || '', storeCode: o.storeCode,
+          storeName: o.storeName || st.name || '',
+          amName: o.amName || st.amName || '', zfmName: o.zfmName || st.zfmName || '',
+          amCode: st.amCode || '', zfmCode: st.zfmCode || '',
+          qIdx: qIdx, qLabel: a.label || q.label || ('Q' + (qIdx + 1)),
+          answer: a.value, remark: a.remark || '', dept: dept, status: status, sol: sol, subTs: o.ts || ''
+        });
       });
     });
     issues.sort(function (a, b) { return (a.storeCode || '').localeCompare(b.storeCode || '') || (a.qIdx - b.qIdx); });
-    _hoIssues = issues; paintHOIssueList();
+    _hoIssues = issues;
+    paintHOIssueList();
   }
   function paintHOKpis(c) {
     if ($('hoKpiTotal')) $('hoKpiTotal').textContent = c.total;
@@ -2653,48 +2774,90 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ($('hoKpiWip')) $('hoKpiWip').textContent = c.wip;
     if ($('hoKpiNI')) $('hoKpiNI').textContent = c.ni;
   }
-  function paintHOIssueList() {
+  function hoFilteredIssues() {
     var stf = ($('hoStatusFilter') && $('hoStatusFilter').value) || 'all';
-    var list = _hoIssues.filter(function (x) { return stf === 'all' || x.status === stf; });
+    var q = (($('hoStoreSearch') && $('hoStoreSearch').value) || '').toLowerCase().trim();
+    return _hoIssues.filter(function (x) {
+      if (stf !== 'all' && x.status !== stf) return false;
+      if (q && ((x.storeCode || '') + ' ' + (x.storeName || '')).toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    });
+  }
+  function paintHOIssueList() {
+    var list = hoFilteredIssues();
     var c = { total: _hoIssues.length, done: 0, wip: 0, ni: 0 };
     _hoIssues.forEach(function (x) { if (x.status === 'done') c.done++; else if (x.status === 'wip') c.wip++; else c.ni++; });
     paintHOKpis(c);
     if ($('hoIssueCount')) $('hoIssueCount').textContent = list.length;
     var box = $('hoIssueList'); if (!box) return;
     if (!list.length) { box.innerHTML = '<div class="empty"><div class="empty-i">✅</div><div class="empty-t">No issues for this filter</div></div>'; return; }
-    box.innerHTML = '';
+    // Group by store A-Z
+    var byStore = {}, order = [];
     list.forEach(function (iss) {
-      var card = document.createElement('div'); card.className = 'q-card'; card.style.marginBottom = '10px';
-      var badge = iss.status === 'done' ? '<span class="badge badge-green">Done</span>' : (iss.status === 'wip' ? '<span class="badge badge-amber">WIP</span>' : '<span class="badge badge-gray">Not Initiated</span>');
-      var linesHtml = '';
-      var lines = (iss.sol && iss.sol.lines) ? iss.sol.lines : [];
-      lines.forEach(function (ln, li) {
-        var ext = !!ln.extended;
-        linesHtml += '<div class="ho-line' + (ext ? ' ext' : '') + (iss.status === 'done' && li === lines.length - 1 ? ' done' : '') + '">' +
-          '<div' + (ext ? ' class="ho-ext"' : '') + '><b>By ' + esc(ln.byDate || '—') + '</b> — ' + esc(ln.solution || '') + (ext ? ' <span class="ho-ext">(date extended)</span>' : '') + '</div>' +
-          '<div class="small text3">' + esc(ln.byName || '') + ' · ' + esc(ln.byEmp || '') + (ln.ts ? ' · ' + new Date(ln.ts).toLocaleString() : '') + '</div></div>';
-      });
-      card.innerHTML = '<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px">' +
-        '<div style="flex:1"><div style="font-weight:800">' + esc(iss.storeCode) + (iss.storeName ? ' · ' + esc(iss.storeName) : '') + '</div>' +
-        '<div class="small text2">Q' + (iss.qIdx + 1) + '. ' + esc(iss.qLabel) + '</div>' +
-        '<div class="small" style="color:var(--red);font-weight:700">Answer: ' + esc(iss.answer) + '</div>' +
-        (iss.remark ? '<div class="small text3">📝 ' + esc(iss.remark) + '</div>' : '') +
-        '</div>' + badge + '</div>' +
-        (linesHtml ? '<div style="margin-bottom:8px">' + linesHtml + '</div>' : '') +
-        (iss.status !== 'done' ? (
-          '<div class="grid-2" style="margin-bottom:6px">' +
-          '<div class="form-group" style="margin:0"><label class="form-label">Solution by date</label><input class="form-control ho-date" type="date" data-id="' + esc(iss.id) + '"></div>' +
-          '<div class="form-group" style="margin:0"><label class="form-label">Solution</label><input class="form-control ho-sol" data-id="' + esc(iss.id) + '" placeholder="What will be done"></div>' +
-          '</div>' +
-          '<div class="flex gap wrap">' +
-          '<button class="btn btn-sm btn-blue ho-add" data-id="' + esc(iss.id) + '">+ Add / Update line</button>' +
-          '<button class="btn btn-sm btn-green ho-done" data-id="' + esc(iss.id) + '">Mark Done</button>' +
-          '</div>'
-        ) : '<div class="small text3">Issue closed. Add a new questionnaire cycle for fresh issues.</div>');
-      box.appendChild(card);
+      var k = iss.storeCode || '?';
+      if (!byStore[k]) { byStore[k] = []; order.push(k); }
+      byStore[k].push(iss);
     });
-    box.querySelectorAll('.ho-add').forEach(function (b) { b.addEventListener('click', function () { hoAddLine(this.getAttribute('data-id'), false); }); });
-    box.querySelectorAll('.ho-done').forEach(function (b) { b.addEventListener('click', function () { hoMarkDone(this.getAttribute('data-id')); }); });
+    order.sort();
+    box.innerHTML = '';
+    order.forEach(function (sc) {
+      var items = byStore[sc];
+      var blk = document.createElement('div'); blk.className = 'ho-store-block';
+      var sn = items[0].storeName || '';
+      blk.innerHTML = '<div class="ho-store-head"><span class="mono">' + esc(sc) + '</span><span style="font-weight:600;color:var(--text2)">' + esc(sn) + '</span><span class="badge badge-blue">' + items.length + '</span>' +
+        (items[0].amName ? '<span class="small text3">AM: ' + esc(items[0].amName) + '</span>' : '') + '</div>';
+      var body = document.createElement('div');
+      items.forEach(function (iss) { body.appendChild(renderHOIssueCard(iss)); });
+      blk.appendChild(body);
+      box.appendChild(blk);
+    });
+  }
+  function renderHOIssueCard(iss) {
+    var card = document.createElement('div'); card.className = 'ho-issue-row';
+    var badge = iss.status === 'done' ? '<span class="badge badge-green">Done</span>' : (iss.status === 'wip' ? '<span class="badge badge-amber">WIP</span>' : '<span class="badge badge-gray">Not Initiated</span>');
+    var lines = (iss.sol && iss.sol.lines) ? iss.sol.lines : [];
+    var recent = lines.length ? lines[lines.length - 1] : null;
+    var histOlder = lines.length > 1 ? lines.slice(0, -1) : [];
+    var recentHtml = recent
+      ? '<div class="ho-recent' + (recent.extended ? ' ho-ext' : '') + '"><b>Latest:</b> ' + esc(recent.solution || '') + ' · by <b>' + esc(recent.byDate || '—') + '</b>' + (recent.extended ? ' <span class="ho-ext">(extended)</span>' : '') + ' · ' + esc(recent.byName || '') + '</div>'
+      : '';
+    var histHtml = '';
+    if (histOlder.length) {
+      histHtml = '<button type="button" class="ho-hist-tog" data-hid="' + esc(iss.id) + '">▸ Solution history (' + histOlder.length + ')</button><div class="ho-hist-box" id="hist_' + esc(iss.id) + '">';
+      histOlder.slice().reverse().forEach(function (ln) {
+        histHtml += '<div class="ho-line' + (ln.extended ? ' ext' : '') + '"><div' + (ln.extended ? ' class="ho-ext"' : '') + '><b>By ' + esc(ln.byDate || '—') + '</b> — ' + esc(ln.solution || '') + '</div><div class="small text3">' + esc(ln.byName || '') + ' · ' + esc(ln.byEmp || '') + '</div></div>';
+      });
+      histHtml += '</div>';
+    }
+    var remarkHtml = iss.remark
+      ? '<div class="ho-remark"><b>Store remark → HO:</b> ' + esc(iss.remark) + '</div>'
+      : '';
+    var actHtml = '';
+    if (iss.status !== 'done') {
+      actHtml = '<div class="ho-act-row">' +
+        '<div class="form-group"><label class="form-label">Solution</label><input class="form-control ho-sol" data-id="' + esc(iss.id) + '" placeholder="What will be done"></div>' +
+        '<div class="form-group" style="max-width:150px"><label class="form-label">By date</label><input class="form-control ho-date" type="date" data-id="' + esc(iss.id) + '"></div>' +
+        '<button class="btn btn-sm btn-blue ho-add" data-id="' + esc(iss.id) + '">' + (lines.length ? 'Add / Update' : 'Submit') + '</button>' +
+        '<button class="btn btn-sm btn-green ho-done" data-id="' + esc(iss.id) + '">Mark Done</button>' +
+        '</div>';
+    } else {
+      actHtml = '<div class="small text3" style="margin-top:6px">Issue closed.</div>';
+    }
+    card.innerHTML = '<div style="display:flex;gap:8px;align-items:flex-start">' +
+      '<div style="flex:1"><div style="font-weight:800">Q' + (iss.qIdx + 1) + '. ' + esc(iss.qLabel) + '</div>' +
+      '<div class="small" style="color:var(--red);font-weight:700">Answer: ' + esc(iss.answer) + '</div>' +
+      remarkHtml + recentHtml + histHtml + actHtml +
+      '</div>' + badge + '</div>';
+    var tog = card.querySelector('.ho-hist-tog');
+    if (tog) tog.addEventListener('click', function () {
+      var el = $('hist_' + this.getAttribute('data-hid'));
+      if (!el) return;
+      var open = el.classList.toggle('open');
+      this.textContent = (open ? '▾' : '▸') + ' Solution history (' + histOlder.length + ')';
+    });
+    var addBtn = card.querySelector('.ho-add'); if (addBtn) addBtn.addEventListener('click', function () { hoAddLine(this.getAttribute('data-id'), false); });
+    var doneBtn = card.querySelector('.ho-done'); if (doneBtn) doneBtn.addEventListener('click', function () { hoMarkDone(this.getAttribute('data-id')); });
+    return card;
   }
   function hoFindIssue(id) { for (var i = 0; i < _hoIssues.length; i++) if (_hoIssues[i].id === id) return _hoIssues[i]; return null; }
   function hoAddLine(id, forceDone) {
@@ -2703,28 +2866,23 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var solEl = document.querySelector('.ho-sol[data-id="' + id + '"]');
     var byDate = dateEl ? dateEl.value : '';
     var solution = solEl ? (solEl.value || '').trim() : '';
+    if (!solution) { toast('Enter solution details first'); return; }
     if (!byDate) { toast('Pick solution-by date'); return; }
-    if (!solution) { toast('Enter solution details'); return; }
     var lines = (iss.sol && iss.sol.lines) ? iss.sol.lines.slice() : [];
-    var extended = false;
-    if (lines.length) {
-      var prev = lines[lines.length - 1].byDate || '';
-      if (prev && byDate > prev) extended = true;
-      else if (prev && byDate !== prev) extended = true; // any date change after first line = extension
-      if (lines.length >= 1) extended = true; // subsequent lines always marked as extension updates
-    }
-    // First line: not extended. Additional lines: extended (date extending).
-    extended = lines.length >= 1;
+    var extended = lines.length >= 1;
     lines.push({ byDate: byDate, solution: solution, byEmp: S.empcode, byName: S.empName, ts: nowISO(), extended: extended });
     var doc = {
       subjectId: iss.subjectId, subjectName: iss.subjectName, storeCode: iss.storeCode, storeName: iss.storeName,
-      qIdx: iss.qIdx, qLabel: iss.qLabel, dept: iss.dept, answerValue: iss.answer,
+      qIdx: iss.qIdx, qLabel: iss.qLabel, dept: iss.dept, answerValue: iss.answer, storeRemark: iss.remark || '',
       status: forceDone ? 'done' : 'wip', lines: lines, updatedAt: nowISO(), updatedBy: S.empcode
     };
     loader(true, 'Saving…');
     db.collection('hosolutions').doc(id).set(doc, { merge: true }).then(function () {
-      loader(false); toast(forceDone ? 'Marked done' : (extended ? 'Extension line added (shown in red)' : 'Solution saved'));
-      loadHOIssues();
+      loader(false); toast(forceDone ? 'Marked done' : (extended ? 'Update added (extension in red)' : 'Solution submitted'));
+      // local refresh without full reload
+      _hoSolMap[id] = doc;
+      iss.sol = doc; iss.status = doc.status;
+      paintHOIssueList();
     }).catch(function (e) { loader(false); toast(e.message); });
   }
   function hoMarkDone(id) {
@@ -2734,93 +2892,105 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var byDate = dateEl ? dateEl.value : '';
     var solution = solEl ? (solEl.value || '').trim() : '';
     if (byDate && solution) { hoAddLine(id, true); return; }
-    // mark done without new line if history exists
-    if (!(iss.sol && iss.sol.lines && iss.sol.lines.length)) { toast('Add a solution line before marking done'); return; }
+    if (!(iss.sol && iss.sol.lines && iss.sol.lines.length)) { toast('Add a solution before marking done'); return; }
     loader(true, 'Saving…');
     db.collection('hosolutions').doc(id).set({ status: 'done', updatedAt: nowISO(), updatedBy: S.empcode }, { merge: true }).then(function () {
-      loader(false); toast('Marked done'); loadHOIssues();
+      loader(false); toast('Marked done');
+      if (_hoSolMap[id]) _hoSolMap[id].status = 'done';
+      iss.status = 'done'; if (iss.sol) iss.sol.status = 'done';
+      paintHOIssueList();
     }).catch(function (e) { loader(false); toast(e.message); });
   }
 
-  /* === Admin HO Issues summary (all depts) === */
-  var _admHoIssues = [];
+  /* --- Admin HO Issues (with ZFM/AM filters, faster) --- */
   function renderAdminHOIssues() {
+    ensureConfigExtras();
+    paintHoDeptMailList();
     loader(true, 'Loading HO issues…');
-    Promise.all([
-      db.collection('subjects').get(),
-      db.collection('submissions').where('type', '==', 'data').get(),
-      db.collection('hosolutions').get()
-    ]).then(function (res) {
-      loader(false);
-      var subjMap = {}; res[0].forEach(function (d) { var o = d.data(); o.id = d.id; subjMap[d.id] = o; });
-      var solMap = {}; res[2].forEach(function (d) { solMap[d.id] = d.data(); });
-      var issues = [];
-      res[1].forEach(function (d) {
-        var o = d.data(); if (o.reviewStatus === 'rejected') return;
-        var subj = subjMap[o.subjectId] || {};
-        var qs = subj.questions || [];
-        (o.answers || []).forEach(function (a, ai) {
-          var qIdx = (a.qIdx != null ? a.qIdx : ai);
-          var q = qs[qIdx] || qs.find(function (x) { return x && x.label === a.label; }) || {};
-          var deptOn = !!(a.deptOn || q.deptOn);
-          var dept = a.dept || q.dept || '';
-          if (!deptOn || !dept) return;
-          if (!isNegativeAnswer(a.value)) return;
-          var id = hoSolId(o.subjectId, o.storeCode, qIdx);
-          var sol = solMap[id] || null;
-          var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : 'wip');
-          issues.push({
-            id: id, subjectId: o.subjectId, subjectName: o.subjectName || subj.name || '', storeCode: o.storeCode, storeName: o.storeName || '',
-            qIdx: qIdx, qLabel: a.label || q.label || ('Q' + (qIdx + 1)), answer: a.value, dept: dept, status: status, sol: sol
+    var t0 = Date.now();
+    var sidFilter = ($('admHoSubject') && $('admHoSubject').value) || '';
+    loadStoreCache(function (stores) {
+      _admHoStoreMeta = stores;
+      var pSubj = db.collection('subjects').where('active', '==', true).get();
+      var pSubs = sidFilter
+        ? db.collection('submissions').where('subjectId', '==', sidFilter).get()
+        : db.collection('submissions').where('type', '==', 'data').get();
+      var pSol = sidFilter
+        ? db.collection('hosolutions').where('subjectId', '==', sidFilter).get().catch(function () { return { forEach: function () { } }; })
+        : db.collection('hosolutions').get().catch(function () { return { forEach: function () { } }; });
+      Promise.all([pSubj, pSubs, pSol]).then(function (res) {
+        loader(false);
+        var subjMap = {}; res[0].forEach(function (d) { var o = d.data(); o.id = d.id; subjMap[d.id] = o; });
+        // also include inactive if filtered subject not in active set
+        var solMap = {}; res[2].forEach(function (d) { solMap[d.id] = d.data(); });
+        var issues = [];
+        res[1].forEach(function (d) {
+          var o = d.data(); if (o.type && o.type !== 'data') return; if (o.reviewStatus === 'rejected') return;
+          var subj = subjMap[o.subjectId];
+          if (!subj) return; // skip inactive / unknown for speed unless we need them
+          var qs = subj.questions || [];
+          var st = stores[o.storeCode] || {};
+          (o.answers || []).forEach(function (a, ai) {
+            var qIdx = (a.qIdx != null ? a.qIdx : ai);
+            var q = qs[qIdx] || {};
+            var deptOn = !!(a.deptOn || q.deptOn);
+            var dept = a.dept || q.dept || '';
+            if (!deptOn || !dept) return;
+            if (!isNegativeAnswer(a.value)) return;
+            var id = hoSolId(o.subjectId, o.storeCode, qIdx);
+            var sol = solMap[id] || null;
+            var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : 'wip');
+            issues.push({
+              id: id, subjectId: o.subjectId, subjectName: o.subjectName || subj.name || '',
+              storeCode: o.storeCode, storeName: o.storeName || st.name || '',
+              amName: o.amName || st.amName || '', zfmName: o.zfmName || st.zfmName || '',
+              amCode: st.amCode || '', zfmCode: st.zfmCode || '',
+              qIdx: qIdx, qLabel: a.label || q.label || '', answer: a.value, remark: a.remark || '',
+              dept: dept, status: status, sol: sol
+            });
           });
         });
-      });
-      _admHoIssues = issues;
-      // populate subject filter
-      var sel = $('admHoSubject'); if (sel) {
-        var cur = sel.value, seen = {};
-        sel.innerHTML = '<option value="">All subjects</option>';
-        issues.forEach(function (x) { if (!seen[x.subjectId]) { seen[x.subjectId] = 1; var opt = document.createElement('option'); opt.value = x.subjectId; opt.textContent = x.subjectName || x.subjectId; sel.appendChild(opt); } });
-        if (cur) sel.value = cur;
-      }
-      paintAdminHO();
-    }).catch(function (e) {
-      // fallback without typed query
-      loader(false);
-      toast('Load note: ' + e.message);
-      db.collection('subjects').get().then(function (s1) {
-        db.collection('submissions').get().then(function (s2) {
-          db.collection('hosolutions').get().then(function (s3) {
-            var fake = [s1, { forEach: function (fn) { s2.forEach(function (d) { var o = d.data(); if (o.type === 'data') fn(d); }); } }, s3];
-            // rebuild inline
-            var subjMap = {}; s1.forEach(function (d) { var o = d.data(); o.id = d.id; subjMap[d.id] = o; });
-            var solMap = {}; s3.forEach(function (d) { solMap[d.id] = d.data(); });
-            var issues = [];
-            s2.forEach(function (d) {
-              var o = d.data(); if (o.type !== 'data' || o.reviewStatus === 'rejected') return;
-              var subj = subjMap[o.subjectId] || {}; var qs = subj.questions || [];
-              (o.answers || []).forEach(function (a, ai) {
-                var qIdx = (a.qIdx != null ? a.qIdx : ai); var q = qs[qIdx] || {};
-                var deptOn = !!(a.deptOn || q.deptOn); var dept = a.dept || q.dept || '';
-                if (!deptOn || !dept || !isNegativeAnswer(a.value)) return;
-                var id = hoSolId(o.subjectId, o.storeCode, qIdx); var sol = solMap[id] || null;
-                var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : 'wip');
-                issues.push({ id: id, subjectId: o.subjectId, subjectName: o.subjectName || subj.name || '', storeCode: o.storeCode, storeName: o.storeName || '', qIdx: qIdx, qLabel: a.label || q.label || '', answer: a.value, dept: dept, status: status, sol: sol });
-              });
-            });
-            _admHoIssues = issues; paintAdminHO();
-          }).catch(function () { _admHoIssues = []; paintAdminHO(); });
-        });
-      });
+        _admHoIssues = issues;
+        populateAdmHoFilterDropdowns();
+        paintAdminHO();
+        console.log('[AdminHO] loaded in', Date.now() - t0, 'ms ·', issues.length);
+      }).catch(function (e) { loader(false); toast(e.message); });
     });
+  }
+  function populateAdmHoFilterDropdowns() {
+    var subSel = $('admHoSubject'), deptSel = $('admHoDept'), zfmSel = $('admHoZfm'), amSel = $('admHoAm');
+    var curS = subSel ? subSel.value : '', curD = deptSel ? deptSel.value : '', curZ = zfmSel ? zfmSel.value : '', curA = amSel ? amSel.value : '';
+    if (subSel) {
+      var seen = {}; subSel.innerHTML = '<option value="">All subjects</option>';
+      _admHoIssues.forEach(function (x) {
+        if (seen[x.subjectId]) return; seen[x.subjectId] = 1;
+        var opt = document.createElement('option'); opt.value = x.subjectId; opt.textContent = x.subjectName || x.subjectId; subSel.appendChild(opt);
+      });
+      if (curS) subSel.value = curS;
+    }
+    fillDeptSelect(deptSel, curD, true);
+    if (zfmSel) {
+      var zset = {}; _admHoIssues.forEach(function (x) { if (x.zfmName) zset[x.zfmName] = 1; });
+      zfmSel.innerHTML = '<option value="">All ZFM</option>';
+      Object.keys(zset).sort().forEach(function (n) { var o = document.createElement('option'); o.value = n; o.textContent = n; if (n === curZ) o.selected = true; zfmSel.appendChild(o); });
+    }
+    if (amSel) {
+      var aset = {}; _admHoIssues.forEach(function (x) { if (x.amName) aset[x.amName] = 1; });
+      amSel.innerHTML = '<option value="">All AM</option>';
+      Object.keys(aset).sort().forEach(function (n) { var o = document.createElement('option'); o.value = n; o.textContent = n; if (n === curA) o.selected = true; amSel.appendChild(o); });
+    }
   }
   function admHoFiltered() {
     var sid = ($('admHoSubject') && $('admHoSubject').value) || '';
     var dept = normDept(($('admHoDept') && $('admHoDept').value) || '');
+    var zfm = (($('admHoZfm') && $('admHoZfm').value) || '');
+    var am = (($('admHoAm') && $('admHoAm').value) || '');
     var st = ($('admHoStatus') && $('admHoStatus').value) || 'all';
     return _admHoIssues.filter(function (x) {
       if (sid && x.subjectId !== sid) return false;
-      if (dept && normDept(x.dept).indexOf(dept) < 0) return false;
+      if (dept && normDept(x.dept) !== dept) return false;
+      if (zfm && (x.zfmName || '') !== zfm) return false;
+      if (am && (x.amName || '') !== am) return false;
       if (st !== 'all' && x.status !== st) return false;
       return true;
     });
@@ -2835,7 +3005,6 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ($('admHoNI')) $('admHoNI').textContent = c.ni;
     if ($('admHoIssueCount')) $('admHoIssueCount').textContent = list.length;
     if ($('admHoMeta')) $('admHoMeta').textContent = list.length + ' issue(s)';
-    // summary by issue(question) x dept
     var map = {};
     list.forEach(function (x) {
       var key = (x.subjectName || '') + '||' + (x.qLabel || '') + '||' + (x.dept || '');
@@ -2859,25 +3028,161 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     }
     var box = $('admHoIssueList'); if (!box) return;
     if (!list.length) { box.innerHTML = '<div class="empty"><div class="empty-i">✅</div><div class="empty-t">No matching issues</div></div>'; return; }
-    var h2 = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Store</th><th>Dept</th><th>Question</th><th>Answer</th><th>Status</th><th>Latest solution</th><th>By date</th></tr></thead><tbody>';
+    var h2 = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Store</th><th>AM</th><th>ZFM</th><th>Dept</th><th>Question</th><th>Answer</th><th>Store remark</th><th>Status</th><th>Latest solution</th><th>By date</th></tr></thead><tbody>';
     list.slice(0, 500).forEach(function (x) {
       var last = (x.sol && x.sol.lines && x.sol.lines.length) ? x.sol.lines[x.sol.lines.length - 1] : null;
       var stBadge = x.status === 'done' ? '<span class="badge badge-green">Done</span>' : (x.status === 'wip' ? '<span class="badge badge-amber">WIP</span>' : '<span class="badge badge-gray">Not Initiated</span>');
       var solTxt = last ? esc(last.solution || '') : '—';
       var dateTxt = last ? ('<span' + (last.extended ? ' class="ho-ext"' : '') + '>' + esc(last.byDate || '') + (last.extended ? ' (ext)' : '') + '</span>') : '—';
-      h2 += '<tr><td class="mono">' + esc(x.storeCode) + '</td><td>' + esc(x.dept) + '</td><td>' + esc(x.qLabel) + '</td><td style="color:var(--red)">' + esc(x.answer) + '</td><td>' + stBadge + '</td><td>' + solTxt + '</td><td>' + dateTxt + '</td></tr>';
+      h2 += '<tr><td class="mono">' + esc(x.storeCode) + '</td><td>' + esc(x.amName || '—') + '</td><td>' + esc(x.zfmName || '—') + '</td><td>' + esc(x.dept) + '</td><td>' + esc(x.qLabel) + '</td><td style="color:var(--red)">' + esc(x.answer) + '</td><td>' + esc(x.remark || '—') + '</td><td>' + stBadge + '</td><td>' + solTxt + '</td><td>' + dateTxt + '</td></tr>';
     });
     h2 += '</tbody></table></div>';
     box.innerHTML = h2;
   }
   function exportAdmHoXls() {
     var list = admHoFiltered(); if (!list.length) { toast('Nothing to export'); return; }
-    var aoa = [['Dept', 'Subject', 'Store', 'Store Name', 'Q#', 'Question', 'Answer', 'Status', 'Solution', 'By Date', 'Extended', 'Updated By']];
+    var aoa = [['Dept', 'Subject', 'Store', 'Store Name', 'AM', 'ZFM', 'Q#', 'Question', 'Answer', 'Store Remark', 'Status', 'Solution', 'By Date', 'Extended', 'Updated By']];
     list.forEach(function (x) {
       var last = (x.sol && x.sol.lines && x.sol.lines.length) ? x.sol.lines[x.sol.lines.length - 1] : null;
-      aoa.push([x.dept, x.subjectName, x.storeCode, x.storeName, x.qIdx + 1, x.qLabel, x.answer, x.status, last ? last.solution : '', last ? last.byDate : '', last && last.extended ? 'Y' : '', last ? last.byName : '']);
+      aoa.push([x.dept, x.subjectName, x.storeCode, x.storeName, x.amName || '', x.zfmName || '', x.qIdx + 1, x.qLabel, x.answer, x.remark || '', x.status, last ? last.solution : '', last ? last.byDate : '', last && last.extended ? 'Y' : '', last ? last.byName : '']);
     });
     var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'HO_Issues'); XLSX.writeFile(wb, 'HO_Issues_' + toDateStr(new Date()) + '.xlsx');
+  }
+
+  /* --- HO push mail (dept emails + .eml) --- */
+  function paintHoDeptMailList() {
+    ensureConfigExtras();
+    var box = $('hoDeptMailList'); if (!box) return;
+    var list = deptList();
+    if (!list.length) { box.innerHTML = '<div class="warn-box small">Add departments first (Manage → Departments).</div>'; return; }
+    var h = '';
+    list.forEach(function (n) {
+      var mails = (S.config.hoDeptMails && S.config.hoDeptMails[n]) || '';
+      h += '<div class="form-group"><label class="form-label">' + esc(n) + ' — mail IDs (comma separated)</label>' +
+        '<input class="form-control ho-dept-mail" data-dept="' + esc(n) + '" value="' + esc(mails) + '" placeholder="name1@vishalretail.co.in, name2@…"></div>';
+    });
+    box.innerHTML = h;
+  }
+  function saveHoDeptMails() {
+    ensureConfigExtras();
+    var map = {};
+    document.querySelectorAll('.ho-dept-mail').forEach(function (inp) {
+      map[inp.getAttribute('data-dept')] = (inp.value || '').trim();
+    });
+    S.config.hoDeptMails = map;
+    saveConfig(function () { toast('Dept mails saved'); });
+  }
+  function sendHOIssueMails() {
+    ensureConfigExtras();
+    if (!_admHoIssues.length) { toast('Open HO Issues / Refresh first so data is loaded'); return; }
+    var pending = _admHoIssues.filter(function (x) { return x.status !== 'done'; });
+    if (!pending.length) { toast('No pending/WIP issues to mail'); return; }
+    var byDept = {};
+    pending.forEach(function (x) {
+      var d = x.dept || 'Other';
+      if (!byDept[d]) byDept[d] = [];
+      byDept[d].push(x);
+    });
+    var n = 0, whenTxt = new Date().toLocaleString('en-IN');
+    Object.keys(byDept).sort().forEach(function (dept) {
+      var to = ((S.config.hoDeptMails && S.config.hoDeptMails[dept]) || '').trim();
+      if (!to) return;
+      var rows = byDept[dept];
+      var bodyRows = rows.map(function (x, i) {
+        var last = (x.sol && x.sol.lines && x.sol.lines.length) ? x.sol.lines[x.sol.lines.length - 1] : null;
+        return '<tr style="background:' + (i % 2 ? '#f7f9fc' : '#fff') + '">' +
+          '<td style="padding:8px;border:1px solid #e3e8ef">' + (i + 1) + '</td>' +
+          '<td style="padding:8px;border:1px solid #e3e8ef;font-weight:700">' + esc(x.storeCode) + '</td>' +
+          '<td style="padding:8px;border:1px solid #e3e8ef">' + esc(x.storeName || '') + '</td>' +
+          '<td style="padding:8px;border:1px solid #e3e8ef">' + esc(x.subjectName || '') + '</td>' +
+          '<td style="padding:8px;border:1px solid #e3e8ef">' + esc(x.qLabel) + '</td>' +
+          '<td style="padding:8px;border:1px solid #e3e8ef;color:#c0392b">' + esc(x.answer) + '</td>' +
+          '<td style="padding:8px;border:1px solid #e3e8ef">' + esc(x.remark || '—') + '</td>' +
+          '<td style="padding:8px;border:1px solid #e3e8ef">' + esc(x.status) + '</td>' +
+          '<td style="padding:8px;border:1px solid #e3e8ef">' + esc(last ? last.solution : '—') + '</td>' +
+          '<td style="padding:8px;border:1px solid #e3e8ef">' + esc(last ? last.byDate : '—') + '</td></tr>';
+      }).join('');
+      var html = '<div style="font-family:Arial,sans-serif;font-size:13px;color:#222">' +
+        '<div style="font-size:18px;font-weight:800;color:#1565C0">VMM Exec Check — HO Issues · ' + esc(dept) + '</div>' +
+        '<div style="color:#666;margin:4px 0 14px">' + esc(whenTxt) + ' · ' + rows.length + ' pending/WIP issue(s)</div>' +
+        '<table style="border-collapse:collapse;width:100%"><thead><tr style="background:#2c3e50;color:#fff">' +
+        '<th style="padding:8px">#</th><th style="padding:8px;text-align:left">Store</th><th style="padding:8px;text-align:left">Name</th><th style="padding:8px;text-align:left">Subject</th><th style="padding:8px;text-align:left">Question</th><th style="padding:8px;text-align:left">Answer</th><th style="padding:8px;text-align:left">Store remark</th><th style="padding:8px">Status</th><th style="padding:8px;text-align:left">Solution</th><th style="padding:8px">By date</th>' +
+        '</tr></thead><tbody>' + bodyRows + '</tbody></table>' +
+        '<div style="margin-top:14px;color:#666;font-size:12px">Portal: https://shubhendusinha33-gif.github.io/ExecutionCheckPortal/</div></div>';
+      var subj = 'HO Issues · ' + dept + ' · ' + rows.length + ' pending · ' + toDateStr(new Date());
+      rejDlEml(to, '', subj, html, 'HO_Issues_' + dept.replace(/[^\w]+/g, '_') + '.eml');
+      n++;
+    });
+    if (!n) toast('No mail IDs saved for departments that have pending issues — fill & Save dept mails first');
+    else toast('Downloaded ' + n + ' .eml draft(s) — open in Outlook to send');
+  }
+
+  /* --- AI chat placeholder (Admin Settings) --- */
+  function updateAiChatUI() {
+    ensureConfigExtras();
+    var has = !!(S.config.aiApiKey && String(S.config.aiApiKey).trim());
+    if ($('aiChatWrap')) $('aiChatWrap').style.display = has ? 'block' : 'none';
+    if ($('aiChatHint')) $('aiChatHint').textContent = has ? 'Chat enabled — asks use your API key + a summary of cloud data.' : 'Chat unlocks after you save a non-empty API key.';
+    if ($('setAiApiKey') && document.activeElement !== $('setAiApiKey')) $('setAiApiKey').value = S.config.aiApiKey ? '••••••••' + String(S.config.aiApiKey).slice(-4) : '';
+    if ($('setAiProvider')) $('setAiProvider').value = S.config.aiProvider || 'openai';
+  }
+  function saveAiKeyFromSettings() {
+    ensureConfigExtras();
+    var raw = ($('setAiApiKey') && $('setAiApiKey').value) || '';
+    if (!raw) S.config.aiApiKey = '';
+    else if (raw.indexOf('••••') !== 0) S.config.aiApiKey = raw.trim();
+    if ($('setAiProvider')) S.config.aiProvider = $('setAiProvider').value;
+  }
+  function aiChatAppend(role, text) {
+    var log = $('aiChatLog'); if (!log) return;
+    var d = document.createElement('div'); d.style.marginBottom = '8px';
+    d.innerHTML = '<b style="color:' + (role === 'you' ? 'var(--blue)' : 'var(--pink-d)') + '">' + (role === 'you' ? 'You' : 'Assistant') + ':</b> ' + esc(text);
+    log.appendChild(d); log.scrollTop = log.scrollHeight;
+  }
+  function buildAiDataBrief(cb) {
+    // Lightweight snapshot for chat context (no photos)
+    var brief = { departments: deptList(), subjects: [], issueCounts: { total: _admHoIssues.length, done: 0, wip: 0, ni: 0 }, sampleIssues: [] };
+    _admHoIssues.forEach(function (x) { if (x.status === 'done') brief.issueCounts.done++; else if (x.status === 'wip') brief.issueCounts.wip++; else brief.issueCounts.ni++; });
+    brief.sampleIssues = _admHoIssues.filter(function (x) { return x.status !== 'done'; }).slice(0, 40).map(function (x) {
+      return { store: x.storeCode, dept: x.dept, q: x.qLabel, answer: x.answer, status: x.status, remark: x.remark || '' };
+    });
+    db.collection('subjects').where('active', '==', true).get().then(function (qs) {
+      qs.forEach(function (d) { var o = d.data(); brief.subjects.push({ id: d.id, name: o.name, type: o.type, dataMode: o.dataMode || '' }); });
+      cb(brief);
+    }).catch(function () { cb(brief); });
+  }
+  function sendAiChat() {
+    ensureConfigExtras();
+    var key = (S.config.aiApiKey || '').trim();
+    if (!key) { toast('Save an API key in Settings first'); return; }
+    var q = ($('aiChatInput') && $('aiChatInput').value || '').trim();
+    if (!q) { toast('Type a question'); return; }
+    aiChatAppend('you', q); if ($('aiChatInput')) $('aiChatInput').value = '';
+    loader(true, 'Asking AI…');
+    buildAiDataBrief(function (brief) {
+      var provider = S.config.aiProvider || 'openai';
+      var user = 'DATA:\n' + JSON.stringify(brief).slice(0, 120000) + '\n\nQUESTION: ' + q;
+      var system = 'You are an assistant for VMM Execution Check Portal. Answer using ONLY the JSON data provided about subjects and HO issues. Be concise.';
+      var done = function (ans) { loader(false); aiChatAppend('ai', ans || '(no reply)'); };
+      if (provider === 'openai') {
+        fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+          body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: system }, { role: 'user', content: user }], temperature: 0.2 })
+        }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error((j.error && j.error.message) || r.statusText); return j; }); })
+          .then(function (j) { done((((j.choices || [])[0] || {}).message || {}).content || JSON.stringify(j).slice(0, 500)); })
+          .catch(function (e) { done('API error: ' + e.message); });
+      } else if (provider === 'gemini') {
+        fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + encodeURIComponent(key), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: system + '\n\n' + user }] }] })
+        }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error((j.error && j.error.message) || r.statusText); return j; }); })
+          .then(function (j) { var t = ((((j.candidates || [])[0] || {}).content || {}).parts || [])[0]; done((t && t.text) || JSON.stringify(j).slice(0, 500)); })
+          .catch(function (e) { done('API error: ' + e.message); });
+      } else {
+        done('Provider “Other” is a placeholder — pick OpenAI or Gemini, or extend the connector. Your data brief has ' + brief.issueCounts.total + ' HO issues (' + brief.issueCounts.ni + ' not initiated).');
+      }
+    });
   }
 
   function loadReviewQueue() {
@@ -2909,14 +3214,15 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
 
   /* === 9. ADMIN === */
-  function enterAdmin() { try { linkConsentIdentity('admin', S.empcode, S.empName, ''); } catch (e) { } saveSession(); $('sbName').textContent = S.empName; showScreen('scrAdmin'); adminNav('dash'); }
+  function enterAdmin() { try { linkConsentIdentity('admin', S.empcode, S.empName, ''); } catch (e) { } saveSession(); $('sbName').textContent = S.empName; try { fillAllDeptSelects(); } catch (e2) { } showScreen('scrAdmin'); adminNav('dash'); }
   function adminNav(page) {
-    var pages = ['subjects', 'reviewers', 'email', 'stores', 'subs', 'dash', 'hoissues', 'amview', 'consent', 'settings'];
+    var pages = ['subjects', 'depts', 'reviewers', 'email', 'stores', 'subs', 'dash', 'hoissues', 'amview', 'consent', 'settings'];
     pages.forEach(function (p) { var pg = $('pg-' + p), nv = $('nav-' + p); if (pg) pg.style.display = p === page ? 'block' : 'none'; if (nv) nv.classList.toggle('active', p === page); });
-    var titles = { subjects: 'Subjects', reviewers: 'Reviewers', email: 'Email & Test Mode', stores: 'Store Master', subs: 'All Submissions', dash: 'Dashboard', hoissues: 'HO Issues', amview: 'AM View', consent: 'Consent Log', settings: 'Settings' };
+    var titles = { subjects: 'Subjects', depts: 'Departments', reviewers: 'Reviewers', email: 'Email & Test Mode', stores: 'Store Master', subs: 'All Submissions', dash: 'Dashboard', hoissues: 'HO Issues', amview: 'AM View', consent: 'Consent Log', settings: 'Settings' };
     $('admTitle').textContent = titles[page] || '';
     if ($('sidebar')) $('sidebar').classList.remove('open');
-    if (page === 'subjects') renderAdminSubjects();
+    if (page === 'subjects') { fillAllDeptSelects(); renderAdminSubjects(); }
+    if (page === 'depts') renderDepartments();
     if (page === 'reviewers') renderReviewers();
     if (page === 'email') { renderEmailSettings(); populateEmailSubjectFilter(); setTimeout(updateEmailFilterBadge, 0); }
     if (page === 'stores') renderStoresTab();
@@ -3000,12 +3306,14 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     $('setTestHint').textContent = tm ? 'Currently ON — test mode (GPS bypassed)' : 'Currently OFF — live mode';
     $('setThreshold').value = thr; $('setThresholdRange').value = thr;
     if ($('setGeoRadius')) $('setGeoRadius').value = (S.config && S.config.geoRadius) || GEO_RADIUS_M;
+    try { updateAiChatUI(); } catch (e) { }
     db.collection('stores').get().then(function (qs) { var n = qs.size, junk = 0; qs.forEach(function (d) { if (!isStoreCode(d.id)) junk++; }); $('setStoreInfo').textContent = 'Store master: ' + n + ' store(s)' + (junk ? ' · ' + junk + ' junk/unmapped to purge' : ' · clean'); }).catch(function () { });
   }
   function saveSettings() {
     var thr = Math.max(0, Math.min(100, parseInt($('setThreshold').value, 10) || 62));
     S.config.testMode = $('setTestMode').checked; S.config.matchThreshold = thr;
     if ($('setGeoRadius')) { var gr = Math.max(20, Math.min(5000, parseInt($('setGeoRadius').value, 10) || 300)); S.config.geoRadius = gr; GEO_RADIUS_M = gr; }
+    try { saveAiKeyFromSettings(); } catch (e) { }
     saveConfig(function () { toast('Settings saved'); renderSettings(); if ($('testModeToggle')) $('testModeToggle').checked = S.config.testMode; if ($('emThreshold')) $('emThreshold').value = thr; });
   }
   function purgeJunkStores() {
@@ -3117,7 +3425,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       renderShotRows();
       $('newGuidelines').value = (o.guidelines || []).join('\n');
       if ($('picDeptOn')) { $('picDeptOn').checked = !!o.deptOn; }
-      if ($('picDept')) { $('picDept').value = o.dept || ''; $('picDept').style.display = o.deptOn ? 'block' : 'none'; }
+      if ($('picDept')) { fillDeptSelect($('picDept'), o.dept || '', false); $('picDept').style.display = o.deptOn ? 'block' : 'none'; if (o.dept) $('picDept').value = o.dept; }
     } else {
       $('newDataMode').value = o.dataMode || 'open'; toggleDataMode();
       if (o.dataMode === 'sysphy') { _hoData = o.hoData || null; _hoDescLabels = o.descLabels || []; if (_hoData) $('hoStatus').textContent = 'Editing: ' + Object.keys(_hoData).length + ' store(s) loaded (re-upload to replace).'; }
@@ -3218,6 +3526,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function toggleQDeptUI() {
     var on = $('qDeptOn') && $('qDeptOn').checked;
     if ($('qDeptWrap')) $('qDeptWrap').style.display = on ? 'block' : 'none';
+    if (on) fillDeptSelect($('qDept'), ($('qDept') && $('qDept').value) || '', false);
   }
   function toggleQBranchUI() {
     var on = $('qBranchOn') && $('qBranchOn').checked;
@@ -3303,9 +3612,10 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     $('qLabel').value = q.label || ''; $('qOptions').value = (q.options || []).join(','); $('qSys').value = q.sys || '';
     $('qRequired').checked = !!q.required; if ($('qRemarks')) $('qRemarks').checked = !!q.remarks;
     if ($('qMin')) $('qMin').value = (q.min != null ? q.min : ''); if ($('qMax')) $('qMax').value = (q.max != null ? q.max : '');
-    if ($('qDeptOn')) $('qDeptOn').checked = !!q.deptOn; if ($('qDept')) $('qDept').value = q.dept || '';
+    if ($('qDeptOn')) $('qDeptOn').checked = !!q.deptOn;
     if ($('qBranchOn')) $('qBranchOn').checked = !!q.branchOn;
     toggleQDeptUI(); toggleQBranchUI();
+    if ($('qDept')) { fillDeptSelect($('qDept'), q.dept || '', false); $('qDept').value = q.dept || ''; }
     if ($('btnAddQ')) $('btnAddQ').textContent = '✓ Update question'; if ($('btnCancelQEdit')) $('btnCancelQEdit').style.display = 'inline-block';
     var lb = $('qLabel'); if (lb && lb.scrollIntoView) lb.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -4188,7 +4498,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
 
     on('btnRevRefresh', 'click', loadReviewQueue);
 
-    ['subjects', 'reviewers', 'email', 'stores', 'subs', 'dash', 'hoissues', 'amview', 'consent', 'settings'].forEach(function (p) { on('nav-' + p, 'click', function () { adminNav(p); }); });
+    ['subjects', 'depts', 'reviewers', 'email', 'stores', 'subs', 'dash', 'hoissues', 'amview', 'consent', 'settings'].forEach(function (p) { on('nav-' + p, 'click', function () { adminNav(p); }); });
     // v24 — admin AM View
     on('btnAvLoad', 'click', amvLoad);
     on('btnAvRefresh', 'click', function () { _avStores = []; renderAMViewTab(); });
@@ -4234,16 +4544,24 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     on('qDeptOn', 'change', toggleQDeptUI);
     on('qBranchOn', 'change', toggleQBranchUI);
     on('qOptions', 'input', function () { if ($('qBranchOn') && $('qBranchOn').checked) renderBranchUI(); });
-    on('picDeptOn', 'change', function () { if ($('picDept')) $('picDept').style.display = this.checked ? 'block' : 'none'; });
     on('btnCancelQEdit', 'click', clearQForm);
-    // v26 HO Support
+    // v27 HO Support
     on('hoSubject', 'change', loadHOIssues);
     on('hoStatusFilter', 'change', paintHOIssueList);
+    on('hoStoreSearch', 'input', paintHOIssueList);
     on('btnAdmHoRefresh', 'click', renderAdminHOIssues);
     on('btnAdmHoXls', 'click', exportAdmHoXls);
-    on('admHoSubject', 'change', paintAdminHO);
-    on('admHoDept', 'input', paintAdminHO);
+    on('admHoSubject', 'change', function () { renderAdminHOIssues(); });
+    on('admHoDept', 'change', paintAdminHO);
+    on('admHoZfm', 'change', paintAdminHO);
+    on('admHoAm', 'change', paintAdminHO);
     on('admHoStatus', 'change', paintAdminHO);
+    on('btnAddDept', 'click', addDepartment);
+    on('btnSaveHoMails', 'click', saveHoDeptMails);
+    on('btnHoPushMail', 'click', sendHOIssueMails);
+    on('btnAiChatSend', 'click', sendAiChat);
+    on('aiChatInput', 'keydown', function (e) { if (e.key === 'Enter') sendAiChat(); });
+    on('picDeptOn', 'change', function () { if ($('picDept')) { $('picDept').style.display = this.checked ? 'block' : 'none'; if (this.checked) fillDeptSelect($('picDept'), $('picDept').value, false); } });
     on('btnQTemplate', 'click', dlOpenTemplate);
     on('btnQImport', 'change', function () { importOpenQs(this.files[0]); });
     on('btnQExport', 'click', exportOpenQs);
