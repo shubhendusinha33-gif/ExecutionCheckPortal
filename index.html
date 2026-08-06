@@ -4345,6 +4345,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       res[2].forEach(function (d) { var o = d.data(); o.id = d.id; subjList.push(o); });
       populateDashSubjects(subjList);
       var selSubj = _dashSubject ? subjList.filter(function (s) { return s.id === _dashSubject; })[0] : null;
+      /* AM Valid columns/KPIs only when the (selected) subject requires AM validation */
+      var showAmVal = selSubj ? amValOn(selSubj) : subjList.some(function (sj) { return sj && sj.active !== false && amValOn(sj); });
+      setDashAmValVisible(showAmVal);
       res[1].forEach(function (d) { var o = d.data(); if (_dashDate && (!o.ts || toDateStr(new Date(o.ts)) !== _dashDate)) return; if (selSubj && o.subjectId !== selSubj.id) return; subs.push(o); });
       var applSet = null;
       if (selSubj) { applSet = {}; stores.forEach(function (s) { if (selSubj.scope !== 'select' || (Array.isArray(selSubj.storeList) && selSubj.storeList.indexOf(s.code) > -1)) applSet[s.code] = 1; }); }
@@ -4401,7 +4404,15 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       drawBar('chReason', 'Rejection / re-do reasons', Object.keys(reasons), Object.keys(reasons).map(function (k) { return reasons[k]; }), '#E91E8C');
     }).catch(function (e) { if (!cached) loader(false); if ($('amSummary')) $('amSummary').innerHTML = '<div class="warn-box">Could not load dashboard: ' + esc(e.message) + '</div>'; toast(e.message); });
   }
-  var _lastAM = null, _dashView = { mode: 'both', pendingOnly: false }, _dashDate = null, _dashSubject = '';
+  var _lastAM = null, _dashView = { mode: 'both', pendingOnly: false }, _dashDate = null, _dashSubject = '', _dashShowAmVal = false;
+  function setDashAmValVisible(show) {
+    _dashShowAmVal = !!show;
+    ['kpiAmVal', 'kpiAmPend'].forEach(function (id) {
+      var el = $(id); if (!el) return;
+      var card = el.closest ? el.closest('.kpi-card') : (el.parentElement && el.parentElement.parentElement);
+      if (card) card.style.display = show ? '' : 'none';
+    });
+  }
   function populateDashSubjects(subjList) {
     var sel = $('dashSubject'); if (!sel) return;
     var list = subjList.slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
@@ -4467,6 +4478,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function renderAMSummary(AM) {
     var box = $('amSummary');
     var mode = _dashView.mode, showPic = mode !== 'data', showData = mode !== 'pic', pendOnly = _dashView.pendingOnly;
+    var showVal = !!_dashShowAmVal;
     var ams = Object.keys(AM).map(function (k) { return AM[k]; });
     if (pendOnly) ams = ams.filter(function (a) { return Object.keys(a.picPr).length || Object.keys(a.dataPr).length; });
     if (!ams.length) { box.innerHTML = '<div class="empty"><div class="empty-i">' + (pendOnly ? '✅' : '📭') + '</div><div class="empty-t">' + (pendOnly ? 'No pending / rejected AMs' : 'No stores in master') + '</div></div>'; return; }
@@ -4475,11 +4487,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     function cell(done, pr, total) { return '<td>' + pct(done, total) + '%</td><td>' + pr + ' (' + pct(pr, total) + '%)</td>'; }
     var picH = showPic ? '<th>Pic Recd St</th><th>Pic Done%</th><th>Pic Pending St (%)</th>' : '';
     var datH = showData ? '<th>Data Recd St</th><th>Data Done%</th><th>Data Pending St (%)</th>' : '';
-    // v25 — AM validation columns (always shown, independent of the Pic/Data slicer)
-    var valH = '<th class="valcol">AM Validated</th><th class="valcol">Val Pending (%)</th>';
+    /* AM Valid columns only when selected subject has AM validation required */
+    var valH = showVal ? '<th class="valcol">AM Validated</th><th class="valcol">Val Pending (%)</th>' : '';
     var head = '<div class="tbl-wrap"><table class="amsum"><thead><tr><th class="grp">ZFM</th><th class="grp">AM</th><th>Total St</th>' + picH + datH + valH + '</tr></thead><tbody>';
     var body = '', gTot = 0, gPicR = 0, gPicD = 0, gPicP = 0, gDatR = 0, gDatD = 0, gDatP = 0, gVal = 0, gVPend = 0, gVRedo = 0, gVScope = 0;
     function valCells(v, vp, vr, sc) {
+      if (!showVal) return '';
       return '<td class="valcol" style="color:' + (v ? '#2E7D32' : 'var(--text3)') + ';font-weight:700">' + v + '</td>' +
              '<td class="valcol" style="color:' + (vp ? 'var(--amber-d)' : 'var(--text3)') + '">' + vp + ' (' + pct(vp, sc) + '%)' + (vr ? '<span class="small" style="color:var(--red)"> · ' + vr + ' re-do</span>' : '') + '</td>';
     }
@@ -4503,26 +4516,35 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var grand = '<tr class="grand"><td class="l">GRAND TOTAL</td><td></td><td>' + gTot + '</td>' +
       (showPic ? ('<td>' + gPicR + '</td><td>' + pct(gPicD, gTot) + '%</td><td>' + gPicP + ' (' + pct(gPicP, gTot) + '%)</td>') : '') +
       (showData ? ('<td>' + gDatR + '</td><td>' + pct(gDatD, gTot) + '%</td><td>' + gDatP + ' (' + pct(gDatP, gTot) + '%)</td>') : '') +
-      '<td class="valcol">' + gVal + '</td><td class="valcol">' + gVPend + ' (' + pct(gVPend, gVScope) + '%)' + (gVRedo ? ' · ' + gVRedo + ' re-do' : '') + '</td></tr>';
+      (showVal ? ('<td class="valcol">' + gVal + '</td><td class="valcol">' + gVPend + ' (' + pct(gVPend, gVScope) + '%)' + (gVRedo ? ' · ' + gVRedo + ' re-do' : '') + '</td>') : '') + '</tr>';
     box.innerHTML = head + grand + body + '</tbody></table></div>';
   }
   function exportAMSummaryXls() {
     if (typeof XLSX === 'undefined') { toast('Excel library not loaded — check your internet / unblock cdnjs.cloudflare.com'); return; }
     if (!_lastAM) { toast('Open Dashboard first'); return; }
     try {
+    var showVal = !!_dashShowAmVal;
     var ams = Object.keys(_lastAM).map(function (k) { return _lastAM[k]; });
     ams.sort(function (a, b) { return (a.zfmName || '').localeCompare(b.zfmName || '') || (a.amName || '').localeCompare(b.amName || ''); });
-    var aoa = [['ZFM', 'AM', 'Total St', 'Pic Recd', 'Pic Done', 'Pic Done%', 'Pic Pend/Rej', 'Data Recd', 'Data Done', 'Data Done%', 'Data Pend/Rej', 'AM Val Scope', 'AM Validated', 'AM Val Done%', 'AM Val Pending', 'AM Re-do Sent']];
+    var head = ['ZFM', 'AM', 'Total St', 'Pic Recd', 'Pic Done', 'Pic Done%', 'Pic Pend/Rej', 'Data Recd', 'Data Done', 'Data Done%', 'Data Pend/Rej'];
+    if (showVal) head = head.concat(['AM Val Scope', 'AM Validated', 'AM Val Done%', 'AM Val Pending', 'AM Re-do Sent']);
+    var aoa = [head];
     var g = [0, 0, 0, 0, 0, 0], gv = [0, 0, 0, 0];
     ams.forEach(function (a) {
       var picR = Object.keys(a.picRecd).length, picP = Object.keys(a.picPr).length, picD = picR - picP;
       var datR = Object.keys(a.dataRecd).length, datP = Object.keys(a.dataPr).length, datD = datR - datP;
       g[0] += a.total; g[1] += picR; g[2] += picD; g[3] += picP; g[4] += datR; g[5] += datP;
-      var vS = a.amScope || 0, vV = a.amVal || 0, vP = a.amValPend || 0, vR = a.amRedo || 0;
-      gv[0] += vS; gv[1] += vV; gv[2] += vP; gv[3] += vR;
-      aoa.push([a.zfmName || localPart(a.zfm), a.amName || localPart(a.am), a.total, picR, picD, pct(picD, a.total) + '%', picP, datR, datD, pct(datD, a.total) + '%', datP, vS, vV, pct(vV, vS) + '%', vP, vR]);
+      var row = [a.zfmName || localPart(a.zfm), a.amName || localPart(a.am), a.total, picR, picD, pct(picD, a.total) + '%', picP, datR, datD, pct(datD, a.total) + '%', datP];
+      if (showVal) {
+        var vS = a.amScope || 0, vV = a.amVal || 0, vP = a.amValPend || 0, vR = a.amRedo || 0;
+        gv[0] += vS; gv[1] += vV; gv[2] += vP; gv[3] += vR;
+        row = row.concat([vS, vV, pct(vV, vS) + '%', vP, vR]);
+      }
+      aoa.push(row);
     });
-    aoa.push(['GRAND TOTAL', '', g[0], g[1], g[2], pct(g[2], g[0]) + '%', g[3], g[4], (g[4] - g[5]), pct(g[4] - g[5], g[0]) + '%', g[5], gv[0], gv[1], pct(gv[1], gv[0]) + '%', gv[2], gv[3]]);
+    var grand = ['GRAND TOTAL', '', g[0], g[1], g[2], pct(g[2], g[0]) + '%', g[3], g[4], (g[4] - g[5]), pct(g[4] - g[5], g[0]) + '%', g[5]];
+    if (showVal) grand = grand.concat([gv[0], gv[1], pct(gv[1], gv[0]) + '%', gv[2], gv[3]]);
+    aoa.push(grand);
     var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'AM Summary'); XLSX.writeFile(wb, 'Exec_AM_Summary_' + toDateStr(new Date()) + '.xlsx');
     toast('AM summary exported');
     } catch (e) { toast('Export failed: ' + e.message); }
@@ -4556,20 +4578,39 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     loader(true, 'Capturing…');
     var meta = ($('amSumMeta') && $('amSumMeta').textContent) || '';
     var wrap = document.createElement('div');
-    wrap.style.cssText = 'position:fixed;left:-99999px;top:0;background:#ffffff;padding:20px;display:inline-block;font-family:Roboto,Arial,sans-serif';
-    wrap.innerHTML = '<div style="font-weight:800;font-size:17px;color:#1565C0">VMM Execution — ZFM → AM Compliance</div>' +
-      '<div style="font-size:12px;color:#666;margin:4px 0 12px">' + esc(meta) + '</div>' +
+    // Same sharpness approach as HO summary snap: larger type + padding, high scale
+    wrap.style.cssText = 'position:fixed;left:-99999px;top:0;background:#ffffff;padding:28px 32px;display:inline-block;font-family:Roboto,Arial,sans-serif;color:#222';
+    wrap.innerHTML = '<div style="font-weight:800;font-size:20px;color:#1565C0;letter-spacing:.2px">VMM Execution — ZFM → AM Compliance</div>' +
+      '<div style="font-size:13px;color:#555;margin:6px 0 16px">' + esc(meta) + ' · ' + esc(new Date().toLocaleString('en-IN')) + '</div>' +
       '<div id="snapTblHost"></div>';
     document.body.appendChild(wrap);
     var host = wrap.querySelector('#snapTblHost'); host.innerHTML = src.innerHTML;
     var tw = host.querySelector('.tbl-wrap'); if (tw) { tw.style.overflow = 'visible'; tw.style.maxWidth = 'none'; tw.style.width = 'auto'; }
-    var W = wrap.scrollWidth, H = wrap.scrollHeight, sc = 3;
-    if (W * H * sc * sc > 26000000) sc = 2;   // guard very tall tables from exceeding canvas limits
+    var tbl = host.querySelector('table');
+    if (tbl) {
+      tbl.style.fontSize = '14px'; tbl.style.borderCollapse = 'collapse'; tbl.style.width = 'auto';
+      tbl.querySelectorAll('th,td').forEach(function (c) {
+        c.style.padding = '10px 12px'; c.style.border = '1px solid #cfd8dc'; c.style.whiteSpace = 'nowrap';
+        c.style.fontSize = '14px'; c.style.lineHeight = '1.35';
+      });
+      tbl.querySelectorAll('th').forEach(function (c) {
+        c.style.background = c.classList.contains('grp') ? '#1565C0' : (c.classList.contains('valcol') ? '#33691E' : '#0D47A1');
+        c.style.color = '#fff'; c.style.fontWeight = '700';
+      });
+      tbl.querySelectorAll('td.valcol').forEach(function (c) { c.style.background = '#F1F8E9'; });
+      tbl.querySelectorAll('tr.zfm-sub td').forEach(function (c) { c.style.background = '#E3F2FD'; c.style.fontWeight = '700'; c.style.color = '#0D47A1'; });
+      tbl.querySelectorAll('tr.zfm-sub td.valcol').forEach(function (c) { c.style.background = '#DCEDC8'; });
+      tbl.querySelectorAll('tr.grand td').forEach(function (c) { c.style.background = '#0D47A1'; c.style.color = '#fff'; c.style.fontWeight = '700'; });
+      tbl.querySelectorAll('tr.grand td.valcol').forEach(function (c) { c.style.background = '#33691E'; c.style.color = '#fff'; });
+    }
+    var W = Math.max(wrap.scrollWidth, 900), H = wrap.scrollHeight, sc = 3;
+    if (W * H * sc * sc > 40000000) sc = 2.5;
+    if (W * H * sc * sc > 50000000) sc = 2;   // last resort for extremely tall tables
     html2canvas(wrap, { backgroundColor: '#ffffff', scale: sc, useCORS: true, allowTaint: true, logging: false, width: W, height: H, windowWidth: W, imageTimeout: 0 }).then(function (canvas) {
       document.body.removeChild(wrap); loader(false);
       canvas.toBlob(function (blob) {
         if (!blob) { toast('Snapshot failed'); return; }
-        var fname = 'VMM_Exec_AM_Summary_' + (function () { var n = new Date(); return n.getFullYear() + '-' + ('0' + (n.getMonth() + 1)).slice(-2) + '-' + ('0' + n.getDate()).slice(-2); })() + '.png';
+        var fname = 'VMM_Exec_AM_Summary_' + toDateStr(new Date()) + '.png';
         try { if (navigator.clipboard && window.ClipboardItem) { navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(function () { toast('📸 Copied — paste into WhatsApp/Mail'); }).catch(function () { dlBlob(blob, fname); }); return; } } catch (e) { }
         dlBlob(blob, fname);
       }, 'image/png');
