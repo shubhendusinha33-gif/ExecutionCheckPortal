@@ -364,13 +364,23 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
 /* Logo + role picker */
 .vmm-logo{display:block;margin:0 auto;height:48px;width:auto}
 .sb-logo .vmm-logo{height:30px;border-radius:4px}
-.role-pick{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin:18px 0 16px}
-.role-btn{background:#fff;border:2px solid var(--border);border-radius:10px;padding:13px 6px;cursor:pointer;text-align:center;transition:.18s;font-family:inherit}
+.role-pick{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:18px 0 16px}
+.role-btn{background:#fff;border:2px solid var(--border);border-radius:10px;padding:11px 4px;cursor:pointer;text-align:center;transition:.18s;font-family:inherit}
 .role-btn:hover{border-color:var(--blue-l)}
 .role-btn.active{border-color:var(--pink);background:#FCE4EC}
-.role-ic{font-size:22px;line-height:1}
-.role-tx{font-size:11px;font-weight:700;color:var(--text2);margin-top:5px}
+.role-ic{font-size:20px;line-height:1}
+.role-tx{font-size:10px;font-weight:700;color:var(--text2);margin-top:4px}
 .role-btn.active .role-tx{color:var(--pink-d)}
+@media(max-width:420px){.role-pick{grid-template-columns:repeat(3,1fr)}}
+/* HO Support */
+.ho-ext{color:var(--red)!important;font-weight:700}
+.ho-line{border-left:3px solid var(--border);padding:6px 10px;margin:4px 0;background:var(--gray-bg2);border-radius:0 6px 6px 0;font-size:12px}
+.ho-line.ext{border-left-color:var(--red);background:#FFEBEE}
+.ho-line.done{border-left-color:var(--green);background:#E8F5E9}
+.branch-box{background:#F5F7FA;border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:8px}
+.branch-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.branch-row .br-opt{font-size:12px;font-weight:700;min-width:80px;color:var(--text2)}
+.dept-chip{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:#E3F2FD;color:var(--blue);margin-left:6px}
 
 /* additions */
 /* ---- v22 additions ---- */
@@ -433,6 +443,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       <button class="role-btn active" data-role="STORE"><div class="role-ic">🏪</div><div class="role-tx">Store</div></button>
       <button class="role-btn" data-role="AM"><div class="role-ic">🧭</div><div class="role-tx">AM</div></button>
       <button class="role-btn" data-role="REVIEWER"><div class="role-ic">✅</div><div class="role-tx">Reviewer</div></button>
+      <button class="role-btn" data-role="HOSUPPORT"><div class="role-ic">🏢</div><div class="role-tx">HO Support</div></button>
       <button class="role-btn" data-role="ADMIN"><div class="role-ic">🛡️</div><div class="role-tx">Admin</div></button>
     </div>
     <div id="storeFieldsWrap">
@@ -447,13 +458,18 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       <label class="form-label">Your Name</label>
       <input class="form-control" id="loginName" inputmode="text" autocapitalize="words" placeholder="Full name (letters only)" autocomplete="off">
     </div>
+    <div class="form-group" id="loginDeptWrap" style="display:none">
+      <label class="form-label">Your Department</label>
+      <input class="form-control" id="loginDept" placeholder="e.g. IT / Ops / Merch / Finance" autocomplete="off">
+      <div class="small text3" style="margin-top:4px">Free text — must match the department tagged on questions you own.</div>
+    </div>
     <div class="form-group" id="loginPassWrap" style="display:none">
       <label class="form-label">Admin Password</label>
       <input class="form-control" id="loginPass" type="password" placeholder="••••••" autocomplete="off" style="text-align:center;letter-spacing:3px">
     </div>
     <div id="loginErr" class="small" style="color:var(--red);margin-bottom:8px;display:none"></div>
     <button class="btn btn-pink btn-lg btn-full" id="btnContinue">Continue →</button>
-    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v25 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v26 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
   </div>
 </div>
 
@@ -689,6 +705,44 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   </div>
 </div></div>
 
+<!-- HO SUPPORT -->
+<div id="scrHO" style="display:none;min-height:100vh;background:var(--gray-bg)">
+  <div class="topbar" style="position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px">
+    <div>
+      <div style="font-weight:900;color:var(--blue-d);font-size:15px">HO Support</div>
+      <div class="small text2" id="hoWho">—</div>
+    </div>
+    <div style="flex:1"></div>
+    <button class="btn btn-sm btn-outline" data-logout="1">Logout</button>
+  </div>
+  <div class="page-body" style="max-width:980px;margin:0 auto;padding:14px">
+    <div class="kpi-grid" id="hoKpiGrid" style="margin-bottom:14px">
+      <div class="kpi-card"><div class="kpi-v" style="color:var(--blue)" id="hoKpiTotal">0</div><div class="kpi-l">Total Issues</div></div>
+      <div class="kpi-card" style="background:#E8F5E9"><div class="kpi-v" style="color:#2E7D32" id="hoKpiDone">0</div><div class="kpi-l">Done</div></div>
+      <div class="kpi-card"><div class="kpi-v" style="color:var(--amber)" id="hoKpiWip">0</div><div class="kpi-l">WIP</div></div>
+      <div class="kpi-card"><div class="kpi-v" style="color:var(--text2)" id="hoKpiNI">0</div><div class="kpi-l">Not Initiated</div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head"><span class="card-title">Questionnaire</span></div>
+      <div class="card-body">
+        <select class="form-control" id="hoSubject"><option value="">— Select subject —</option></select>
+        <div class="small text3" style="margin-top:6px">Shows negative answers (No / N / Not Working…) for questions tagged to your department, across all stores.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="card-title">Dept Issues</span><span class="badge badge-blue" id="hoIssueCount">0</span><div style="flex:1"></div>
+        <select class="form-control" id="hoStatusFilter" style="max-width:150px">
+          <option value="all">All status</option>
+          <option value="not_initiated">Not Initiated</option>
+          <option value="wip">WIP</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+      <div class="card-body" id="hoIssueList"><div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Select a questionnaire to load issues</div></div></div>
+    </div>
+  </div>
+</div>
+
 <!-- REVIEWER -->
 <div id="scrReviewer" class="m-shell" style="display:none">
   <div class="m-top"><div class="m-top-brand"><div class="m-brand-txt">Exec Check <span>&amp; Data Compiler</span></div><button class="btn btn-xs btn-outline" data-logout="1">Logout</button></div>
@@ -705,6 +759,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       <div class="sb-section">Operate</div>
       <div class="nav-item" id="nav-subs"><span class="nav-icon">🗂️</span> Submissions</div>
       <div class="nav-item active" id="nav-dash"><span class="nav-icon">📊</span> Dashboard</div>
+      <div class="nav-item" id="nav-hoissues"><span class="nav-icon">🏢</span> HO Issues</div>
       <div class="nav-item" id="nav-email"><span class="nav-icon">✉️</span> Email &amp; Test</div>
       <div class="nav-item" id="nav-amview"><span class="nav-icon">🧭</span> AM View</div>
       <div class="nav-item" id="nav-consent"><span class="nav-icon">🔒</span> Consent Log</div>
@@ -741,11 +796,15 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
               <input type="file" id="shotFileFallback" accept="image/*" style="display:none">
             </div>
             <div class="form-group"><label class="form-label">General guidelines for the whole task (optional, one per line)</label><textarea class="form-control" id="newGuidelines" rows="3" placeholder="Lighting must be bright&#10;No customers in frame"></textarea></div>
+            <div class="form-group" style="margin-top:8px">
+              <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="picDeptOn"><span class="tgl-sl"></span></span><span class="small"><b>Department tagging</b> — route this pic subject to an HO dept</span></label>
+              <input class="form-control" id="picDept" placeholder="Department name (free text)" style="display:none">
+            </div>
           </div>
           <div id="dataFields" style="display:none">
             <div class="form-group"><label class="form-label">Data mode</label><select class="form-control" id="newDataMode"><option value="open">Raw Data (MS-Form style)</option><option value="sysphy">Sys vs Phy (Excel)</option></select></div>
             <div id="openBuilder">
-              <div class="info-box">Build a Microsoft Forms-style questionnaire. Types: Short answer, Paragraph, Number, Email, Phone, Date, Time, Single choice, Multiple choice, Dropdown, Rating (1–5), Physical Count Check. You can also build it in Excel and bulk-import below.</div>
+              <div class="info-box">Build a Microsoft Forms-style questionnaire. Types: Short answer, Paragraph, Number, Email, Phone, Date, Time, Single choice, Multiple choice, Dropdown, Rating (1–5), Physical Count Check. Per question: <b>Department</b> (Y/N + free text) and <b>Branching</b> (jump by answer). You can also build it in Excel and bulk-import below.</div>
               <div class="flex gap wrap" style="margin-bottom:12px">
                 <button class="btn btn-outline btn-sm" id="btnQTemplate">⬇ Excel template</button>
                 <label class="btn btn-purple btn-sm" style="cursor:pointer">⬆ Import questions<input type="file" id="btnQImport" accept=".xlsx,.xls" style="display:none"></label>
@@ -761,7 +820,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
               <div class="form-group"><label class="form-label">Options (comma separated — choice / multi / dropdown only)</label><input class="form-control" id="qOptions" placeholder="Yes,No,N/A"></div>
               <div class="grid-2" id="qRangeWrap" style="display:none"><div class="form-group"><label class="form-label">Min (Number only — blank = any number)</label><input class="form-control" id="qMin" inputmode="numeric" placeholder="e.g. 1"></div><div class="form-group"><label class="form-label">Max</label><input class="form-control" id="qMax" inputmode="numeric" placeholder="e.g. 5"></div></div>
               <label class="flex center gap" style="margin-bottom:8px"><span class="tgl"><input type="checkbox" id="qRequired"><span class="tgl-sl"></span></span><span class="small"><b>Required</b></span></label>
-              <label class="flex center gap" style="margin-bottom:10px"><span class="tgl"><input type="checkbox" id="qRemarks"><span class="tgl-sl"></span></span><span class="small"><b>Remarks box</b> — adds a free-text remarks box under this question</span></label>
+              <label class="flex center gap" style="margin-bottom:8px"><span class="tgl"><input type="checkbox" id="qRemarks"><span class="tgl-sl"></span></span><span class="small"><b>Remarks box</b> — adds a free-text remarks box under this question</span></label>
+              <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qDeptOn"><span class="tgl-sl"></span></span><span class="small"><b>Department</b> — Y/N · tag this question to an HO dept (issues from negative answers)</span></label>
+              <div class="form-group" id="qDeptWrap" style="display:none;margin-bottom:8px"><input class="form-control" id="qDept" placeholder="Department name (free text e.g. IT / Ops)"></div>
+              <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qBranchOn"><span class="tgl-sl"></span></span><span class="small"><b>Branching</b> — MS Forms style · jump by answer</span></label>
+              <div id="qBranchBox" class="branch-box" style="display:none;margin-bottom:10px"></div>
               <button class="btn btn-blue btn-sm" id="btnAddQ">+ Add question</button>
               <button class="btn btn-outline btn-sm" id="btnCancelQEdit" style="display:none;margin-left:6px">Cancel edit</button>
               <div id="openQList" style="margin-top:10px"></div>
@@ -831,6 +894,41 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
             </div>
             <div id="subTable"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- HO ISSUES (admin summary) -->
+      <div id="pg-hoissues" style="display:none">
+        <div class="kpi-grid" style="margin-bottom:14px">
+          <div class="kpi-card"><div class="kpi-v" style="color:var(--blue)" id="admHoTotal">0</div><div class="kpi-l">Total Issues</div></div>
+          <div class="kpi-card" style="background:#E8F5E9"><div class="kpi-v" style="color:#2E7D32" id="admHoDone">0</div><div class="kpi-l">Done</div></div>
+          <div class="kpi-card"><div class="kpi-v" style="color:var(--amber)" id="admHoWip">0</div><div class="kpi-l">WIP</div></div>
+          <div class="kpi-card"><div class="kpi-v" style="color:var(--text2)" id="admHoNI">0</div><div class="kpi-l">Not Initiated</div></div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-head"><span class="card-title">Filters</span></div>
+          <div class="card-body">
+            <div class="flex gap wrap" style="align-items:center">
+              <select class="form-control" id="admHoSubject" style="max-width:240px"><option value="">All subjects</option></select>
+              <input class="form-control" id="admHoDept" placeholder="Filter department…" style="max-width:180px">
+              <select class="form-control" id="admHoStatus" style="max-width:150px">
+                <option value="all">All status</option>
+                <option value="not_initiated">Not Initiated</option>
+                <option value="wip">WIP</option>
+                <option value="done">Done</option>
+              </select>
+              <button class="btn btn-sm btn-outline" id="btnAdmHoRefresh">↻ Refresh</button>
+              <button class="btn btn-sm btn-green" id="btnAdmHoXls">⬇ Export Excel</button>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-head"><span class="card-title">Issue × Dept × Store summary</span><span class="small text2" id="admHoMeta"></span></div>
+          <div class="card-body" id="admHoSummary"><div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Open this tab to load</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Issue detail</span><span class="badge badge-blue" id="admHoIssueCount">0</span></div>
+          <div class="card-body" id="admHoIssueList"></div>
         </div>
       </div>
 
@@ -1044,7 +1142,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   var db = null, auth = null;
   var camStream = null;
   var S = {
-    role: null, empcode: null, empName: null, designation: null,
+    role: null, empcode: null, empName: null, designation: null, dept: null,
     storeCode: null, storeName: null, selfie: null, gps: null, coords: null,
     config: null, subjects: [], currentSubject: null, capturedPics: [], stores: {}
   };
@@ -1054,7 +1152,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function $(id) { return document.getElementById(id); }
   function on(id, evt, fn) { var el = $(id); if (el) el.addEventListener(evt, fn); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  var SCREENS = ['scrLoading', 'scrSetup', 'scrLogin', 'scrStore', 'scrPicSubject', 'scrPicCap', 'scrDataSubject', 'scrDataForm', 'scrStoreLog', 'scrDone', 'scrReviewer', 'scrAdmin', 'scrAM', 'scrAMSubject', 'scrAMStores', 'scrAMReview'];
+  var SCREENS = ['scrLoading', 'scrSetup', 'scrLogin', 'scrStore', 'scrPicSubject', 'scrPicCap', 'scrDataSubject', 'scrDataForm', 'scrStoreLog', 'scrDone', 'scrReviewer', 'scrAdmin', 'scrAM', 'scrAMSubject', 'scrAMStores', 'scrAMReview', 'scrHO'];
   function showScreen(id) {
     stopCam();
     SCREENS.forEach(function (s) { var el = $(s); if (el) el.style.display = 'none'; });
@@ -1068,7 +1166,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function toDateStr(d) { var m = (d.getMonth() + 1), day = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day; }
   var SESSION_KEY = 'vmm_exec_sess_v8';
   function saveSession() {
-    try { localStorage.setItem(SESSION_KEY, JSON.stringify({ role: S.role, empcode: S.empcode, empName: S.empName, designation: S.designation, storeCode: S.storeCode, storeName: S.storeName, selfie: S.selfie, gps: S.gps, ts: Date.now() })); } catch (e) { }
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify({ role: S.role, empcode: S.empcode, empName: S.empName, designation: S.designation, dept: S.dept, storeCode: S.storeCode, storeName: S.storeName, selfie: S.selfie, gps: S.gps, ts: Date.now() })); } catch (e) { }
   }
   function clearSession() { try { localStorage.removeItem(SESSION_KEY); } catch (e) { } }
   function restoreSession(cb) {
@@ -1077,11 +1175,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var s; try { s = JSON.parse(raw); } catch (e) { clearSession(); cb(false); return; }
     if (!s || !s.role) { cb(false); return; }
     if (s.ts && (Date.now() - s.ts) > 14 * 3600 * 1000) { clearSession(); cb(false); return; }   // expire after 14h
-    S.role = s.role; S.empcode = s.empcode; S.empName = s.empName; S.designation = s.designation || null;
+    S.role = s.role; S.empcode = s.empcode; S.empName = s.empName; S.designation = s.designation || null; S.dept = s.dept || null;
     S.storeCode = s.storeCode || null; S.storeName = s.storeName || null; S.selfie = s.selfie || null; S.gps = s.gps || null;
     if (s.role === 'admin') { enterAdmin(); cb(true); return; }
     if (s.role === 'reviewer') { enterReviewer(); cb(true); return; }
     if (s.role === 'am') { enterAM(); cb(true); return; }
+    if (s.role === 'hosupport') { if (!S.dept) { cb(false); return; } enterHOSupport(); cb(true); return; }
     if (s.role === 'store') {
       if (!S.storeCode) { cb(false); return; }
       loader(true, 'Restoring session…');
@@ -1470,7 +1569,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   var gRole = 'STORE';
   function buildLogin() {
     pickRole('STORE');
-    $('loginCode').value = ''; $('loginName').value = ''; $('loginPass').value = ''; $('loginStore').value = '';
+    $('loginCode').value = ''; $('loginName').value = ''; $('loginPass').value = ''; $('loginStore').value = ''; if ($('loginDept')) $('loginDept').value = '';
     var d = $('loginDesig'); d.innerHTML = ''; DESIGNATIONS.forEach(function (x) { var o = document.createElement('option'); o.value = x; o.textContent = x; d.appendChild(o); });
     $('loginErr').style.display = 'none';
     $('testBanner').style.display = testMode() ? 'block' : 'none';
@@ -1479,9 +1578,10 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     gRole = r;
     var btns = document.querySelectorAll('.role-btn'); for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].getAttribute('data-role') === r);
     $('storeFieldsWrap').style.display = r === 'STORE' ? 'block' : 'none';
-    $('loginNameWrap').style.display = (r === 'STORE' || r === 'REVIEWER' || r === 'AM') ? 'block' : 'none';
+    $('loginNameWrap').style.display = (r === 'STORE' || r === 'REVIEWER' || r === 'AM' || r === 'HOSUPPORT') ? 'block' : 'none';
+    if ($('loginDeptWrap')) $('loginDeptWrap').style.display = r === 'HOSUPPORT' ? 'block' : 'none';
     $('loginPassWrap').style.display = r === 'ADMIN' ? 'block' : 'none';
-    $('loginCodeLbl').textContent = r === 'ADMIN' ? 'Enter your Admin E-Code' : (r === 'AM' ? 'Enter your AM Emp Code' : 'Enter your Emp Code');
+    $('loginCodeLbl').textContent = r === 'ADMIN' ? 'Enter your Admin E-Code' : (r === 'AM' ? 'Enter your AM Emp Code' : (r === 'HOSUPPORT' ? 'Enter your Emp Code' : 'Enter your Emp Code'));
     $('loginErr').style.display = 'none';
   }
   function lerr(m) { var e = $('loginErr'); e.textContent = m; e.style.display = 'block'; }
@@ -1514,6 +1614,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         amConsentGate(function () { openSelfie(); });
       }).catch(function (e) { loader(false); lerr('Could not verify AM code: ' + e.message); });
       return;
+    }
+    if (gRole === 'HOSUPPORT') {
+      var dept = ($('loginDept') && $('loginDept').value || '').trim();
+      if (!dept) { lerr('Enter your Department (free text — must match question tags).'); return; }
+      S.role = 'hosupport'; S.empcode = code; S.empName = name; S.dept = dept;
+      enterHOSupport(); return;
     }
     // STORE
     var sc = ($('loginStore').value || '').trim().toUpperCase();
@@ -1839,11 +1945,67 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     }
     _qCamIdx = -1; _qCamHost = null;
   }
+  /* === v26 — branching helpers (MS Forms style; no-op when branchOn unset) === */
+  function resolveBranchTarget(q, answerVal) {
+    if (!q || !q.branchOn) return 'next';
+    var hasOpts = (q.type === 'choice' || q.type === 'dropdown' || q.type === 'multi');
+    if (hasOpts && q.branches) {
+      var key = answerVal;
+      if (q.type === 'multi' && answerVal) {
+        // first matching selected option that has a branch (prefer non-next)
+        var parts = String(answerVal).split(',').map(function (s) { return s.trim(); });
+        for (var i = 0; i < parts.length; i++) { if (q.branches.hasOwnProperty(parts[i])) { key = parts[i]; break; } }
+      }
+      if (q.branches.hasOwnProperty(key)) return q.branches[key];
+      return 'next';
+    }
+    return (q.goTo != null ? q.goTo : 'next');
+  }
+  function computeVisiblePath(qs, getAnswer) {
+    // Returns ordered list of visible question indices following branch rules
+    var vis = [], seen = {}, i = 0, guard = 0;
+    if (!qs || !qs.length) return vis;
+    while (i >= 0 && i < qs.length && guard++ < qs.length + 5) {
+      if (seen[i]) break;
+      seen[i] = 1; vis.push(i);
+      var q = qs[i], ans = getAnswer(i, q);
+      var tgt = resolveBranchTarget(q, ans);
+      if (tgt === 'end') break;
+      if (tgt === 'next' || tgt == null || tgt === '') { i = i + 1; continue; }
+      var ni = Number(tgt);
+      if (isNaN(ni) || ni < 0 || ni >= qs.length) { i = i + 1; continue; }
+      i = ni;
+    }
+    return vis;
+  }
+  function readOpenAnswer(host, k, q) {
+    if (!host || !q) return '';
+    if (q.type === 'choice') { var rsel = host.querySelector('input[name="q' + k + '"]:checked'); return rsel ? rsel.value : ''; }
+    if (q.type === 'multi') { var cks = host.querySelectorAll('input[type="checkbox"][data-i="' + k + '"]:checked'), vals = []; for (var m = 0; m < cks.length; m++) vals.push(cks[m].value); return vals.join(', '); }
+    if (q.type === 'rating') { var hin = host.querySelector('.ms-stars[data-i="' + k + '"] input'); return hin ? hin.value : ''; }
+    if (q.type === 'livepic') { var ps = host.querySelector('.q-pic[data-i="' + k + '"]'); return ps && ps.getAttribute('data-val') ? 'photo' : ''; }
+    var gin = host.querySelector('.q-inp[data-i="' + k + '"]'); return gin ? gin.value : '';
+  }
+  function applyBranchVisibility(subj, host) {
+    var qs = subj.questions || [];
+    if (!qs.some(function (q) { return q && q.branchOn; })) {
+      // no branching — show all (legacy)
+      host.querySelectorAll('.ms-q[data-qi]').forEach(function (el) { el.style.display = ''; });
+      return;
+    }
+    var vis = computeVisiblePath(qs, function (i, q) { return readOpenAnswer(host, i, q); });
+    var set = {}; vis.forEach(function (i) { set[i] = 1; });
+    host.querySelectorAll('.ms-q[data-qi]').forEach(function (el) {
+      var i = Number(el.getAttribute('data-qi'));
+      el.style.display = set[i] ? '' : 'none';
+    });
+  }
   function renderOpenForm(subj, host) {
     (subj.questions || []).forEach(function (q, i) {
-      var card = document.createElement('div'); card.className = 'ms-q';
+      var card = document.createElement('div'); card.className = 'ms-q'; card.setAttribute('data-qi', i);
       var qNo = i + 1;
-      var title = '<div class="ms-q-t"><span class="qn-chip">Q' + qNo + '</span><span class="qn-txt">' + esc(q.label) + (q.required ? '<span class="ms-req">*</span>' : '') + '</span></div>';
+      var deptChip = (q.deptOn && q.dept) ? '<span class="dept-chip">' + esc(q.dept) + '</span>' : '';
+      var title = '<div class="ms-q-t"><span class="qn-chip">Q' + qNo + '</span><span class="qn-txt">' + esc(q.label) + (q.required ? '<span class="ms-req">*</span>' : '') + deptChip + '</span></div>';
       var body = '';
       if (q.type === 'text') body = '<input class="ms-in q-inp" data-i="' + i + '" placeholder="Your answer">';
       else if (q.type === 'para') body = '<textarea class="ms-in q-inp" data-i="' + i + '" placeholder="Your answer"></textarea>';
@@ -1859,12 +2021,16 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       else if (q.type === 'rating') { body = '<div class="ms-stars" data-i="' + i + '"><input type="hidden" class="q-inp" data-i="' + i + '" value="">'; for (var s = 1; s <= 5; s++) body += '<span class="ms-star" data-v="' + s + '">★</span>'; body += '</div>'; }
       else if (q.type === 'physcount') body = '<div class="fd-box" style="margin:0"><div class="fd-g"><div><div class="fd-l">System</div><div class="fd-ro">' + esc(q.sys) + '</div></div><div><div class="fd-l">Physical</div><input class="fd-i q-inp" inputmode="numeric" data-i="' + i + '" data-sys="' + esc(q.sys) + '"></div></div><div class="fd-l" style="margin-top:7px" id="pcres' + i + '">Diff – · Diff% –</div></div>';
       card.innerHTML = title + body; host.appendChild(card);
-      if (q.remarks) { var rc = document.createElement('div'); rc.className = 'ms-q'; rc.innerHTML = '<div class="ms-q-t small text2"><span class="qn-chip rem">Q' + qNo + '</span><span class="qn-txt">📝 Remarks — ' + esc(q.label) + '</span></div><textarea class="ms-in q-rem" data-i="' + i + '" placeholder="Add remarks (optional)"></textarea>'; host.appendChild(rc); }
+      if (q.remarks) { var rc = document.createElement('div'); rc.className = 'ms-q'; rc.setAttribute('data-qi', i); rc.innerHTML = '<div class="ms-q-t small text2"><span class="qn-chip rem">Q' + qNo + '</span><span class="qn-txt">📝 Remarks — ' + esc(q.label) + '</span></div><textarea class="ms-in q-rem" data-i="' + i + '" placeholder="Add remarks (optional)"></textarea>'; host.appendChild(rc); }
       if (q.type === 'livepic') { var pb = card.querySelector('.q-picbtn'); if (pb) pb.addEventListener('click', function () { openQCam(Number(this.getAttribute('data-i')), host, q.label); }); }
       if (q.type === 'number') { var ninp = card.querySelector('.q-inp'), nerr = card.querySelector('.ms-rangeerr'); if (ninp) ninp.addEventListener('input', function () { var mn = this.getAttribute('data-min'), mx = this.getAttribute('data-max'), v = this.value, num = Number(v); var bad = v !== '' && (isNaN(num) || (mn != null && num < Number(mn)) || (mx != null && num > Number(mx))); if (nerr) { nerr.style.display = bad ? 'block' : 'none'; nerr.textContent = bad ? ('Enter a number' + (mn != null && mx != null ? ' between ' + mn + ' and ' + mx : (mn != null ? ' ≥ ' + mn : ' ≤ ' + mx))) : ''; } this.style.borderColor = bad ? 'var(--red)' : ''; }); }
       if (q.type === 'physcount') { var inp = card.querySelector('.q-inp'); inp.addEventListener('input', function () { var sys = Number(this.getAttribute('data-sys')), phy = Number(this.value); var r = $('pcres' + i); if (this.value === '' || isNaN(phy)) { r.textContent = 'Diff – · Diff% –'; return; } var diff = sys - phy, shr = sys === 0 ? 0 : (diff / sys) * 100; r.textContent = 'Diff ' + diff + ' · Diff% ' + shr.toFixed(1) + '%'; }); }
-      if (q.type === 'rating') { var wrap = card.querySelector('.ms-stars'), hid = wrap.querySelector('input'); var stars = wrap.querySelectorAll('.ms-star'); for (var t = 0; t < stars.length; t++) stars[t].addEventListener('click', function () { var v = Number(this.getAttribute('data-v')); hid.value = v; for (var u = 0; u < stars.length; u++) stars[u].classList.toggle('on', Number(stars[u].getAttribute('data-v')) <= v); }); }
+      if (q.type === 'rating') { var wrap = card.querySelector('.ms-stars'), hid = wrap.querySelector('input'); var stars = wrap.querySelectorAll('.ms-star'); for (var t = 0; t < stars.length; t++) stars[t].addEventListener('click', function () { var v = Number(this.getAttribute('data-v')); hid.value = v; for (var u = 0; u < stars.length; u++) stars[u].classList.toggle('on', Number(stars[u].getAttribute('data-v')) <= v); applyBranchVisibility(subj, host); }); }
     });
+    // branch re-eval on any answer change
+    host.addEventListener('change', function () { applyBranchVisibility(subj, host); });
+    host.addEventListener('input', function () { applyBranchVisibility(subj, host); });
+    applyBranchVisibility(subj, host);
   }
   function submitData() {
     var subj = S.currentSubject, st = S.stores[S.storeCode] || {}, payload, host = $('dataFormHost');
@@ -1874,8 +2040,13 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       if (miss) { toast('Fill all physical counts'); return; } payload = { rows: out, descLabels: labels };
     } else {
       var ans = [], qs = subj.questions || [], missing = null, rangeErr = null;
+      var hasBranch = qs.some(function (q) { return q && q.branchOn; });
+      var visIdx = hasBranch ? computeVisiblePath(qs, function (i, q) { return readOpenAnswer(host, i, q); }) : qs.map(function (_, i) { return i; });
+      var visSet = {}; visIdx.forEach(function (i) { visSet[i] = 1; });
       for (var k = 0; k < qs.length; k++) {
-        var q = qs[k], entry = { label: q.label, type: q.type, required: !!q.required }, val = '';
+        if (!visSet[k]) continue;   // skipped by branching — do not require / do not save
+        var q = qs[k], entry = { label: q.label, type: q.type, required: !!q.required, qIdx: k }, val = '';
+        if (q.deptOn) { entry.deptOn = true; entry.dept = q.dept || ''; }
         if (q.type === 'choice') { var rsel = host.querySelector('input[name="q' + k + '"]:checked'); val = rsel ? rsel.value : ''; entry.value = val; }
         else if (q.type === 'multi') { var cks = host.querySelectorAll('input[type="checkbox"][data-i="' + k + '"]:checked'), vals = []; for (var m = 0; m < cks.length; m++) vals.push(cks[m].value); entry.values = vals; entry.value = vals.join(', '); val = vals.length ? 'x' : ''; }
         else if (q.type === 'rating') { var hin = host.querySelector('.ms-stars[data-i="' + k + '"] input'); val = hin ? hin.value : ''; entry.value = val; }
@@ -2180,6 +2351,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       else { var gin = host.querySelector('.q-inp[data-i="' + k + '"]'); if (gin) { gin.value = a.value != null ? a.value : ''; try { gin.dispatchEvent(new Event('input')); } catch (e) { } } }
       if (q.remarks) { var rem = host.querySelector('.q-rem[data-i="' + k + '"]'); if (rem) rem.value = a.remark || ''; }
     });
+    try { applyBranchVisibility(subj, host); } catch (e) { }
   }
   /* AM re-capture camera (pic tasks) */
   function openAMCam(i) {
@@ -2225,11 +2397,16 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     }
     amCommit('Re-Edit', '', patch);
   }
-  /* mirror of the store-side extraction, used when the AM corrects a Raw Data form */
+  /* mirror of the store-side extraction, used when the AM corrects a Raw Data form (v26: respects branching) */
   function amCollectAnswers(subj, host) {
     var ans = [], qs = subj.questions || [];
+    var hasBranch = qs.some(function (q) { return q && q.branchOn; });
+    var visIdx = hasBranch ? computeVisiblePath(qs, function (i, q) { return readOpenAnswer(host, i, q); }) : qs.map(function (_, i) { return i; });
+    var visSet = {}; visIdx.forEach(function (i) { visSet[i] = 1; });
     for (var k = 0; k < qs.length; k++) {
-      var q = qs[k], entry = { label: q.label, type: q.type, required: !!q.required }, val = '';
+      if (!visSet[k]) continue;
+      var q = qs[k], entry = { label: q.label, type: q.type, required: !!q.required, qIdx: k }, val = '';
+      if (q.deptOn) { entry.deptOn = true; entry.dept = q.dept || ''; }
       if (q.type === 'choice') { var rsel = host.querySelector('input[name="q' + k + '"]:checked'); val = rsel ? rsel.value : ''; entry.value = val; }
       else if (q.type === 'multi') { var cks = host.querySelectorAll('input[type="checkbox"][data-i="' + k + '"]:checked'), vals = []; for (var m = 0; m < cks.length; m++) vals.push(cks[m].value); entry.values = vals; entry.value = vals.join(', '); val = vals.length ? 'x' : ''; }
       else if (q.type === 'rating') { var hin = host.querySelector('.ms-stars[data-i="' + k + '"] input'); val = hin ? hin.value : ''; entry.value = val; }
@@ -2341,6 +2518,368 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
 
   /* === 8. REVIEWER === */
   function enterReviewer() { try { linkConsentIdentity('reviewer', S.empcode, S.empName, ''); } catch (e) { } saveSession(); $('revWho').textContent = S.empName + ' · ' + S.empcode; showScreen('scrReviewer'); loadReviewQueue(); }
+
+  /* === v26 — HO SUPPORT: negative-answer issues + solutions === */
+  var _hoIssues = [];
+  var _hoSolMap = {};   // solDocId -> data
+  var NEG_EXACT = { 'n':1,'no':1,'no.':1,'n/a':1,'na':1,'nil':1,'none':1,'false':1,'fail':1,'failed':1,'not working':1,'notworking':1,'not ok':1,'not okay':1,'nw':1,'negative':1,'absent':1,'missing':1,'broken':1,'inactive':1,'down':1,'unavailable':1,'closed':1,'not available':1,'does not work':1,"doesn't work":1,'dont work':1,"don't work":1 };
+  function normDept(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+  function isNegativeAnswer(val) {
+    var s = String(val == null ? '' : val).trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!s) return false;
+    if (NEG_EXACT[s]) return true;
+    if (/^no[\s,.\-\/]/.test(s)) return true;
+    if (/^not[\s\-]/.test(s)) return true;
+    if (/not\s+working/.test(s)) return true;
+    return false;
+  }
+  function hoSolId(subjectId, storeCode, qIdx) {
+    return String(subjectId || '') + '__' + String(storeCode || '') + '__q' + String(qIdx);
+  }
+  function enterHOSupport() {
+    try { linkConsentIdentity('hosupport', S.empcode, S.empName, ''); } catch (e) { }
+    saveSession();
+    if ($('hoWho')) $('hoWho').textContent = (S.empName || '') + ' · ' + (S.empcode || '') + ' · ' + (S.dept || '');
+    showScreen('scrHO');
+    populateHOSubjects();
+  }
+  function populateHOSubjects() {
+    var sel = $('hoSubject'); if (!sel) return;
+    sel.innerHTML = '<option value="">— Select subject —</option>';
+    loader(true, 'Loading subjects…');
+    db.collection('subjects').get().then(function (qs) {
+      loader(false);
+      var arr = [];
+      qs.forEach(function (d) {
+        var o = d.data(); o.id = d.id;
+        if (o.type === 'data' && o.dataMode !== 'sysphy') {
+          var qs2 = o.questions || [];
+          var has = qs2.some(function (q) { return q && q.deptOn && normDept(q.dept) === normDept(S.dept); });
+          if (has) arr.push(o);
+        }
+      });
+      arr.sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
+      arr.forEach(function (o) {
+        var opt = document.createElement('option'); opt.value = o.id; opt.textContent = (o.active === false ? '[off] ' : '') + (o.name || o.id);
+        sel.appendChild(opt);
+      });
+      if (!arr.length) toast('No questionnaires have questions tagged to dept “' + S.dept + '”');
+    }).catch(function (e) { loader(false); toast(e.message); });
+  }
+  function loadHOIssues() {
+    var sid = $('hoSubject') ? $('hoSubject').value : '';
+    if (!sid) {
+      _hoIssues = [];
+      paintHOKpis({ total:0, done:0, wip:0, ni:0 });
+      if ($('hoIssueList')) $('hoIssueList').innerHTML = '<div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Select a questionnaire to load issues</div></div>';
+      return;
+    }
+    loader(true, 'Loading dept issues…');
+    Promise.all([
+      db.collection('subjects').doc(sid).get(),
+      db.collection('submissions').where('subjectId', '==', sid).get(),
+      db.collection('hosolutions').where('subjectId', '==', sid).get()
+    ]).then(function (res) {
+      loader(false);
+      if (!res[0].exists) { toast('Subject not found'); return; }
+      var subj = res[0].data(); subj.id = sid;
+      var qs = subj.questions || [];
+      _hoSolMap = {};
+      res[2].forEach(function (d) { _hoSolMap[d.id] = d.data(); });
+      var issues = [];
+      res[1].forEach(function (d) {
+        var o = d.data(); if (o.reviewStatus === 'rejected') return;
+        (o.answers || []).forEach(function (a, ai) {
+          var qIdx = (a.qIdx != null ? a.qIdx : ai);
+          var q = qs[qIdx] || qs.find(function (x) { return x && x.label === a.label; }) || {};
+          var deptOn = !!(a.deptOn || q.deptOn);
+          var dept = a.dept || q.dept || '';
+          if (!deptOn || normDept(dept) !== normDept(S.dept)) return;
+          if (!isNegativeAnswer(a.value)) return;
+          var id = hoSolId(sid, o.storeCode, qIdx);
+          var sol = _hoSolMap[id] || null;
+          var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : 'wip');
+          issues.push({
+            id: id, subjectId: sid, subjectName: subj.name || '', storeCode: o.storeCode, storeName: o.storeName || '',
+            qIdx: qIdx, qLabel: a.label || q.label || ('Q' + (qIdx + 1)), answer: a.value, remark: a.remark || '',
+            dept: dept, status: status, sol: sol, subTs: o.ts || ''
+          });
+        });
+      });
+      issues.sort(function (a, b) { return (a.storeCode || '').localeCompare(b.storeCode || '') || (a.qIdx - b.qIdx); });
+      _hoIssues = issues;
+      paintHOIssueList();
+    }).catch(function (e) {
+      // hosolutions query may fail if collection empty / no index — retry without it
+      loader(false);
+      console.warn(e);
+      db.collection('subjects').doc(sid).get().then(function (sd) {
+        if (!sd.exists) { toast('Subject not found'); return; }
+        var subj = sd.data(); subj.id = sid;
+        db.collection('submissions').where('subjectId', '==', sid).get().then(function (qs) {
+          _hoSolMap = {};
+          // load all solutions for subject via get of known ids later; try full collection scan limited
+          db.collection('hosolutions').get().then(function (all) {
+            all.forEach(function (d) { var o = d.data(); if (o.subjectId === sid) _hoSolMap[d.id] = o; });
+            finishHOBuild(subj, qs);
+          }).catch(function () { finishHOBuild(subj, qs); });
+        });
+      }).catch(function (e2) { toast(e2.message); });
+    });
+  }
+  function finishHOBuild(subj, qsSnap) {
+    var qs = subj.questions || [], issues = [], sid = subj.id;
+    qsSnap.forEach(function (d) {
+      var o = d.data(); if (o.reviewStatus === 'rejected') return;
+      (o.answers || []).forEach(function (a, ai) {
+        var qIdx = (a.qIdx != null ? a.qIdx : ai);
+        var q = qs[qIdx] || {};
+        var deptOn = !!(a.deptOn || q.deptOn);
+        var dept = a.dept || q.dept || '';
+        if (!deptOn || normDept(dept) !== normDept(S.dept)) return;
+        if (!isNegativeAnswer(a.value)) return;
+        var id = hoSolId(sid, o.storeCode, qIdx);
+        var sol = _hoSolMap[id] || null;
+        var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : 'wip');
+        issues.push({ id: id, subjectId: sid, subjectName: subj.name || '', storeCode: o.storeCode, storeName: o.storeName || '', qIdx: qIdx, qLabel: a.label || q.label || ('Q' + (qIdx + 1)), answer: a.value, remark: a.remark || '', dept: dept, status: status, sol: sol, subTs: o.ts || '' });
+      });
+    });
+    issues.sort(function (a, b) { return (a.storeCode || '').localeCompare(b.storeCode || '') || (a.qIdx - b.qIdx); });
+    _hoIssues = issues; paintHOIssueList();
+  }
+  function paintHOKpis(c) {
+    if ($('hoKpiTotal')) $('hoKpiTotal').textContent = c.total;
+    if ($('hoKpiDone')) $('hoKpiDone').textContent = c.done;
+    if ($('hoKpiWip')) $('hoKpiWip').textContent = c.wip;
+    if ($('hoKpiNI')) $('hoKpiNI').textContent = c.ni;
+  }
+  function paintHOIssueList() {
+    var stf = ($('hoStatusFilter') && $('hoStatusFilter').value) || 'all';
+    var list = _hoIssues.filter(function (x) { return stf === 'all' || x.status === stf; });
+    var c = { total: _hoIssues.length, done: 0, wip: 0, ni: 0 };
+    _hoIssues.forEach(function (x) { if (x.status === 'done') c.done++; else if (x.status === 'wip') c.wip++; else c.ni++; });
+    paintHOKpis(c);
+    if ($('hoIssueCount')) $('hoIssueCount').textContent = list.length;
+    var box = $('hoIssueList'); if (!box) return;
+    if (!list.length) { box.innerHTML = '<div class="empty"><div class="empty-i">✅</div><div class="empty-t">No issues for this filter</div></div>'; return; }
+    box.innerHTML = '';
+    list.forEach(function (iss) {
+      var card = document.createElement('div'); card.className = 'q-card'; card.style.marginBottom = '10px';
+      var badge = iss.status === 'done' ? '<span class="badge badge-green">Done</span>' : (iss.status === 'wip' ? '<span class="badge badge-amber">WIP</span>' : '<span class="badge badge-gray">Not Initiated</span>');
+      var linesHtml = '';
+      var lines = (iss.sol && iss.sol.lines) ? iss.sol.lines : [];
+      lines.forEach(function (ln, li) {
+        var ext = !!ln.extended;
+        linesHtml += '<div class="ho-line' + (ext ? ' ext' : '') + (iss.status === 'done' && li === lines.length - 1 ? ' done' : '') + '">' +
+          '<div' + (ext ? ' class="ho-ext"' : '') + '><b>By ' + esc(ln.byDate || '—') + '</b> — ' + esc(ln.solution || '') + (ext ? ' <span class="ho-ext">(date extended)</span>' : '') + '</div>' +
+          '<div class="small text3">' + esc(ln.byName || '') + ' · ' + esc(ln.byEmp || '') + (ln.ts ? ' · ' + new Date(ln.ts).toLocaleString() : '') + '</div></div>';
+      });
+      card.innerHTML = '<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px">' +
+        '<div style="flex:1"><div style="font-weight:800">' + esc(iss.storeCode) + (iss.storeName ? ' · ' + esc(iss.storeName) : '') + '</div>' +
+        '<div class="small text2">Q' + (iss.qIdx + 1) + '. ' + esc(iss.qLabel) + '</div>' +
+        '<div class="small" style="color:var(--red);font-weight:700">Answer: ' + esc(iss.answer) + '</div>' +
+        (iss.remark ? '<div class="small text3">📝 ' + esc(iss.remark) + '</div>' : '') +
+        '</div>' + badge + '</div>' +
+        (linesHtml ? '<div style="margin-bottom:8px">' + linesHtml + '</div>' : '') +
+        (iss.status !== 'done' ? (
+          '<div class="grid-2" style="margin-bottom:6px">' +
+          '<div class="form-group" style="margin:0"><label class="form-label">Solution by date</label><input class="form-control ho-date" type="date" data-id="' + esc(iss.id) + '"></div>' +
+          '<div class="form-group" style="margin:0"><label class="form-label">Solution</label><input class="form-control ho-sol" data-id="' + esc(iss.id) + '" placeholder="What will be done"></div>' +
+          '</div>' +
+          '<div class="flex gap wrap">' +
+          '<button class="btn btn-sm btn-blue ho-add" data-id="' + esc(iss.id) + '">+ Add / Update line</button>' +
+          '<button class="btn btn-sm btn-green ho-done" data-id="' + esc(iss.id) + '">Mark Done</button>' +
+          '</div>'
+        ) : '<div class="small text3">Issue closed. Add a new questionnaire cycle for fresh issues.</div>');
+      box.appendChild(card);
+    });
+    box.querySelectorAll('.ho-add').forEach(function (b) { b.addEventListener('click', function () { hoAddLine(this.getAttribute('data-id'), false); }); });
+    box.querySelectorAll('.ho-done').forEach(function (b) { b.addEventListener('click', function () { hoMarkDone(this.getAttribute('data-id')); }); });
+  }
+  function hoFindIssue(id) { for (var i = 0; i < _hoIssues.length; i++) if (_hoIssues[i].id === id) return _hoIssues[i]; return null; }
+  function hoAddLine(id, forceDone) {
+    var iss = hoFindIssue(id); if (!iss) return;
+    var dateEl = document.querySelector('.ho-date[data-id="' + id + '"]');
+    var solEl = document.querySelector('.ho-sol[data-id="' + id + '"]');
+    var byDate = dateEl ? dateEl.value : '';
+    var solution = solEl ? (solEl.value || '').trim() : '';
+    if (!byDate) { toast('Pick solution-by date'); return; }
+    if (!solution) { toast('Enter solution details'); return; }
+    var lines = (iss.sol && iss.sol.lines) ? iss.sol.lines.slice() : [];
+    var extended = false;
+    if (lines.length) {
+      var prev = lines[lines.length - 1].byDate || '';
+      if (prev && byDate > prev) extended = true;
+      else if (prev && byDate !== prev) extended = true; // any date change after first line = extension
+      if (lines.length >= 1) extended = true; // subsequent lines always marked as extension updates
+    }
+    // First line: not extended. Additional lines: extended (date extending).
+    extended = lines.length >= 1;
+    lines.push({ byDate: byDate, solution: solution, byEmp: S.empcode, byName: S.empName, ts: nowISO(), extended: extended });
+    var doc = {
+      subjectId: iss.subjectId, subjectName: iss.subjectName, storeCode: iss.storeCode, storeName: iss.storeName,
+      qIdx: iss.qIdx, qLabel: iss.qLabel, dept: iss.dept, answerValue: iss.answer,
+      status: forceDone ? 'done' : 'wip', lines: lines, updatedAt: nowISO(), updatedBy: S.empcode
+    };
+    loader(true, 'Saving…');
+    db.collection('hosolutions').doc(id).set(doc, { merge: true }).then(function () {
+      loader(false); toast(forceDone ? 'Marked done' : (extended ? 'Extension line added (shown in red)' : 'Solution saved'));
+      loadHOIssues();
+    }).catch(function (e) { loader(false); toast(e.message); });
+  }
+  function hoMarkDone(id) {
+    var iss = hoFindIssue(id); if (!iss) return;
+    var dateEl = document.querySelector('.ho-date[data-id="' + id + '"]');
+    var solEl = document.querySelector('.ho-sol[data-id="' + id + '"]');
+    var byDate = dateEl ? dateEl.value : '';
+    var solution = solEl ? (solEl.value || '').trim() : '';
+    if (byDate && solution) { hoAddLine(id, true); return; }
+    // mark done without new line if history exists
+    if (!(iss.sol && iss.sol.lines && iss.sol.lines.length)) { toast('Add a solution line before marking done'); return; }
+    loader(true, 'Saving…');
+    db.collection('hosolutions').doc(id).set({ status: 'done', updatedAt: nowISO(), updatedBy: S.empcode }, { merge: true }).then(function () {
+      loader(false); toast('Marked done'); loadHOIssues();
+    }).catch(function (e) { loader(false); toast(e.message); });
+  }
+
+  /* === Admin HO Issues summary (all depts) === */
+  var _admHoIssues = [];
+  function renderAdminHOIssues() {
+    loader(true, 'Loading HO issues…');
+    Promise.all([
+      db.collection('subjects').get(),
+      db.collection('submissions').where('type', '==', 'data').get(),
+      db.collection('hosolutions').get()
+    ]).then(function (res) {
+      loader(false);
+      var subjMap = {}; res[0].forEach(function (d) { var o = d.data(); o.id = d.id; subjMap[d.id] = o; });
+      var solMap = {}; res[2].forEach(function (d) { solMap[d.id] = d.data(); });
+      var issues = [];
+      res[1].forEach(function (d) {
+        var o = d.data(); if (o.reviewStatus === 'rejected') return;
+        var subj = subjMap[o.subjectId] || {};
+        var qs = subj.questions || [];
+        (o.answers || []).forEach(function (a, ai) {
+          var qIdx = (a.qIdx != null ? a.qIdx : ai);
+          var q = qs[qIdx] || qs.find(function (x) { return x && x.label === a.label; }) || {};
+          var deptOn = !!(a.deptOn || q.deptOn);
+          var dept = a.dept || q.dept || '';
+          if (!deptOn || !dept) return;
+          if (!isNegativeAnswer(a.value)) return;
+          var id = hoSolId(o.subjectId, o.storeCode, qIdx);
+          var sol = solMap[id] || null;
+          var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : 'wip');
+          issues.push({
+            id: id, subjectId: o.subjectId, subjectName: o.subjectName || subj.name || '', storeCode: o.storeCode, storeName: o.storeName || '',
+            qIdx: qIdx, qLabel: a.label || q.label || ('Q' + (qIdx + 1)), answer: a.value, dept: dept, status: status, sol: sol
+          });
+        });
+      });
+      _admHoIssues = issues;
+      // populate subject filter
+      var sel = $('admHoSubject'); if (sel) {
+        var cur = sel.value, seen = {};
+        sel.innerHTML = '<option value="">All subjects</option>';
+        issues.forEach(function (x) { if (!seen[x.subjectId]) { seen[x.subjectId] = 1; var opt = document.createElement('option'); opt.value = x.subjectId; opt.textContent = x.subjectName || x.subjectId; sel.appendChild(opt); } });
+        if (cur) sel.value = cur;
+      }
+      paintAdminHO();
+    }).catch(function (e) {
+      // fallback without typed query
+      loader(false);
+      toast('Load note: ' + e.message);
+      db.collection('subjects').get().then(function (s1) {
+        db.collection('submissions').get().then(function (s2) {
+          db.collection('hosolutions').get().then(function (s3) {
+            var fake = [s1, { forEach: function (fn) { s2.forEach(function (d) { var o = d.data(); if (o.type === 'data') fn(d); }); } }, s3];
+            // rebuild inline
+            var subjMap = {}; s1.forEach(function (d) { var o = d.data(); o.id = d.id; subjMap[d.id] = o; });
+            var solMap = {}; s3.forEach(function (d) { solMap[d.id] = d.data(); });
+            var issues = [];
+            s2.forEach(function (d) {
+              var o = d.data(); if (o.type !== 'data' || o.reviewStatus === 'rejected') return;
+              var subj = subjMap[o.subjectId] || {}; var qs = subj.questions || [];
+              (o.answers || []).forEach(function (a, ai) {
+                var qIdx = (a.qIdx != null ? a.qIdx : ai); var q = qs[qIdx] || {};
+                var deptOn = !!(a.deptOn || q.deptOn); var dept = a.dept || q.dept || '';
+                if (!deptOn || !dept || !isNegativeAnswer(a.value)) return;
+                var id = hoSolId(o.subjectId, o.storeCode, qIdx); var sol = solMap[id] || null;
+                var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : 'wip');
+                issues.push({ id: id, subjectId: o.subjectId, subjectName: o.subjectName || subj.name || '', storeCode: o.storeCode, storeName: o.storeName || '', qIdx: qIdx, qLabel: a.label || q.label || '', answer: a.value, dept: dept, status: status, sol: sol });
+              });
+            });
+            _admHoIssues = issues; paintAdminHO();
+          }).catch(function () { _admHoIssues = []; paintAdminHO(); });
+        });
+      });
+    });
+  }
+  function admHoFiltered() {
+    var sid = ($('admHoSubject') && $('admHoSubject').value) || '';
+    var dept = normDept(($('admHoDept') && $('admHoDept').value) || '');
+    var st = ($('admHoStatus') && $('admHoStatus').value) || 'all';
+    return _admHoIssues.filter(function (x) {
+      if (sid && x.subjectId !== sid) return false;
+      if (dept && normDept(x.dept).indexOf(dept) < 0) return false;
+      if (st !== 'all' && x.status !== st) return false;
+      return true;
+    });
+  }
+  function paintAdminHO() {
+    var list = admHoFiltered();
+    var c = { total: list.length, done: 0, wip: 0, ni: 0 };
+    list.forEach(function (x) { if (x.status === 'done') c.done++; else if (x.status === 'wip') c.wip++; else c.ni++; });
+    if ($('admHoTotal')) $('admHoTotal').textContent = c.total;
+    if ($('admHoDone')) $('admHoDone').textContent = c.done;
+    if ($('admHoWip')) $('admHoWip').textContent = c.wip;
+    if ($('admHoNI')) $('admHoNI').textContent = c.ni;
+    if ($('admHoIssueCount')) $('admHoIssueCount').textContent = list.length;
+    if ($('admHoMeta')) $('admHoMeta').textContent = list.length + ' issue(s)';
+    // summary by issue(question) x dept
+    var map = {};
+    list.forEach(function (x) {
+      var key = (x.subjectName || '') + '||' + (x.qLabel || '') + '||' + (x.dept || '');
+      if (!map[key]) map[key] = { subject: x.subjectName, q: x.qLabel, dept: x.dept, stores: {}, done: 0, wip: 0, ni: 0 };
+      map[key].stores[x.storeCode] = 1;
+      if (x.status === 'done') map[key].done++; else if (x.status === 'wip') map[key].wip++; else map[key].ni++;
+    });
+    var rows = Object.keys(map).map(function (k) { return map[k]; });
+    rows.sort(function (a, b) { return (a.dept || '').localeCompare(b.dept || '') || (a.q || '').localeCompare(b.q || ''); });
+    var sum = $('admHoSummary');
+    if (sum) {
+      if (!rows.length) sum.innerHTML = '<div class="empty"><div class="empty-i">🏢</div><div class="empty-t">No dept-tagged negative issues yet</div></div>';
+      else {
+        var h = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Dept</th><th>Issue (question)</th><th>Subject</th><th>Stores</th><th>Done</th><th>WIP</th><th>Not Initiated</th></tr></thead><tbody>';
+        rows.forEach(function (r) {
+          h += '<tr><td><b>' + esc(r.dept) + '</b></td><td>' + esc(r.q) + '</td><td>' + esc(r.subject) + '</td><td>' + Object.keys(r.stores).length + '</td><td style="color:#2E7D32;font-weight:700">' + r.done + '</td><td style="color:var(--amber);font-weight:700">' + r.wip + '</td><td>' + r.ni + '</td></tr>';
+        });
+        h += '</tbody></table></div>';
+        sum.innerHTML = h;
+      }
+    }
+    var box = $('admHoIssueList'); if (!box) return;
+    if (!list.length) { box.innerHTML = '<div class="empty"><div class="empty-i">✅</div><div class="empty-t">No matching issues</div></div>'; return; }
+    var h2 = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Store</th><th>Dept</th><th>Question</th><th>Answer</th><th>Status</th><th>Latest solution</th><th>By date</th></tr></thead><tbody>';
+    list.slice(0, 500).forEach(function (x) {
+      var last = (x.sol && x.sol.lines && x.sol.lines.length) ? x.sol.lines[x.sol.lines.length - 1] : null;
+      var stBadge = x.status === 'done' ? '<span class="badge badge-green">Done</span>' : (x.status === 'wip' ? '<span class="badge badge-amber">WIP</span>' : '<span class="badge badge-gray">Not Initiated</span>');
+      var solTxt = last ? esc(last.solution || '') : '—';
+      var dateTxt = last ? ('<span' + (last.extended ? ' class="ho-ext"' : '') + '>' + esc(last.byDate || '') + (last.extended ? ' (ext)' : '') + '</span>') : '—';
+      h2 += '<tr><td class="mono">' + esc(x.storeCode) + '</td><td>' + esc(x.dept) + '</td><td>' + esc(x.qLabel) + '</td><td style="color:var(--red)">' + esc(x.answer) + '</td><td>' + stBadge + '</td><td>' + solTxt + '</td><td>' + dateTxt + '</td></tr>';
+    });
+    h2 += '</tbody></table></div>';
+    box.innerHTML = h2;
+  }
+  function exportAdmHoXls() {
+    var list = admHoFiltered(); if (!list.length) { toast('Nothing to export'); return; }
+    var aoa = [['Dept', 'Subject', 'Store', 'Store Name', 'Q#', 'Question', 'Answer', 'Status', 'Solution', 'By Date', 'Extended', 'Updated By']];
+    list.forEach(function (x) {
+      var last = (x.sol && x.sol.lines && x.sol.lines.length) ? x.sol.lines[x.sol.lines.length - 1] : null;
+      aoa.push([x.dept, x.subjectName, x.storeCode, x.storeName, x.qIdx + 1, x.qLabel, x.answer, x.status, last ? last.solution : '', last ? last.byDate : '', last && last.extended ? 'Y' : '', last ? last.byName : '']);
+    });
+    var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'HO_Issues'); XLSX.writeFile(wb, 'HO_Issues_' + toDateStr(new Date()) + '.xlsx');
+  }
+
   function loadReviewQueue() {
     loader(true, 'Loading queue…');
     db.collection('submissions').where('type', '==', 'pic').where('reviewStatus', '==', 'pending').get().then(function (qs) {
@@ -2372,9 +2911,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   /* === 9. ADMIN === */
   function enterAdmin() { try { linkConsentIdentity('admin', S.empcode, S.empName, ''); } catch (e) { } saveSession(); $('sbName').textContent = S.empName; showScreen('scrAdmin'); adminNav('dash'); }
   function adminNav(page) {
-    var pages = ['subjects', 'reviewers', 'email', 'stores', 'subs', 'dash', 'amview', 'consent', 'settings'];
+    var pages = ['subjects', 'reviewers', 'email', 'stores', 'subs', 'dash', 'hoissues', 'amview', 'consent', 'settings'];
     pages.forEach(function (p) { var pg = $('pg-' + p), nv = $('nav-' + p); if (pg) pg.style.display = p === page ? 'block' : 'none'; if (nv) nv.classList.toggle('active', p === page); });
-    var titles = { subjects: 'Subjects', reviewers: 'Reviewers', email: 'Email & Test Mode', stores: 'Store Master', subs: 'All Submissions', dash: 'Dashboard', amview: 'AM View', consent: 'Consent Log', settings: 'Settings' };
+    var titles = { subjects: 'Subjects', reviewers: 'Reviewers', email: 'Email & Test Mode', stores: 'Store Master', subs: 'All Submissions', dash: 'Dashboard', hoissues: 'HO Issues', amview: 'AM View', consent: 'Consent Log', settings: 'Settings' };
     $('admTitle').textContent = titles[page] || '';
     if ($('sidebar')) $('sidebar').classList.remove('open');
     if (page === 'subjects') renderAdminSubjects();
@@ -2383,6 +2922,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (page === 'stores') renderStoresTab();
     if (page === 'subs') renderSubmissions();
     if (page === 'dash') renderDashboard();
+    if (page === 'hoissues') renderAdminHOIssues();
     if (page === 'amview') renderAMViewTab();
     if (page === 'consent') loadConsentLog();
     if (page === 'settings') renderSettings();
@@ -2576,6 +3116,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       if (!_picShots.length) _picShots = [{ label: '', sample: '', note: '' }];
       renderShotRows();
       $('newGuidelines').value = (o.guidelines || []).join('\n');
+      if ($('picDeptOn')) { $('picDeptOn').checked = !!o.deptOn; }
+      if ($('picDept')) { $('picDept').value = o.dept || ''; $('picDept').style.display = o.deptOn ? 'block' : 'none'; }
     } else {
       $('newDataMode').value = o.dataMode || 'open'; toggleDataMode();
       if (o.dataMode === 'sysphy') { _hoData = o.hoData || null; _hoDescLabels = o.descLabels || []; if (_hoData) $('hoStatus').textContent = 'Editing: ' + Object.keys(_hoData).length + ' store(s) loaded (re-upload to replace).'; }
@@ -2600,6 +3142,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     _editId = null; _picShots = [{ label: '', sample: '', note: '' }]; _activeShot = 0; _openQs = []; _hoData = null; _hoDescLabels = null; _scopeStores = null;
     $('newSubjName').value = ''; $('newGuidelines').value = '';
     if ($('newStartDate')) $('newStartDate').value = ''; if ($('newStartTime')) $('newStartTime').value = '';
+    if ($('picDeptOn')) $('picDeptOn').checked = false; if ($('picDept')) { $('picDept').value = ''; $('picDept').style.display = 'none'; }
     $('scopeToggle').checked = false; toggleScope(); renderShotRows(); clearQForm(); renderOpenQs(); $('hoStatus').textContent = '';
     if ($('amValToggle')) { $('amValToggle').checked = true; try { $('amValToggle').dispatchEvent(new Event('change')); } catch (e) { } }
     var sv = $('btnSaveSubject'); if (sv) sv.textContent = 'Save Subject';
@@ -2667,10 +3210,74 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   var _openQs = [];
   var _editQIdx = -1;   // index in _openQs currently being edited (-1 = adding new)
-  function updateQTypeUI() { var t = $('qType') ? $('qType').value : ''; if ($('qRangeWrap')) $('qRangeWrap').style.display = (t === 'number') ? 'block' : 'none'; }
+  function updateQTypeUI() {
+    var t = $('qType') ? $('qType').value : '';
+    if ($('qRangeWrap')) $('qRangeWrap').style.display = (t === 'number') ? 'block' : 'none';
+    renderBranchUI();
+  }
+  function toggleQDeptUI() {
+    var on = $('qDeptOn') && $('qDeptOn').checked;
+    if ($('qDeptWrap')) $('qDeptWrap').style.display = on ? 'block' : 'none';
+  }
+  function toggleQBranchUI() {
+    var on = $('qBranchOn') && $('qBranchOn').checked;
+    if ($('qBranchBox')) $('qBranchBox').style.display = on ? 'block' : 'none';
+    if (on) renderBranchUI();
+  }
+  function branchTargetOpts(excludeIdx, selected) {
+    var h = '<option value="next"' + (selected === 'next' || selected == null || selected === '' ? ' selected' : '') + '>Next question</option>';
+    h += '<option value="end"' + (selected === 'end' ? ' selected' : '') + '>End of form</option>';
+    for (var i = 0; i < _openQs.length; i++) {
+      if (i === excludeIdx) continue;
+      var sel = (String(selected) === String(i)) ? ' selected' : '';
+      h += '<option value="' + i + '"' + sel + '>Q' + (i + 1) + '. ' + esc((_openQs[i].label || '').slice(0, 40)) + '</option>';
+    }
+    return h;
+  }
+  function renderBranchUI() {
+    var box = $('qBranchBox'); if (!box) return;
+    if (!($('qBranchOn') && $('qBranchOn').checked)) { box.style.display = 'none'; return; }
+    box.style.display = 'block';
+    var ty = $('qType') ? $('qType').value : '';
+    var excl = _editQIdx > -1 ? _editQIdx : _openQs.length;
+    var hasOpts = (ty === 'choice' || ty === 'dropdown' || ty === 'multi');
+    var opts = ($('qOptions').value || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    var existing = (_editQIdx > -1 && _openQs[_editQIdx]) ? (_openQs[_editQIdx].branches || {}) : {};
+    var goTo = (_editQIdx > -1 && _openQs[_editQIdx]) ? _openQs[_editQIdx].goTo : 'next';
+    var h = '<div class="small text2" style="margin-bottom:8px">Like Microsoft Forms: for each answer, choose where to go next.</div>';
+    if (hasOpts && opts.length) {
+      opts.forEach(function (o) {
+        var cur = existing.hasOwnProperty(o) ? existing[o] : 'next';
+        h += '<div class="branch-row"><span class="br-opt">' + esc(o) + '</span><select class="form-control br-sel" data-opt="' + esc(o) + '" style="max-width:260px">' + branchTargetOpts(excl, cur) + '</select></div>';
+      });
+    } else {
+      h += '<div class="branch-row"><span class="br-opt">After answer</span><select class="form-control" id="qGoTo" style="max-width:260px">' + branchTargetOpts(excl, goTo) + '</select></div>';
+    }
+    box.innerHTML = h;
+  }
+  function readBranchFromUI(ty) {
+    var out = { branchOn: !!( $('qBranchOn') && $('qBranchOn').checked ) };
+    if (!out.branchOn) return out;
+    var hasOpts = (ty === 'choice' || ty === 'dropdown' || ty === 'multi');
+    if (hasOpts) {
+      var branches = {}, sels = document.querySelectorAll('#qBranchBox .br-sel');
+      for (var i = 0; i < sels.length; i++) {
+        var opt = sels[i].getAttribute('data-opt'), v = sels[i].value;
+        branches[opt] = (v === 'next' || v === 'end') ? v : Number(v);
+      }
+      out.branches = branches;
+    } else {
+      var g = $('qGoTo'); var v = g ? g.value : 'next';
+      out.goTo = (v === 'next' || v === 'end') ? v : Number(v);
+    }
+    return out;
+  }
   function clearQForm() {
     $('qLabel').value = ''; $('qOptions').value = ''; $('qSys').value = ''; $('qRequired').checked = false;
     if ($('qMin')) $('qMin').value = ''; if ($('qMax')) $('qMax').value = ''; if ($('qRemarks')) $('qRemarks').checked = false;
+    if ($('qDeptOn')) $('qDeptOn').checked = false; if ($('qDept')) $('qDept').value = '';
+    if ($('qBranchOn')) $('qBranchOn').checked = false;
+    toggleQDeptUI(); toggleQBranchUI();
     _editQIdx = -1; if ($('btnAddQ')) $('btnAddQ').textContent = '+ Add question'; if ($('btnCancelQEdit')) $('btnCancelQEdit').style.display = 'none';
   }
   function readNum(id) { var el = $(id); if (!el) return null; var v = (el.value || '').trim(); if (v === '' || isNaN(Number(v))) return null; return Number(v); }
@@ -2680,6 +3287,13 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ((ty === 'choice' || ty === 'multi' || ty === 'dropdown') && opts.length < 2) { toast('Add at least 2 options (comma separated)'); return; }
     var q = { type: ty, label: lbl, options: opts, sys: $('qSys').value || 0, required: $('qRequired').checked, remarks: !!($('qRemarks') && $('qRemarks').checked) };
     if (ty === 'number') { var mn = readNum('qMin'), mx = readNum('qMax'); if (mn != null && mx != null && mn > mx) { toast('Min cannot be greater than Max'); return; } if (mn != null) q.min = mn; if (mx != null) q.max = mx; }
+    q.deptOn = !!( $('qDeptOn') && $('qDeptOn').checked );
+    q.dept = q.deptOn ? (($('qDept') && $('qDept').value) || '').trim() : '';
+    if (q.deptOn && !q.dept) { toast('Enter department name (or turn Department off)'); return; }
+    var br = readBranchFromUI(ty);
+    q.branchOn = !!br.branchOn;
+    if (br.branches) q.branches = br.branches; else delete q.branches;
+    if (br.goTo != null) q.goTo = br.goTo; else delete q.goTo;
     if (_editQIdx > -1 && _openQs[_editQIdx]) _openQs[_editQIdx] = q; else _openQs.push(q);
     clearQForm(); renderOpenQs();
   }
@@ -2689,6 +3303,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     $('qLabel').value = q.label || ''; $('qOptions').value = (q.options || []).join(','); $('qSys').value = q.sys || '';
     $('qRequired').checked = !!q.required; if ($('qRemarks')) $('qRemarks').checked = !!q.remarks;
     if ($('qMin')) $('qMin').value = (q.min != null ? q.min : ''); if ($('qMax')) $('qMax').value = (q.max != null ? q.max : '');
+    if ($('qDeptOn')) $('qDeptOn').checked = !!q.deptOn; if ($('qDept')) $('qDept').value = q.dept || '';
+    if ($('qBranchOn')) $('qBranchOn').checked = !!q.branchOn;
+    toggleQDeptUI(); toggleQBranchUI();
     if ($('btnAddQ')) $('btnAddQ').textContent = '✓ Update question'; if ($('btnCancelQEdit')) $('btnCancelQEdit').style.display = 'inline-block';
     var lb = $('qLabel'); if (lb && lb.scrollIntoView) lb.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -2706,7 +3323,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var box = $('openQList'); box.innerHTML = '';
     _openQs.forEach(function (q, i) {
       var hasOpts = (q.type === 'choice' || q.type === 'multi' || q.type === 'dropdown');
-      var sub = esc(q.type) + (hasOpts ? ' · ' + esc((q.options || []).join(', ')) : '') + (q.type === 'physcount' ? ' · Sys ' + esc(q.sys) : '') + (q.type === 'number' ? esc(rangeTxt(q)) : '') + (q.remarks ? ' · 📝 remarks' : '');
+      var sub = esc(q.type) + (hasOpts ? ' · ' + esc((q.options || []).join(', ')) : '') + (q.type === 'physcount' ? ' · Sys ' + esc(q.sys) : '') + (q.type === 'number' ? esc(rangeTxt(q)) : '') + (q.remarks ? ' · 📝 remarks' : '') + (q.deptOn ? ' · 🏢 ' + esc(q.dept || '') : '') + (q.branchOn ? ' · ⑂ branch' : '');
       var d = document.createElement('div'); d.className = 'lrow' + (i === _editQIdx ? ' editing' : '');
       var mv = '<div class="qmove"><button type="button" data-up="' + i + '" title="Move up"' + (i === 0 ? ' disabled' : '') + '>▲</button><button type="button" data-dn="' + i + '" title="Move down"' + (i === _openQs.length - 1 ? ' disabled' : '') + '>▼</button></div>';
       d.innerHTML = '<div class="linfo"><div class="lname">Q' + (i + 1) + '. ' + esc(q.label) + (q.required ? ' <span style="color:var(--red)">*</span>' : '') + '</div><div class="lsub">' + sub + '</div></div><div class="lactions">' + mv + '<button class="btn btn-xs btn-blue" data-ed="' + i + '">Edit</button><button class="btn btn-xs btn-red" data-i="' + i + '">×</button></div>';
@@ -2722,9 +3339,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function normType(s) { return (s == null ? '' : s).toString().trim().toLowerCase().replace(/[_\-]+/g, ' ').replace(/\s+/g, ' '); }
   function resolveType(raw) { var k = normType(raw); if (TYPE_ALIASES[k]) return TYPE_ALIASES[k]; var k2 = k.replace(/\s+/g, ''); for (var a in TYPE_ALIASES) { if (TYPE_ALIASES.hasOwnProperty(a) && TYPE_ALIASES[a] && a.replace(/\s+/g, '') === k2) return TYPE_ALIASES[a]; } return null; }
   function dlOpenTemplate() {
-    var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty'],
-      ['Short answer', 'Store Manager name', '', 'Y', 'N', '', '', ''],
-      ['Single choice', 'Is the display set as per planogram?', 'Yes,No,Partially', 'Y', 'N', '', '', ''],
+    var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department'],
+      ['Short answer', 'Store Manager name', '', 'Y', 'N', '', '', '', 'N', ''],
+      ['Single choice', 'Is the display set as per planogram?', 'Yes,No,Partially', 'Y', 'N', '', '', '', 'Y', 'Ops'],
       ['Multiple choice', 'Which sizes are short?', 'S,M,L,XL,XXL', 'N', 'Y', '', '', ''],
       ['Dropdown', 'Zone', 'North,South,East,West', 'N', 'N', '', '', ''],
       ['Number', 'Rate cleanliness (1-5)', '', 'Y', 'N', '1', '5', ''],
@@ -2744,7 +3361,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         if (!rows.length) { loader(false); toast('Empty file'); return; }
         var H = rows[0].map(function (x) { return (x == null ? '' : x).toString(); });
         var cType = findCol(H, [/^type$/]), cLbl = findCol(H, [/^label$/, /question/]), cOpt = findCol(H, [/option/]),
-          cReq = findCol(H, [/required/]), cRem = findCol(H, [/remark/]), cMin = findCol(H, [/^min/]), cMax = findCol(H, [/^max/]), cSys = findCol(H, [/sys/]);
+          cReq = findCol(H, [/required/]), cRem = findCol(H, [/remark/]), cMin = findCol(H, [/^min/]), cMax = findCol(H, [/^max/]), cSys = findCol(H, [/sys/]),
+          cDeptOn = findCol(H, [/^dept\s*\(y\/n\)$/, /^dept\s*y/, /department\s*\(y/]), cDept = findCol(H, [/^department$/, /^dept$/]);
         if (cType < 0) { cType = 0; cLbl = 1; cOpt = 2; cReq = 3; cSys = 4; }  // legacy positional fallback
         function cell(row, idx) { return idx > -1 && row[idx] != null ? row[idx].toString() : ''; }
         var yes = function (v) { return /^y(es)?$|^true$|^1$/i.test((v || '').trim()); };
@@ -2756,6 +3374,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           if ((ty === 'choice' || ty === 'multi' || ty === 'dropdown') && opts.length < 2) { bad++; continue; }
           var q = { type: ty, label: lbl, options: opts, sys: cell(rows[i], cSys) || 0, required: yes(cell(rows[i], cReq)), remarks: yes(cell(rows[i], cRem)) };
           if (ty === 'number') { var mn = cell(rows[i], cMin).trim(), mx = cell(rows[i], cMax).trim(); if (mn !== '' && !isNaN(Number(mn))) q.min = Number(mn); if (mx !== '' && !isNaN(Number(mx))) q.max = Number(mx); }
+          q.deptOn = yes(cell(rows[i], cDeptOn)); q.dept = q.deptOn ? cell(rows[i], cDept).trim() : '';
+          if (q.deptOn && !q.dept && cDept < 0) q.dept = '';
           _openQs.push(q); added++;
         }
         var bt = Object.keys(badTypes); loader(false); renderOpenQs(); toast('Imported ' + added + ' question(s)' + (bad ? ', ' + bad + ' skipped' : '') + (bt.length ? ' — unknown type(s): ' + bt.join(', ') : ''));
@@ -2765,8 +3385,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   function exportOpenQs() {
     if (!_openQs.length) { toast('No questions to export'); return; }
-    var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty']];
-    _openQs.forEach(function (q) { aoa.push([q.type, q.label, (q.options || []).join(','), q.required ? 'Y' : 'N', q.remarks ? 'Y' : 'N', (q.min != null ? q.min : ''), (q.max != null ? q.max : ''), q.sys || '']); });
+    var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department']];
+    _openQs.forEach(function (q) { aoa.push([q.type, q.label, (q.options || []).join(','), q.required ? 'Y' : 'N', q.remarks ? 'Y' : 'N', (q.min != null ? q.min : ''), (q.max != null ? q.max : ''), q.sys || '', q.deptOn ? 'Y' : 'N', q.dept || '']); });
     var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Questions'); XLSX.writeFile(wb, 'RawData_Questions.xlsx');
   }
   function dlSysphyTemplate() {
@@ -2820,6 +3440,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       var views = shots.map(function (s) { return { label: s.label.trim(), sample: s.sample, note: (s.note || '').trim() }; });
       var guides = ($('newGuidelines').value || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
       doc.samples = views.map(function (v) { return v.sample; }); doc.guidelines = guides; doc.views = views; doc.picCount = views.length;
+      doc.deptOn = !!( $('picDeptOn') && $('picDeptOn').checked );
+      doc.dept = doc.deptOn ? (($('picDept') && $('picDept').value) || '').trim() : '';
+      if (doc.deptOn && !doc.dept) { toast('Enter pic subject department (or turn tagging off)'); return; }
     }
     else { var mode = $('newDataMode').value; doc.dataMode = mode; if (mode === 'open') { if (!_openQs.length) { toast('Add at least one question'); return; } doc.questions = _openQs.slice(); } else { if (!_hoData) { toast('Upload system-data Excel'); return; } doc.hoData = _hoData; doc.descLabels = _hoDescLabels || []; } }
     if ($('scopeToggle').checked) { if (!_scopeStores || !_scopeStores.length) { toast('Upload the store list, or switch to All stores'); return; } doc.scope = 'select'; doc.storeList = _scopeStores.slice(); } else { doc.scope = 'all'; }
@@ -3518,7 +4141,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   function drawBar(id, label, labels, data, color) { var c = $(id); if (!c || typeof Chart === 'undefined') return; if (_charts[id]) _charts[id].destroy(); if (!labels.length) { c.getContext('2d').clearRect(0, 0, c.width, c.height); return; } _charts[id] = new Chart(c.getContext('2d'), { type: 'bar', data: { labels: labels, datasets: [{ label: label, data: data, backgroundColor: color }] }, options: { responsive: true, plugins: { legend: { display: false }, title: { display: true, text: label } }, scales: { y: { beginAtZero: true } } } }); }
 
-  function logout() { stopCam(); clearSession(); var cfg = S.config; S = { role: null, empcode: null, empName: null, designation: null, storeCode: null, storeName: null, selfie: null, gps: null, coords: null, config: cfg, subjects: [], currentSubject: null, capturedPics: [], views: [], viewShots: [], _activeView: -1, stores: {}, amStores: [] }; _amTask = null; _amRec = null; _amEditMode = false; buildLogin(); showScreen('scrLogin'); }
+  function logout() { stopCam(); clearSession(); var cfg = S.config; S = { role: null, empcode: null, empName: null, designation: null, dept: null, storeCode: null, storeName: null, selfie: null, gps: null, coords: null, config: cfg, subjects: [], currentSubject: null, capturedPics: [], views: [], viewShots: [], _activeView: -1, stores: {}, amStores: [] }; _amTask = null; _amRec = null; _amEditMode = false; _hoIssues = []; buildLogin(); showScreen('scrLogin'); }
 
   /* === 10. WIRING === */
   function wire() {
@@ -3565,7 +4188,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
 
     on('btnRevRefresh', 'click', loadReviewQueue);
 
-    ['subjects', 'reviewers', 'email', 'stores', 'subs', 'dash', 'amview', 'consent', 'settings'].forEach(function (p) { on('nav-' + p, 'click', function () { adminNav(p); }); });
+    ['subjects', 'reviewers', 'email', 'stores', 'subs', 'dash', 'hoissues', 'amview', 'consent', 'settings'].forEach(function (p) { on('nav-' + p, 'click', function () { adminNav(p); }); });
     // v24 — admin AM View
     on('btnAvLoad', 'click', amvLoad);
     on('btnAvRefresh', 'click', function () { _avStores = []; renderAMViewTab(); });
@@ -3608,7 +4231,19 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     on('btnScopeUp', 'change', function () { onScopeUpload(this.files[0]); });
     on('btnAddQ', 'click', addOpenQ);
     on('qType', 'change', updateQTypeUI); updateQTypeUI();
+    on('qDeptOn', 'change', toggleQDeptUI);
+    on('qBranchOn', 'change', toggleQBranchUI);
+    on('qOptions', 'input', function () { if ($('qBranchOn') && $('qBranchOn').checked) renderBranchUI(); });
+    on('picDeptOn', 'change', function () { if ($('picDept')) $('picDept').style.display = this.checked ? 'block' : 'none'; });
     on('btnCancelQEdit', 'click', clearQForm);
+    // v26 HO Support
+    on('hoSubject', 'change', loadHOIssues);
+    on('hoStatusFilter', 'change', paintHOIssueList);
+    on('btnAdmHoRefresh', 'click', renderAdminHOIssues);
+    on('btnAdmHoXls', 'click', exportAdmHoXls);
+    on('admHoSubject', 'change', paintAdminHO);
+    on('admHoDept', 'input', paintAdminHO);
+    on('admHoStatus', 'change', paintAdminHO);
     on('btnQTemplate', 'click', dlOpenTemplate);
     on('btnQImport', 'change', function () { importOpenQs(this.files[0]); });
     on('btnQExport', 'click', exportOpenQs);
