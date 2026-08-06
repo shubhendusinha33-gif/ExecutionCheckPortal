@@ -399,10 +399,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
 .ho-hist-box.open{display:block}
 .ho-recent{font-size:12px;margin-top:6px;padding:6px 8px;background:#F5F7FA;border-radius:6px}
 .ho-remark{background:#FFF8E1;border-left:3px solid var(--amber);padding:6px 8px;margin:6px 0;font-size:12px;border-radius:0 6px 6px 0}
-.ho-mail-body{display:none}
-.ho-mail-body.open{display:block}
-.ho-mail-tog{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;width:100%}
-.ho-mail-tog .chev{font-size:12px;color:var(--blue);font-weight:800}
+.ho-mail-body{display:none!important;padding-top:12px}
+.ho-mail-body.open{display:block!important}
+.ho-mail-tog{cursor:pointer;user-select:none;display:flex!important;align-items:center;justify-content:flex-start!important;gap:8px;width:100%;background:#F8FAFC}
+.ho-mail-tog:hover{background:#EEF3F9}
+.ho-mail-tog .chev{font-size:12px;color:var(--blue);font-weight:800;width:14px;flex-shrink:0}
+.ho-mail-tog .ho-mail-hint{margin-left:auto;font-size:11px;color:var(--text3);font-weight:600}
 
 /* additions */
 /* ---- v22 additions ---- */
@@ -758,9 +760,13 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
               <option value="done">Done</option>
             </select></div>
         </div>
-        <div class="form-group" style="margin:0"><label class="form-label">Store filter (code / name) — search &amp; pick your stores</label>
-          <input class="form-control" id="hoStoreSearch" placeholder="Type store code or name… e.g. HH02 or Andheri" autocomplete="off">
-          <div class="small text3" style="margin-top:4px">Leave blank to see all stores (A→Z). Type to narrow to the ~15 stores you are working — teammates cover the rest.</div>
+        <div class="grid-2" style="margin-bottom:0">
+          <div class="form-group" style="margin:0"><label class="form-label">AM filter</label>
+            <select class="form-control" id="hoAmFilter"><option value="">All AM</option></select></div>
+          <div class="form-group" style="margin:0"><label class="form-label">Store filter (code / name)</label>
+            <input class="form-control" id="hoStoreSearch" placeholder="Type store code or name… e.g. HH02 or Andheri" autocomplete="off">
+            <div class="small text3" style="margin-top:4px">Leave blank for all stores (A→Z). Use AM + store to narrow your queue.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -967,17 +973,17 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
-          <div class="card-head ho-mail-tog" id="hoMailRibbon" title="Click to expand / hide">
+          <div class="card-head ho-mail-tog" id="hoMailRibbon" title="Click to expand / hide" role="button" tabindex="0" aria-expanded="false">
             <span class="chev" id="hoMailChev">▸</span>
             <span class="card-title">HO Issue Push Mail</span>
-            <span class="small text3" style="font-weight:500">click to expand</span>
+            <span class="ho-mail-hint" id="hoMailHint">click to expand</span>
           </div>
           <div class="card-body ho-mail-body" id="hoMailBody">
-            <div class="info-box">Save mail IDs per department, then download Outlook <b>.eml</b> drafts (one per dept) with pending/WIP issue data — same style as store reject mailers.</div>
+            <div class="info-box">Save mail IDs per department, then download Outlook <b>.eml</b> drafts (one per dept × subject) for pending / WIP issues.</div>
             <div id="hoDeptMailList" style="margin-bottom:10px"></div>
             <div class="flex gap wrap">
-              <button class="btn btn-sm btn-blue" id="btnSaveHoMails">💾 Save dept mails</button>
-              <button class="btn btn-sm btn-pink" id="btnHoPushMail">✉ Download HO issue .eml now</button>
+              <button type="button" class="btn btn-sm btn-blue" id="btnSaveHoMails">💾 Save dept mails</button>
+              <button type="button" class="btn btn-sm btn-pink" id="btnHoPushMail">✉ Download HO issue .eml now</button>
             </div>
           </div>
         </div>
@@ -986,8 +992,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
             <span class="card-title">Issue × Dept × Store summary</span>
             <span class="small text2" id="admHoMeta"></span>
             <div style="flex:1"></div>
-            <button class="btn btn-sm btn-green" id="btnAdmHoSumXls" title="Download Excel">⬇</button>
-            <button class="btn btn-sm btn-outline" id="btnAdmHoSnap" title="Snapshot">📸</button>
+            <button type="button" class="btn btn-sm btn-green" id="btnAdmHoSumXls" title="Download Excel">⬇ Download</button>
+            <button type="button" class="btn btn-sm btn-outline" id="btnAdmHoSnap" title="Snapshot image">📸 Snapshot</button>
           </div>
           <div class="card-body" id="admHoSummary"><div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Open this tab to load</div></div></div>
         </div>
@@ -2618,12 +2624,17 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   var _hoStoreCacheAt = 0;
   var _admHoIssues = [];
   var _admHoStoreMeta = {};      // storeCode -> {amName,zfmName,amCode,zfmCode}
-  var NEG_EXACT = { 'n':1,'no':1,'no.':1,'n/a':1,'na':1,'nil':1,'none':1,'false':1,'fail':1,'failed':1,'not working':1,'notworking':1,'not ok':1,'not okay':1,'nw':1,'negative':1,'absent':1,'missing':1,'broken':1,'inactive':1,'down':1,'unavailable':1,'closed':1,'not available':1,'does not work':1,"doesn't work":1,'dont work':1,"don't work":1 };
+  var NEG_EXACT = { 'n':1,'no':1,'no.':1,'nil':1,'none':1,'false':1,'fail':1,'failed':1,'not working':1,'notworking':1,'not ok':1,'not okay':1,'nw':1,'negative':1,'absent':1,'missing':1,'broken':1,'inactive':1,'down':1,'unavailable':1,'closed':1,'does not work':1,"doesn't work":1,'dont work':1,"don't work":1 };
+  /* Choice NA / Not available / Not Applicable are NOT negative (not issues) */
+  var NEG_EXCLUDE = { 'n/a':1,'na':1,'n.a':1,'n.a.':1,'not available':1,'notavailable':1,'not applicable':1,'notapplicable':1,'n a':1 };
 
   function normDept(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
   function isNegativeAnswer(val) {
     var s = String(val == null ? '' : val).trim().toLowerCase().replace(/\s+/g, ' ');
     if (!s) return false;
+    if (NEG_EXCLUDE[s]) return false;
+    if (/^not\s+available\b/.test(s)) return false;
+    if (/^not\s+applicable\b/.test(s)) return false;
     if (NEG_EXACT[s]) return true;
     if (/^no[\s,.\-\/]/.test(s)) return true;
     if (/^not[\s\-]/.test(s)) return true;
@@ -2787,6 +2798,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     });
     issues.sort(function (a, b) { return (a.storeCode || '').localeCompare(b.storeCode || '') || (a.qIdx - b.qIdx); });
     _hoIssues = issues;
+    fillHoAmFilter();
     paintHOIssueList();
   }
   function paintHOKpis(c) {
@@ -2795,11 +2807,25 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ($('hoKpiWip')) $('hoKpiWip').textContent = c.wip;
     if ($('hoKpiNI')) $('hoKpiNI').textContent = c.ni;
   }
+  function fillHoAmFilter() {
+    var sel = $('hoAmFilter'); if (!sel) return;
+    var cur = sel.value;
+    var aset = {};
+    _hoIssues.forEach(function (x) { if (x.amName) aset[x.amName] = 1; });
+    sel.innerHTML = '<option value="">All AM</option>';
+    Object.keys(aset).sort().forEach(function (n) {
+      var o = document.createElement('option'); o.value = n; o.textContent = n;
+      if (n === cur) o.selected = true;
+      sel.appendChild(o);
+    });
+  }
   function hoFilteredIssues() {
     var stf = ($('hoStatusFilter') && $('hoStatusFilter').value) || 'all';
+    var am = (($('hoAmFilter') && $('hoAmFilter').value) || '');
     var q = (($('hoStoreSearch') && $('hoStoreSearch').value) || '').toLowerCase().trim();
     return _hoIssues.filter(function (x) {
       if (stf !== 'all' && x.status !== stf) return false;
+      if (am && (x.amName || '') !== am) return false;
       if (q && ((x.storeCode || '') + ' ' + (x.storeName || '')).toLowerCase().indexOf(q) < 0) return false;
       return true;
     });
@@ -3043,9 +3069,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (sum) {
       if (!rows.length) sum.innerHTML = '<div class="empty"><div class="empty-i">🏢</div><div class="empty-t">No dept-tagged negative issues yet</div></div>';
       else {
-        var h = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Dept</th><th>Issue (question)</th><th>Subject</th><th>Stores</th><th>Done</th><th>WIP</th><th>Not Initiated</th></tr></thead><tbody>';
+        var h = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Dept</th><th>Issue (question)</th><th>Stores</th><th>Done</th><th>WIP</th><th>Not Initiated</th></tr></thead><tbody>';
         rows.forEach(function (r) {
-          h += '<tr><td><b>' + esc(r.dept) + '</b></td><td>' + esc(r.q) + '</td><td>' + esc(r.subject) + '</td><td>' + Object.keys(r.stores).length + '</td><td style="color:#2E7D32;font-weight:700">' + r.done + '</td><td style="color:var(--amber);font-weight:700">' + r.wip + '</td><td>' + r.ni + '</td></tr>';
+          h += '<tr><td><b>' + esc(r.dept) + '</b></td><td>' + esc(r.q) + '</td><td>' + Object.keys(r.stores).length + '</td><td style="color:#2E7D32;font-weight:700">' + r.done + '</td><td style="color:var(--amber);font-weight:700">' + r.wip + '</td><td>' + r.ni + '</td></tr>';
         });
         h += '</tbody></table></div>';
         sum.innerHTML = h;
@@ -3083,9 +3109,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       map[key].stores[x.storeCode] = 1;
       if (x.status === 'done') map[key].done++; else if (x.status === 'wip') map[key].wip++; else map[key].ni++;
     });
-    var aoa = [['Dept', 'Issue (question)', 'Subject', 'Stores', 'Done', 'WIP', 'Not Initiated']];
+    var aoa = [['Dept', 'Issue (question)', 'Stores', 'Done', 'WIP', 'Not Initiated']];
     Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) { return (a.dept || '').localeCompare(b.dept || '') || (a.q || '').localeCompare(b.q || ''); })
-      .forEach(function (r) { aoa.push([r.dept, r.q, r.subject, Object.keys(r.stores).length, r.done, r.wip, r.ni]); });
+      .forEach(function (r) { aoa.push([r.dept, r.q, Object.keys(r.stores).length, r.done, r.wip, r.ni]); });
     var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'HO_Summary'); XLSX.writeFile(wb, 'HO_Issue_Summary_' + toDateStr(new Date()) + '.xlsx');
   }
   function snapHOSummary() {
@@ -3120,13 +3146,15 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       }, 'image/png');
     }).catch(function (e) { try { document.body.removeChild(wrap); } catch (x) { } loader(false); toast('Capture failed: ' + e.message); });
   }
-  function toggleHoMailRibbon() {
-    var body = $('hoMailBody'), chev = $('hoMailChev');
+  function toggleHoMailRibbon(e) {
+    if (e && e.target && e.target.closest && e.target.closest('button,a,input,select,textarea,.ho-dept-mail')) return;
+    var body = $('hoMailBody'), chev = $('hoMailChev'), ribbon = $('hoMailRibbon'), hint = $('hoMailHint');
     if (!body) return;
     var open = body.classList.toggle('open');
     if (chev) chev.textContent = open ? '▾' : '▸';
+    if (hint) hint.textContent = open ? 'click to hide' : 'click to expand';
+    if (ribbon) ribbon.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
-
 
   /* --- HO push mail (dept emails + .eml) --- */
   function paintHoDeptMailList() {
@@ -3154,42 +3182,61 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function sendHOIssueMails() {
     ensureConfigExtras();
     if (!_admHoIssues.length) { toast('Open HO Issues / Refresh first so data is loaded'); return; }
-    var pending = _admHoIssues.filter(function (x) { return x.status !== 'done'; });
-    if (!pending.length) { toast('No pending/WIP issues to mail'); return; }
-    var byDept = {};
+    var pending = admHoFiltered().filter(function (x) { return x.status !== 'done'; });
+    if (!pending.length) { toast('No pending/WIP issues to mail (check filters)'); return; }
+    var portalUrl = 'https://shubhendusinha33-gif.github.io/ExecutionCheckPortal/';
+    /* One .eml per Dept × Task Subject so mail subject line stays accurate */
+    var byKey = {};
     pending.forEach(function (x) {
       var d = x.dept || 'Other';
-      if (!byDept[d]) byDept[d] = [];
-      byDept[d].push(x);
+      var subjName = x.subjectName || 'Task';
+      var k = d + '||' + subjName;
+      if (!byKey[k]) byKey[k] = { dept: d, subjectName: subjName, rows: [] };
+      byKey[k].rows.push(x);
     });
-    var n = 0, whenTxt = new Date().toLocaleString('en-IN');
-    Object.keys(byDept).sort().forEach(function (dept) {
+    var n = 0;
+    Object.keys(byKey).sort().forEach(function (k) {
+      var g = byKey[k];
+      var dept = g.dept, taskSubj = g.subjectName, rows = g.rows;
       var to = ((S.config.hoDeptMails && S.config.hoDeptMails[dept]) || '').trim();
       if (!to) return;
-      var rows = byDept[dept];
+      var th = 'padding:4px 6px;border:1px solid #cfd8dc;background:#2c3e50;color:#fff;font-family:Calibri,Candara,Segoe UI,sans-serif;font-size:10pt;font-weight:700;text-align:left';
+      var td = 'padding:3px 6px;border:1px solid #d0d7de;font-family:Calibri,Candara,Segoe UI,sans-serif;font-size:10pt;line-height:1.25;vertical-align:top';
       var bodyRows = rows.map(function (x, i) {
         var last = (x.sol && x.sol.lines && x.sol.lines.length) ? x.sol.lines[x.sol.lines.length - 1] : null;
-        return '<tr style="background:' + (i % 2 ? '#f7f9fc' : '#fff') + '">' +
-          '<td style="padding:8px;border:1px solid #e3e8ef">' + (i + 1) + '</td>' +
-          '<td style="padding:8px;border:1px solid #e3e8ef;font-weight:700">' + esc(x.storeCode) + '</td>' +
-          '<td style="padding:8px;border:1px solid #e3e8ef">' + esc(x.storeName || '') + '</td>' +
-          '<td style="padding:8px;border:1px solid #e3e8ef">' + esc(x.subjectName || '') + '</td>' +
-          '<td style="padding:8px;border:1px solid #e3e8ef">' + esc(x.qLabel) + '</td>' +
-          '<td style="padding:8px;border:1px solid #e3e8ef;color:#c0392b">' + esc(x.answer) + '</td>' +
-          '<td style="padding:8px;border:1px solid #e3e8ef">' + esc(x.remark || '—') + '</td>' +
-          '<td style="padding:8px;border:1px solid #e3e8ef">' + esc(x.status) + '</td>' +
-          '<td style="padding:8px;border:1px solid #e3e8ef">' + esc(last ? last.solution : '—') + '</td>' +
-          '<td style="padding:8px;border:1px solid #e3e8ef">' + esc(last ? last.byDate : '—') + '</td></tr>';
+        var bg = i % 2 ? '#f7f9fc' : '#fff';
+        return '<tr style="background:' + bg + '">' +
+          '<td style="' + td + '">' + (i + 1) + '</td>' +
+          '<td style="' + td + ';font-weight:700">' + esc(x.storeCode) + '</td>' +
+          '<td style="' + td + '">' + esc(x.storeName || '') + '</td>' +
+          '<td style="' + td + '">' + esc(x.amName || '') + '</td>' +
+          '<td style="' + td + '">' + esc(x.qLabel) + '</td>' +
+          '<td style="' + td + ';color:#c0392b">' + esc(x.answer) + '</td>' +
+          '<td style="' + td + '">' + esc(x.remark || '—') + '</td>' +
+          '<td style="' + td + '">' + esc(x.status === 'wip' ? 'WIP' : 'Not initiated') + '</td>' +
+          '<td style="' + td + '">' + esc(last ? last.solution : '—') + '</td>' +
+          '<td style="' + td + '">' + esc(last ? last.byDate : '—') + '</td></tr>';
       }).join('');
-      var html = '<div style="font-family:Arial,sans-serif;font-size:13px;color:#222">' +
-        '<div style="font-size:18px;font-weight:800;color:#1565C0">VMM Exec Check — HO Issues · ' + esc(dept) + '</div>' +
-        '<div style="color:#666;margin:4px 0 14px">' + esc(whenTxt) + ' · ' + rows.length + ' pending/WIP issue(s)</div>' +
-        '<table style="border-collapse:collapse;width:100%"><thead><tr style="background:#2c3e50;color:#fff">' +
-        '<th style="padding:8px">#</th><th style="padding:8px;text-align:left">Store</th><th style="padding:8px;text-align:left">Name</th><th style="padding:8px;text-align:left">Subject</th><th style="padding:8px;text-align:left">Question</th><th style="padding:8px;text-align:left">Answer</th><th style="padding:8px;text-align:left">Store remark</th><th style="padding:8px">Status</th><th style="padding:8px;text-align:left">Solution</th><th style="padding:8px">By date</th>' +
+      var html =
+        '<div style="font-family:Calibri,Candara,Segoe UI,sans-serif;font-size:11pt;color:#222;line-height:1.45">' +
+        '<p style="margin:0 0 10px;font-size:11pt">Dear Team</p>' +
+        '<p style="margin:0 0 10px;font-size:11pt">Please check for below issue not initiated or in WIP status. Please expedite and get these solved asap. reply using below link only.</p>' +
+        '<p style="margin:0 0 10px;font-size:11pt">Link: <a href="' + portalUrl + '" style="color:#1565C0">' + portalUrl + '</a></p>' +
+        '<p style="margin:0 0 4px;font-size:11pt"><b>How to open:</b></p>' +
+        '<ul style="margin:0 0 14px;padding-left:18px;font-size:11pt">' +
+        '<li>Select HO Support</li>' +
+        '<li>Fill your name, emp code and choose department from drop down.</li>' +
+        '<li>All store data will populate, provide the solution and Expected date to resolve.</li>' +
+        '</ul>' +
+        '<p style="margin:0 0 8px;font-size:11pt"><b>' + esc(dept) + '</b> · ' + esc(taskSubj) + ' · ' + rows.length + ' pending (WIP / Not initiated)</p>' +
+        '<table style="border-collapse:collapse;width:100%;font-family:Calibri,Candara,Segoe UI,sans-serif;font-size:10pt">' +
+        '<thead><tr>' +
+        '<th style="' + th + '">#</th><th style="' + th + '">Store</th><th style="' + th + '">Name</th><th style="' + th + '">AM</th><th style="' + th + '">Question</th><th style="' + th + '">Answer</th><th style="' + th + '">Store remark</th><th style="' + th + '">Status</th><th style="' + th + '">Solution</th><th style="' + th + '">By date</th>' +
         '</tr></thead><tbody>' + bodyRows + '</tbody></table>' +
-        '<div style="margin-top:14px;color:#666;font-size:12px">Portal: https://shubhendusinha33-gif.github.io/ExecutionCheckPortal/</div></div>';
-      var subj = 'HO Issues · ' + dept + ' · ' + rows.length + ' pending · ' + toDateStr(new Date());
-      rejDlEml(to, '', subj, html, 'HO_Issues_' + dept.replace(/[^\w]+/g, '_') + '.eml');
+        '</div>';
+      var mailSubj = dept + ' Issue - ' + taskSubj + ' - ' + rows.length;
+      var fname = 'HO_Issues_' + dept.replace(/[^\w]+/g, '_') + '_' + taskSubj.replace(/[^\w]+/g, '_').slice(0, 40) + '.eml';
+      rejDlEml(to, '', mailSubj, html, fname);
       n++;
     });
     if (!n) toast('No mail IDs saved for departments that have pending issues — fill & Save dept mails first');
@@ -4627,20 +4674,22 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     // v27 HO Support
     on('hoSubject', 'change', loadHOIssues);
     on('hoStatusFilter', 'change', paintHOIssueList);
+    on('hoAmFilter', 'change', paintHOIssueList);
     on('hoStoreSearch', 'input', paintHOIssueList);
     on('btnAdmHoRefresh', 'click', renderAdminHOIssues);
     on('btnAdmHoXls', 'click', exportAdmHoXls);
     on('btnAdmHoSumXls', 'click', exportAdmHoSumXls);
     on('btnAdmHoSnap', 'click', snapHOSummary);
     on('hoMailRibbon', 'click', toggleHoMailRibbon);
+    on('hoMailRibbon', 'keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleHoMailRibbon(e); } });
     on('admHoSubject', 'change', function () { renderAdminHOIssues(); });
     on('admHoDept', 'change', paintAdminHO);
     on('admHoZfm', 'change', paintAdminHO);
     on('admHoAm', 'change', paintAdminHO);
     on('admHoStatus', 'change', paintAdminHO);
     on('btnAddDept', 'click', addDepartment);
-    on('btnSaveHoMails', 'click', saveHoDeptMails);
-    on('btnHoPushMail', 'click', sendHOIssueMails);
+    on('btnSaveHoMails', 'click', function (e) { if (e) e.stopPropagation(); saveHoDeptMails(); });
+    on('btnHoPushMail', 'click', function (e) { if (e) e.stopPropagation(); sendHOIssueMails(); });
     on('btnAiChatSend', 'click', sendAiChat);
     on('aiChatInput', 'keydown', function (e) { if (e.key === 'Enter') sendAiChat(); });
     on('picDeptOn', 'change', function () { if ($('picDept')) { $('picDept').style.display = this.checked ? 'block' : 'none'; if (this.checked) fillDeptSelect($('picDept'), $('picDept').value, false); } });
