@@ -850,11 +850,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           <div id="dataFields" style="display:none">
             <div class="form-group"><label class="form-label">Data mode</label><select class="form-control" id="newDataMode"><option value="open">Raw Data (MS-Form style)</option><option value="sysphy">Sys vs Phy (Excel)</option></select></div>
             <div id="openBuilder">
-              <div class="info-box">Build a Microsoft Forms-style questionnaire. Types: Short answer, Paragraph, Number, Email, Phone, Date, Time, Single choice, Multiple choice, Dropdown, Rating (1–5), Physical Count Check. Per question: <b>Department</b> (from Admin Departments list) and <b>Branching</b> (jump by answer). You can also build it in Excel and bulk-import below.</div>
+              <div class="info-box">Per question: <b>Department</b> + <b>🚩 Flag to HO</b>. Tip: Yes/No questions = Flag <b>ON</b>; branched “open issue / S.No.” text = Flag <b>OFF</b> (counts as 1 issue with detail). Defaults auto-apply for older questions (choice→ON, text→OFF).</div>
               <div class="flex gap wrap" style="margin-bottom:12px">
                 <button class="btn btn-outline btn-sm" id="btnQTemplate">⬇ Excel template</button>
                 <label class="btn btn-purple btn-sm" style="cursor:pointer">⬆ Import questions<input type="file" id="btnQImport" accept=".xlsx,.xls" style="display:none"></label>
                 <button class="btn btn-outline btn-sm" id="btnQExport">⬇ Export current</button>
+                <button class="btn btn-sm btn-blue" id="btnSmartFlags" title="choice/dropdown = Flag ON; text follow-ups = Flag OFF">⚡ Apply smart Flag defaults</button>
               </div>
               <div class="grid-2">
                 <div class="form-group"><label class="form-label">Question type</label><select class="form-control" id="qType">
@@ -869,7 +870,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
               <label class="flex center gap" style="margin-bottom:8px"><span class="tgl"><input type="checkbox" id="qRemarks"><span class="tgl-sl"></span></span><span class="small"><b>Remarks box</b> — adds a free-text remarks box under this question</span></label>
               <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qDeptOn"><span class="tgl-sl"></span></span><span class="small"><b>Department</b> — Y/N · tag this question to an HO dept</span></label>
               <div class="form-group" id="qDeptWrap" style="display:none;margin-bottom:8px"><select class="form-control" id="qDept"><option value="">— Select department —</option></select><div class="small text3" style="margin-top:4px">Manage list under <b>Departments</b> in the sidebar.</div></div>
-              <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qFlagHo"><span class="tgl-sl"></span></span><span class="small"><b>Flag to HO</b> — Y/N · create an HO Support issue from this question. Turn <b>OFF</b> on branched follow-ups (e.g. “open issue details”) so they attach as detail on the parent — counted as <b>1</b> issue, not 2.</span></label>
+              <label class="flex center gap" style="margin-bottom:6px;padding:8px 10px;background:#FFF3E0;border:1px solid #FFB74D;border-radius:8px"><span class="tgl"><input type="checkbox" id="qFlagHo"><span class="tgl-sl"></span></span><span class="small"><b style="color:#E65100">🚩 Flag to HO</b> — Y = this question creates an HO issue. For branched “open issue details” text → leave <b>OFF</b> (attaches under parent as 1 issue).</span></label>
               <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qBranchOn"><span class="tgl-sl"></span></span><span class="small"><b>Branching</b> — MS Forms style · jump by answer</span></label>
               <div id="qBranchBox" class="branch-box" style="display:none;margin-bottom:10px"></div>
               <button class="btn btn-blue btn-sm" id="btnAddQ">+ Add question</button>
@@ -1007,7 +1008,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
             <button type="button" class="btn btn-sm btn-green" id="btnAdmHoSumXls" title="Download Excel">⬇ Download</button>
             <button type="button" class="btn btn-sm btn-outline" id="btnAdmHoSnap" title="Snapshot image">📸 Snapshot</button>
           </div>
-          <div class="card-body" id="admHoSummary"><div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Open this tab to load</div></div></div>
+          <div class="card-body" id="admHoSummary"><div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Open this tab to load</div><div class="small text3" style="margin-top:6px">Tip: blue underlined numbers are clickable — open store list + Re-do</div></div></div>
         </div>
         <div class="card">
           <div class="card-head"><span class="card-title">Issue detail</span><span class="badge badge-blue" id="admHoIssueCount">0</span></div>
@@ -2657,11 +2658,37 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (/not\s+working/.test(s)) return true;
     return false;
   }
-  /* Flag to HO: explicit q.flagHo; legacy dept-tagged questions (no flagHo field) default ON */
+  /* Flag to HO:
+     - Explicit q.flagHo / a.flagHo wins
+     - Smart legacy default (no flagHo field yet):
+         choice/dropdown/multi + Department → ON (No = issue)
+         text/para/number/… + Department → OFF (follow-up detail only, not a 2nd issue)
+  */
+  function qIsTextish(ty) {
+    return ty === 'text' || ty === 'para' || ty === 'number' || ty === 'email' || ty === 'phone' || ty === 'date' || ty === 'time';
+  }
+  function qFlagHoDefault(q) {
+    if (!q || !q.deptOn) return false;
+    if (qIsTextish(q.type)) return false;
+    return true;
+  }
   function qFlagHo(q, a) {
     if (a && a.flagHo != null) return !!a.flagHo;
     if (q && Object.prototype.hasOwnProperty.call(q, 'flagHo')) return !!q.flagHo;
-    return !!(q && q.deptOn) || !!(a && a.deptOn);
+    if (qFlagHoDefault(q)) return true;
+    if (a && (a.deptOn || (q && q.deptOn))) {
+      var ty = (q && q.type) || a.type || '';
+      if (qIsTextish(ty)) return false;
+      return !!(a.deptOn || (q && q.deptOn));
+    }
+    return false;
+  }
+  function ensureQuestionFlagDefaults(qs) {
+    return (qs || []).map(function (q) {
+      var n = Object.assign({}, q);
+      if (!Object.prototype.hasOwnProperty.call(n, 'flagHo')) n.flagHo = qFlagHoDefault(n);
+      return n;
+    });
   }
   function isHoTextIssue(val) {
     var s = String(val == null ? '' : val).trim().toLowerCase().replace(/\s+/g, ' ');
@@ -3699,7 +3726,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     } else {
       $('newDataMode').value = o.dataMode || 'open'; toggleDataMode();
       if (o.dataMode === 'sysphy') { _hoData = o.hoData || null; _hoDescLabels = o.descLabels || []; if (_hoData) $('hoStatus').textContent = 'Editing: ' + Object.keys(_hoData).length + ' store(s) loaded (re-upload to replace).'; }
-      else { _openQs = (o.questions || []).slice(); clearQForm(); renderOpenQs(); }
+      else { _openQs = ensureQuestionFlagDefaults(o.questions || []); clearQForm(); renderOpenQs(); }
     }
     fillStartFields(o);
     if ($('amValToggle')) { $('amValToggle').checked = (o.amValidation !== false); try { $('amValToggle').dispatchEvent(new Event('change')); } catch (e) { } }
@@ -3879,6 +3906,19 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (_editQIdx > -1 && _openQs[_editQIdx]) _openQs[_editQIdx] = q; else _openQs.push(q);
     clearQForm(); renderOpenQs();
   }
+  function applySmartFlagDefaults() {
+    if (!_openQs.length) { toast('No questions to update'); return; }
+    var n = 0;
+    _openQs = _openQs.map(function (q) {
+      var nq = Object.assign({}, q);
+      var want = qFlagHoDefault(nq);
+      if (!Object.prototype.hasOwnProperty.call(nq, 'flagHo') || !!nq.flagHo !== want) { nq.flagHo = want; n++; }
+      else nq.flagHo = want;
+      return nq;
+    });
+    renderOpenQs();
+    toast('Smart Flag defaults applied on ' + _openQs.length + ' question(s) — Save / Update Subject to keep');
+  }
   function editOpenQ(i) {
     var q = _openQs[i]; if (!q) return; _editQIdx = i;
     $('qType').value = q.type; updateQTypeUI();
@@ -3886,7 +3926,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     $('qRequired').checked = !!q.required; if ($('qRemarks')) $('qRemarks').checked = !!q.remarks;
     if ($('qMin')) $('qMin').value = (q.min != null ? q.min : ''); if ($('qMax')) $('qMax').value = (q.max != null ? q.max : '');
     if ($('qDeptOn')) $('qDeptOn').checked = !!q.deptOn;
-    if ($('qFlagHo')) $('qFlagHo').checked = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : !!q.deptOn;
+    if ($('qFlagHo')) $('qFlagHo').checked = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : qFlagHoDefault(q);
     if ($('qBranchOn')) $('qBranchOn').checked = !!q.branchOn;
     toggleQDeptUI(); toggleQBranchUI();
     if ($('qDept')) { fillDeptSelect($('qDept'), q.dept || '', false); $('qDept').value = q.dept || ''; }
@@ -3907,8 +3947,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var box = $('openQList'); box.innerHTML = '';
     _openQs.forEach(function (q, i) {
       var hasOpts = (q.type === 'choice' || q.type === 'multi' || q.type === 'dropdown');
-      var flagOn = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : !!q.deptOn;
-      var sub = esc(q.type) + (hasOpts ? ' · ' + esc((q.options || []).join(', ')) : '') + (q.type === 'physcount' ? ' · Sys ' + esc(q.sys) : '') + (q.type === 'number' ? esc(rangeTxt(q)) : '') + (q.remarks ? ' · 📝 remarks' : '') + (q.deptOn ? ' · 🏢 ' + esc(q.dept || '') : '') + (flagOn ? ' · 🚩 Flag HO' : '') + (q.branchOn ? ' · ⑂ branch' : '');
+      var flagOn = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : qFlagHoDefault(q);
+      var sub = esc(q.type) + (hasOpts ? ' · ' + esc((q.options || []).join(', ')) : '') + (q.type === 'physcount' ? ' · Sys ' + esc(q.sys) : '') + (q.type === 'number' ? esc(rangeTxt(q)) : '') + (q.remarks ? ' · 📝 remarks' : '') + (q.deptOn ? ' · 🏢 ' + esc(q.dept || '') : '') + (flagOn ? ' · <span style="color:#E65100;font-weight:800">🚩 Flag HO</span>' : ' · <span class="text3">no HO flag</span>') + (q.branchOn ? ' · ⑂ branch' : '');
       var d = document.createElement('div'); d.className = 'lrow' + (i === _editQIdx ? ' editing' : '');
       var mv = '<div class="qmove"><button type="button" data-up="' + i + '" title="Move up"' + (i === 0 ? ' disabled' : '') + '>▲</button><button type="button" data-dn="' + i + '" title="Move down"' + (i === _openQs.length - 1 ? ' disabled' : '') + '>▼</button></div>';
       d.innerHTML = '<div class="linfo"><div class="lname">Q' + (i + 1) + '. ' + esc(q.label) + (q.required ? ' <span style="color:var(--red)">*</span>' : '') + '</div><div class="lsub">' + sub + '</div></div><div class="lactions">' + mv + '<button class="btn btn-xs btn-blue" data-ed="' + i + '">Edit</button><button class="btn btn-xs btn-red" data-i="' + i + '">×</button></div>';
@@ -4031,7 +4071,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       doc.dept = doc.deptOn ? (($('picDept') && $('picDept').value) || '').trim() : '';
       if (doc.deptOn && !doc.dept) { toast('Enter pic subject department (or turn tagging off)'); return; }
     }
-    else { var mode = $('newDataMode').value; doc.dataMode = mode; if (mode === 'open') { if (!_openQs.length) { toast('Add at least one question'); return; } doc.questions = _openQs.slice(); } else { if (!_hoData) { toast('Upload system-data Excel'); return; } doc.hoData = _hoData; doc.descLabels = _hoDescLabels || []; } }
+    else { var mode = $('newDataMode').value; doc.dataMode = mode; if (mode === 'open') { if (!_openQs.length) { toast('Add at least one question'); return; } doc.questions = ensureQuestionFlagDefaults(_openQs.slice()); } else { if (!_hoData) { toast('Upload system-data Excel'); return; } doc.hoData = _hoData; doc.descLabels = _hoDescLabels || []; } }
     if ($('scopeToggle').checked) { if (!_scopeStores || !_scopeStores.length) { toast('Upload the store list, or switch to All stores'); return; } doc.scope = 'select'; doc.storeList = _scopeStores.slice(); } else { doc.scope = 'all'; }
     doc.startAt = readStartAt();
     doc.amValidation = $('amValToggle') ? !!$('amValToggle').checked : true;   // v24
@@ -4859,7 +4899,19 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     on('btnScopeUp', 'change', function () { onScopeUpload(this.files[0]); });
     on('btnAddQ', 'click', addOpenQ);
     on('qType', 'change', updateQTypeUI); updateQTypeUI();
-    on('qDeptOn', 'change', toggleQDeptUI);
+    on('qDeptOn', 'change', function () {
+      toggleQDeptUI();
+      if (this.checked && $('qFlagHo') && !$('qFlagHo').checked) {
+        var ty = ($('qType') && $('qType').value) || '';
+        if (!qIsTextish(ty)) $('qFlagHo').checked = true;
+      }
+    });
+    on('qFlagHo', 'change', function () {
+      if (this.checked) {
+        if ($('qDeptOn') && !$('qDeptOn').checked) { $('qDeptOn').checked = true; toggleQDeptUI(); }
+      }
+    });
+    on('btnSmartFlags', 'click', applySmartFlagDefaults);
     on('qBranchOn', 'change', toggleQBranchUI);
     on('qOptions', 'input', function () { if ($('qBranchOn') && $('qBranchOn').checked) renderBranchUI(); });
     on('btnCancelQEdit', 'click', clearQForm);
