@@ -405,6 +405,10 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
 .ho-mail-tog:hover{background:#EEF3F9}
 .ho-mail-tog .chev{font-size:12px;color:var(--blue);font-weight:800;width:14px;flex-shrink:0}
 .ho-mail-tog .ho-mail-hint{margin-left:auto;font-size:11px;color:var(--text3);font-weight:600}
+.ho-num-link{background:none;border:none;padding:0;font:inherit;font-weight:800;color:var(--blue);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.ho-num-link:hover{color:var(--pink-d)}
+.ho-fu{font-size:11px;color:var(--text2);margin-top:2px;line-height:1.35}
+.ho-fu b{color:var(--text)}
 
 /* additions */
 /* ---- v22 additions ---- */
@@ -513,6 +517,13 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   <div class="modal-head"><span class="modal-title" id="ovDetailTitle">Submission</span><button class="modal-x" id="btnDetailClose">×</button></div>
   <div class="modal-body" id="ovDetailBody"></div>
   <div class="modal-foot"><button class="btn btn-outline" id="btnDetailClose2">Close</button></div>
+</div></div>
+
+<!-- HO ISSUE DRILL — clickable summary counts -->
+<div class="overlay" id="ovHoDrill"><div class="modal" style="max-width:920px;width:96%">
+  <div class="modal-head"><span class="modal-title" id="ovHoDrillTitle">Issue stores</span><button class="modal-x" id="btnHoDrillClose">×</button></div>
+  <div class="modal-body" id="ovHoDrillBody"></div>
+  <div class="modal-foot"><button class="btn btn-outline" id="btnHoDrillClose2">Close</button></div>
 </div></div>
 
 <!-- IMAGE MODAL (selfie / single photo) -->
@@ -856,8 +867,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
               <div class="grid-2" id="qRangeWrap" style="display:none"><div class="form-group"><label class="form-label">Min (Number only — blank = any number)</label><input class="form-control" id="qMin" inputmode="numeric" placeholder="e.g. 1"></div><div class="form-group"><label class="form-label">Max</label><input class="form-control" id="qMax" inputmode="numeric" placeholder="e.g. 5"></div></div>
               <label class="flex center gap" style="margin-bottom:8px"><span class="tgl"><input type="checkbox" id="qRequired"><span class="tgl-sl"></span></span><span class="small"><b>Required</b></span></label>
               <label class="flex center gap" style="margin-bottom:8px"><span class="tgl"><input type="checkbox" id="qRemarks"><span class="tgl-sl"></span></span><span class="small"><b>Remarks box</b> — adds a free-text remarks box under this question</span></label>
-              <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qDeptOn"><span class="tgl-sl"></span></span><span class="small"><b>Department</b> — Y/N · tag this question to an HO dept (issues from negative answers)</span></label>
+              <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qDeptOn"><span class="tgl-sl"></span></span><span class="small"><b>Department</b> — Y/N · tag this question to an HO dept</span></label>
               <div class="form-group" id="qDeptWrap" style="display:none;margin-bottom:8px"><select class="form-control" id="qDept"><option value="">— Select department —</option></select><div class="small text3" style="margin-top:4px">Manage list under <b>Departments</b> in the sidebar.</div></div>
+              <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qFlagHo"><span class="tgl-sl"></span></span><span class="small"><b>Flag to HO</b> — Y/N · create an HO Support issue from this question. Turn <b>OFF</b> on branched follow-ups (e.g. “open issue details”) so they attach as detail on the parent — counted as <b>1</b> issue, not 2.</span></label>
               <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qBranchOn"><span class="tgl-sl"></span></span><span class="small"><b>Branching</b> — MS Forms style · jump by answer</span></label>
               <div id="qBranchBox" class="branch-box" style="display:none;margin-bottom:10px"></div>
               <button class="btn btn-blue btn-sm" id="btnAddQ">+ Add question</button>
@@ -2143,6 +2155,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         if (!visSet[k]) continue;   // skipped by branching — do not require / do not save
         var q = qs[k], entry = { label: q.label, type: q.type, required: !!q.required, qIdx: k }, val = '';
         if (q.deptOn) { entry.deptOn = true; entry.dept = q.dept || ''; }
+        entry.flagHo = qFlagHo(q);
         if (q.type === 'choice') { var rsel = host.querySelector('input[name="q' + k + '"]:checked'); val = rsel ? rsel.value : ''; entry.value = val; }
         else if (q.type === 'multi') { var cks = host.querySelectorAll('input[type="checkbox"][data-i="' + k + '"]:checked'), vals = []; for (var m = 0; m < cks.length; m++) vals.push(cks[m].value); entry.values = vals; entry.value = vals.join(', '); val = vals.length ? 'x' : ''; }
         else if (q.type === 'rating') { var hin = host.querySelector('.ms-stars[data-i="' + k + '"] input'); val = hin ? hin.value : ''; entry.value = val; }
@@ -2503,6 +2516,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       if (!visSet[k]) continue;
       var q = qs[k], entry = { label: q.label, type: q.type, required: !!q.required, qIdx: k }, val = '';
       if (q.deptOn) { entry.deptOn = true; entry.dept = q.dept || ''; }
+      entry.flagHo = qFlagHo(q);
       if (q.type === 'choice') { var rsel = host.querySelector('input[name="q' + k + '"]:checked'); val = rsel ? rsel.value : ''; entry.value = val; }
       else if (q.type === 'multi') { var cks = host.querySelectorAll('input[type="checkbox"][data-i="' + k + '"]:checked'), vals = []; for (var m = 0; m < cks.length; m++) vals.push(cks[m].value); entry.values = vals; entry.value = vals.join(', '); val = vals.length ? 'x' : ''; }
       else if (q.type === 'rating') { var hin = host.querySelector('.ms-stars[data-i="' + k + '"] input'); val = hin ? hin.value : ''; entry.value = val; }
@@ -2627,6 +2641,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   var NEG_EXACT = { 'n':1,'no':1,'no.':1,'nil':1,'none':1,'false':1,'fail':1,'failed':1,'not working':1,'notworking':1,'not ok':1,'not okay':1,'nw':1,'negative':1,'absent':1,'missing':1,'broken':1,'inactive':1,'down':1,'unavailable':1,'closed':1,'does not work':1,"doesn't work":1,'dont work':1,"don't work":1 };
   /* Choice NA / Not available / Not Applicable are NOT negative (not issues) */
   var NEG_EXCLUDE = { 'n/a':1,'na':1,'n.a':1,'n.a.':1,'not available':1,'notavailable':1,'not applicable':1,'notapplicable':1,'n a':1 };
+  /* Text answers that mean “nothing wrong” (not an HO issue when Flag to HO is on a text Q) */
+  var HO_TEXT_EMPTY = { 'n':1,'no':1,'no.':1,'nil':1,'none':1,'n/a':1,'na':1,'n.a':1,'n.a.':1,'n a':1,'not available':1,'notavailable':1,'not applicable':1,'notapplicable':1,'ok':1,'okay':1,'nil issues':1,'no issues':1,'no issue':1 };
 
   function normDept(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
   function isNegativeAnswer(val) {
@@ -2640,6 +2656,95 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (/^not[\s\-]/.test(s)) return true;
     if (/not\s+working/.test(s)) return true;
     return false;
+  }
+  /* Flag to HO: explicit q.flagHo; legacy dept-tagged questions (no flagHo field) default ON */
+  function qFlagHo(q, a) {
+    if (a && a.flagHo != null) return !!a.flagHo;
+    if (q && Object.prototype.hasOwnProperty.call(q, 'flagHo')) return !!q.flagHo;
+    return !!(q && q.deptOn) || !!(a && a.deptOn);
+  }
+  function isHoTextIssue(val) {
+    var s = String(val == null ? '' : val).trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!s) return false;
+    if (HO_TEXT_EMPTY[s]) return false;
+    if (/^not\s+available\b/.test(s) || /^not\s+applicable\b/.test(s)) return false;
+    return true;
+  }
+  function isHoIssueAnswer(q, val) {
+    var ty = (q && q.type) || '';
+    if (ty === 'text' || ty === 'para' || ty === 'number' || ty === 'email' || ty === 'phone') return isHoTextIssue(val);
+    return isNegativeAnswer(val);
+  }
+  function ansMapFromSub(o) {
+    var map = {};
+    (o.answers || []).forEach(function (a, ai) {
+      var qi = (a.qIdx != null ? a.qIdx : ai);
+      map[qi] = a;
+    });
+    return map;
+  }
+  function visiblePathForSub(qs, ansMap) {
+    return computeVisiblePath(qs, function (i) {
+      var a = ansMap[i];
+      return a ? (a.value != null ? a.value : '') : '';
+    });
+  }
+  function collectHoFollowUps(qs, ansMap, path, flagIdx) {
+    var details = [], pos = path.indexOf(flagIdx);
+    if (pos < 0) return details;
+    for (var i = pos + 1; i < path.length; i++) {
+      var qi = path[i], q = qs[qi] || {}, a = ansMap[qi];
+      if (qFlagHo(q, a)) break;
+      if (!a) continue;
+      var v = String(a.value == null ? '' : a.value).trim();
+      var r = String(a.remark || '').trim();
+      if (!v && !r) continue;
+      details.push({ qIdx: qi, qLabel: a.label || q.label || ('Q' + (qi + 1)), answer: a.value || '', remark: a.remark || '' });
+    }
+    return details;
+  }
+  function formatHoFollowUps(details) {
+    if (!details || !details.length) return '';
+    return details.map(function (d) {
+      return d.qLabel + ': ' + (d.answer || '—') + (d.remark ? ' (📝 ' + d.remark + ')' : '');
+    }).join(' · ');
+  }
+  function buildHoIssueFromAnswer(subj, o, stores, solMap, qIdx, q, a, details, subDocId) {
+    var sid = subj.id || o.subjectId;
+    var dept = a.dept || q.dept || '';
+    var id = hoSolId(sid, o.storeCode, qIdx);
+    var sol = (solMap && solMap[id]) || null;
+    var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : 'wip');
+    var st = stores[o.storeCode] || {};
+    return {
+      id: id, subId: subDocId || o.id || '',
+      subjectId: sid, subjectName: o.subjectName || subj.name || '',
+      storeCode: o.storeCode, storeName: o.storeName || st.name || '',
+      amName: o.amName || st.amName || '', zfmName: o.zfmName || st.zfmName || '',
+      amCode: st.amCode || '', zfmCode: st.zfmCode || '',
+      qIdx: qIdx, qLabel: a.label || q.label || ('Q' + (qIdx + 1)),
+      answer: a.value, remark: a.remark || '', dept: dept, status: status, sol: sol,
+      followUps: details || [], detailText: formatHoFollowUps(details || []),
+      subTs: o.ts || ''
+    };
+  }
+  function extractHOIssuesFromSub(subj, o, stores, solMap, deptFilter, subDocId) {
+    var qs = subj.questions || [], issues = [];
+    var ansMap = ansMapFromSub(o);
+    var path = visiblePathForSub(qs, ansMap);
+    path.forEach(function (qIdx) {
+      var q = qs[qIdx] || {}, a = ansMap[qIdx];
+      if (!a) return;
+      if (!qFlagHo(q, a)) return;
+      var deptOn = !!(a.deptOn || q.deptOn);
+      var dept = a.dept || q.dept || '';
+      if (!deptOn || !dept) return;
+      if (deptFilter && normDept(dept) !== normDept(deptFilter)) return;
+      if (!isHoIssueAnswer(q, a.value)) return;
+      var details = collectHoFollowUps(qs, ansMap, path, qIdx);
+      issues.push(buildHoIssueFromAnswer(subj, o, stores, solMap, qIdx, q, a, details, subDocId));
+    });
+    return issues;
   }
   function hoSolId(subjectId, storeCode, qIdx) { return String(subjectId || '') + '__' + String(storeCode || '') + '__q' + String(qIdx); }
   function deptList() {
@@ -2728,7 +2833,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       qs.forEach(function (d) {
         var o = d.data(); o.id = d.id;
         if (o.type !== 'data' || o.dataMode === 'sysphy') return;
-        var has = (o.questions || []).some(function (q) { return q && q.deptOn && normDept(q.dept) === normDept(S.dept); });
+        var has = (o.questions || []).some(function (q) {
+          return q && q.deptOn && normDept(q.dept) === normDept(S.dept) && qFlagHo(q);
+        });
         if (has) arr.push(o);
       });
       arr.sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
@@ -2771,30 +2878,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     }).catch(function (e) { loader(false); toast(e.message); });
   }
   function buildHOIssuesFromSnap(subj, qsSnap) {
-    var qs = subj.questions || [], issues = [], sid = subj.id;
+    var issues = [], sid = subj.id;
     var stores = _hoStoreCache || {};
     qsSnap.forEach(function (d) {
       var o = d.data(); if (o.reviewStatus === 'rejected') return;
-      (o.answers || []).forEach(function (a, ai) {
-        var qIdx = (a.qIdx != null ? a.qIdx : ai);
-        var q = qs[qIdx] || {};
-        var deptOn = !!(a.deptOn || q.deptOn);
-        var dept = a.dept || q.dept || '';
-        if (!deptOn || normDept(dept) !== normDept(S.dept)) return;
-        if (!isNegativeAnswer(a.value)) return;
-        var id = hoSolId(sid, o.storeCode, qIdx);
-        var sol = _hoSolMap[id] || null;
-        var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : 'wip');
-        var st = stores[o.storeCode] || {};
-        issues.push({
-          id: id, subjectId: sid, subjectName: subj.name || '', storeCode: o.storeCode,
-          storeName: o.storeName || st.name || '',
-          amName: o.amName || st.amName || '', zfmName: o.zfmName || st.zfmName || '',
-          amCode: st.amCode || '', zfmCode: st.zfmCode || '',
-          qIdx: qIdx, qLabel: a.label || q.label || ('Q' + (qIdx + 1)),
-          answer: a.value, remark: a.remark || '', dept: dept, status: status, sol: sol, subTs: o.ts || ''
-        });
-      });
+      o.id = d.id;
+      extractHOIssuesFromSub(subj, o, stores, _hoSolMap, S.dept, d.id).forEach(function (iss) { issues.push(iss); });
     });
     issues.sort(function (a, b) { return (a.storeCode || '').localeCompare(b.storeCode || '') || (a.qIdx - b.qIdx); });
     _hoIssues = issues;
@@ -2866,6 +2955,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var recent = lines.length ? lines[lines.length - 1] : null;
     var histOlder = lines.length > 1 ? lines.slice(0, -1) : [];
     var remInline = iss.remark ? '<span class="ho-rem-inline" title="' + esc(iss.remark) + '">📝 ' + esc(iss.remark) + '</span>' : '';
+    var fuInline = iss.detailText
+      ? '<span class="ho-rem-inline" style="color:var(--text2);max-width:320px" title="' + esc(iss.detailText) + '">↳ ' + esc(iss.detailText) + '</span>'
+      : '';
     var latestInline = recent
       ? '<span class="ho-latest-inline' + (recent.extended ? ' ho-ext' : '') + '" title="' + esc((recent.solution || '') + ' · ' + (recent.byName || '') + ' (' + (recent.byEmp || '') + ')') + '">💡 ' + esc(recent.solution || '') + ' · ' + esc(recent.byDate || '') + ' · ' + esc(recent.byName || '') + '</span>'
       : '';
@@ -2892,12 +2984,20 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     } else {
       actHtml = '<div class="ho-act-row"><span class="small text3">Closed · ' + esc(recent ? ((recent.byName || '') + ' · ' + (recent.byEmp || '')) : '') + '</span>' + histBtn + '</div>' + histBox;
     }
+    var fuBlock = '';
+    if (iss.followUps && iss.followUps.length) {
+      fuBlock = '<div class="ho-fu">';
+      iss.followUps.forEach(function (d) {
+        fuBlock += '<div><b>' + esc(d.qLabel) + ':</b> ' + esc(d.answer || '—') + (d.remark ? ' <span class="text3">· 📝 ' + esc(d.remark) + '</span>' : '') + '</div>';
+      });
+      fuBlock += '</div>';
+    }
     card.innerHTML =
       '<div class="ho-line1">' +
         '<span class="ho-q">Q' + (iss.qIdx + 1) + '. ' + esc(iss.qLabel) + '</span>' +
         '<span class="ho-ans">Ans: ' + esc(iss.answer) + '</span>' +
-        remInline + latestInline + badge +
-      '</div>' + actHtml;
+        remInline + fuInline + latestInline + badge +
+      '</div>' + fuBlock + actHtml;
     var tog = card.querySelector('.ho-hist-tog');
     if (tog) tog.addEventListener('click', function () {
       var el = $('hist_' + this.getAttribute('data-hid'));
@@ -2924,6 +3024,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var doc = {
       subjectId: iss.subjectId, subjectName: iss.subjectName, storeCode: iss.storeCode, storeName: iss.storeName,
       qIdx: iss.qIdx, qLabel: iss.qLabel, dept: iss.dept, answerValue: iss.answer, storeRemark: iss.remark || '',
+      followUps: iss.followUps || [], detailText: iss.detailText || '',
       status: forceDone ? 'done' : 'wip', lines: lines, updatedAt: nowISO(),
       updatedBy: S.empcode, updatedByName: S.empName || '', updatedByDept: S.dept || ''
     };
@@ -2978,28 +3079,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         res[1].forEach(function (d) {
           var o = d.data(); if (o.type && o.type !== 'data') return; if (o.reviewStatus === 'rejected') return;
           var subj = subjMap[o.subjectId];
-          if (!subj) return; // skip inactive / unknown for speed unless we need them
-          var qs = subj.questions || [];
-          var st = stores[o.storeCode] || {};
-          (o.answers || []).forEach(function (a, ai) {
-            var qIdx = (a.qIdx != null ? a.qIdx : ai);
-            var q = qs[qIdx] || {};
-            var deptOn = !!(a.deptOn || q.deptOn);
-            var dept = a.dept || q.dept || '';
-            if (!deptOn || !dept) return;
-            if (!isNegativeAnswer(a.value)) return;
-            var id = hoSolId(o.subjectId, o.storeCode, qIdx);
-            var sol = solMap[id] || null;
-            var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : 'wip');
-            issues.push({
-              id: id, subjectId: o.subjectId, subjectName: o.subjectName || subj.name || '',
-              storeCode: o.storeCode, storeName: o.storeName || st.name || '',
-              amName: o.amName || st.amName || '', zfmName: o.zfmName || st.zfmName || '',
-              amCode: st.amCode || '', zfmCode: st.zfmCode || '',
-              qIdx: qIdx, qLabel: a.label || q.label || '', answer: a.value, remark: a.remark || '',
-              dept: dept, status: status, sol: sol
-            });
-          });
+          if (!subj) return;
+          o.id = d.id;
+          extractHOIssuesFromSub(subj, o, stores, solMap, null, d.id).forEach(function (iss) { issues.push(iss); });
         });
         _admHoIssues = issues;
         populateAdmHoFilterDropdowns();
@@ -3055,48 +3137,105 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ($('admHoWip')) $('admHoWip').textContent = c.wip;
     if ($('admHoNI')) $('admHoNI').textContent = c.ni;
     if ($('admHoIssueCount')) $('admHoIssueCount').textContent = list.length;
-    if ($('admHoMeta')) $('admHoMeta').textContent = list.length + ' issue(s)';
+    if ($('admHoMeta')) $('admHoMeta').textContent = list.length + ' issue(s) · click a number to see stores';
     var map = {};
     list.forEach(function (x) {
-      var key = (x.subjectName || '') + '||' + (x.qLabel || '') + '||' + (x.dept || '');
-      if (!map[key]) map[key] = { subject: x.subjectName, q: x.qLabel, dept: x.dept, stores: {}, done: 0, wip: 0, ni: 0 };
-      map[key].stores[x.storeCode] = 1;
+      var key = (x.subjectId || '') + '||' + (x.qLabel || '') + '||' + (x.dept || '') + '||' + String(x.qIdx);
+      if (!map[key]) map[key] = { key: key, subject: x.subjectName, subjectId: x.subjectId, q: x.qLabel, qIdx: x.qIdx, dept: x.dept, items: [], done: 0, wip: 0, ni: 0 };
+      map[key].items.push(x);
       if (x.status === 'done') map[key].done++; else if (x.status === 'wip') map[key].wip++; else map[key].ni++;
     });
+    _admHoSumGroups = map;
     var rows = Object.keys(map).map(function (k) { return map[k]; });
     rows.sort(function (a, b) { return (a.dept || '').localeCompare(b.dept || '') || (a.q || '').localeCompare(b.q || ''); });
     var sum = $('admHoSummary');
     if (sum) {
-      if (!rows.length) sum.innerHTML = '<div class="empty"><div class="empty-i">🏢</div><div class="empty-t">No dept-tagged negative issues yet</div></div>';
+      if (!rows.length) sum.innerHTML = '<div class="empty"><div class="empty-i">🏢</div><div class="empty-t">No Flag-to-HO issues yet</div></div>';
       else {
         var h = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Dept</th><th>Issue (question)</th><th>Stores</th><th>Done</th><th>WIP</th><th>Not Initiated</th></tr></thead><tbody>';
         rows.forEach(function (r) {
-          h += '<tr><td><b>' + esc(r.dept) + '</b></td><td>' + esc(r.q) + '</td><td>' + Object.keys(r.stores).length + '</td><td style="color:#2E7D32;font-weight:700">' + r.done + '</td><td style="color:var(--amber);font-weight:700">' + r.wip + '</td><td>' + r.ni + '</td></tr>';
+          var nStores = {}; r.items.forEach(function (x) { nStores[x.storeCode] = 1; });
+          var sk = esc(r.key);
+          function numBtn(n, st, color) {
+            if (!n) return '<span style="color:' + (color || 'var(--text3)') + ';font-weight:700">0</span>';
+            return '<button type="button" class="ho-num-link" data-gkey="' + sk + '" data-st="' + st + '" style="color:' + (color || 'var(--blue)') + '">' + n + '</button>';
+          }
+          h += '<tr><td><b>' + esc(r.dept) + '</b></td><td>' + esc(r.q) + '</td><td>' + numBtn(Object.keys(nStores).length, 'all') + '</td><td>' + numBtn(r.done, 'done', '#2E7D32') + '</td><td>' + numBtn(r.wip, 'wip', 'var(--amber)') + '</td><td>' + numBtn(r.ni, 'not_initiated') + '</td></tr>';
         });
         h += '</tbody></table></div>';
         sum.innerHTML = h;
+        sum.querySelectorAll('.ho-num-link').forEach(function (btn) {
+          btn.addEventListener('click', function () { openHoIssueDrill(this.getAttribute('data-gkey'), this.getAttribute('data-st')); });
+        });
       }
     }
     var box = $('admHoIssueList'); if (!box) return;
     if (!list.length) { box.innerHTML = '<div class="empty"><div class="empty-i">✅</div><div class="empty-t">No matching issues</div></div>'; return; }
-    var h2 = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Store</th><th>AM</th><th>ZFM</th><th>Dept</th><th>Question</th><th>Answer</th><th>Store remark</th><th>Status</th><th>Latest solution</th><th>By date</th><th>HO By</th></tr></thead><tbody>';
+    var h2 = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Store</th><th>AM</th><th>ZFM</th><th>Dept</th><th>Question</th><th>Answer</th><th>Follow-up detail</th><th>Store remark</th><th>Status</th><th>Latest solution</th><th>By date</th><th>HO By</th></tr></thead><tbody>';
     list.slice(0, 500).forEach(function (x) {
       var last = (x.sol && x.sol.lines && x.sol.lines.length) ? x.sol.lines[x.sol.lines.length - 1] : null;
       var stBadge = x.status === 'done' ? '<span class="badge badge-green">Done</span>' : (x.status === 'wip' ? '<span class="badge badge-amber">WIP</span>' : '<span class="badge badge-gray">Not Initiated</span>');
       var solTxt = last ? esc(last.solution || '') : '—';
       var dateTxt = last ? ('<span' + (last.extended ? ' class="ho-ext"' : '') + '>' + esc(last.byDate || '') + (last.extended ? ' (ext)' : '') + '</span>') : '—';
       var hoBy = last ? (esc(last.byName || '') + (last.byEmp ? ' · ' + esc(last.byEmp) : '')) : (x.sol && x.sol.updatedByName ? esc(x.sol.updatedByName) + (x.sol.updatedBy ? ' · ' + esc(x.sol.updatedBy) : '') : '—');
-      h2 += '<tr><td class="mono">' + esc(x.storeCode) + '</td><td>' + esc(x.amName || '—') + '</td><td>' + esc(x.zfmName || '—') + '</td><td>' + esc(x.dept) + '</td><td>' + esc(x.qLabel) + '</td><td style="color:var(--red)">' + esc(x.answer) + '</td><td>' + esc(x.remark || '—') + '</td><td>' + stBadge + '</td><td>' + solTxt + '</td><td>' + dateTxt + '</td><td>' + hoBy + '</td></tr>';
+      h2 += '<tr><td class="mono">' + esc(x.storeCode) + '</td><td>' + esc(x.amName || '—') + '</td><td>' + esc(x.zfmName || '—') + '</td><td>' + esc(x.dept) + '</td><td>' + esc(x.qLabel) + '</td><td style="color:var(--red)">' + esc(x.answer) + '</td><td class="small">' + esc(x.detailText || '—') + '</td><td>' + esc(x.remark || '—') + '</td><td>' + stBadge + '</td><td>' + solTxt + '</td><td>' + dateTxt + '</td><td>' + hoBy + '</td></tr>';
     });
     h2 += '</tbody></table></div>';
     box.innerHTML = h2;
   }
+  var _admHoSumGroups = {};
+  function openHoIssueDrill(gkey, statusFilter) {
+    var g = _admHoSumGroups[gkey]; if (!g) { toast('Group not found — refresh HO Issues'); return; }
+    var items = (g.items || []).filter(function (x) {
+      if (!statusFilter || statusFilter === 'all') return true;
+      return x.status === statusFilter;
+    });
+    var stLabel = statusFilter === 'done' ? 'Done' : (statusFilter === 'wip' ? 'WIP' : (statusFilter === 'not_initiated' ? 'Not Initiated' : 'All'));
+    if ($('ovHoDrillTitle')) $('ovHoDrillTitle').textContent = (g.dept || '') + ' · ' + (g.q || '') + ' · ' + stLabel + ' (' + items.length + ')';
+    var body = $('ovHoDrillBody'); if (!body) return;
+    if (!items.length) { body.innerHTML = '<div class="empty"><div class="empty-t">No stores in this bucket</div></div>'; $('ovHoDrill').classList.add('show'); return; }
+    var h = '<div class="info-box small" style="margin-bottom:10px">Stores that flagged this question. Use <b>Re-do</b> to send the store back with a remark (same as Submissions re-do).</div>';
+    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Store</th><th>Name</th><th>AM</th><th>Answer</th><th>Follow-up / open issue detail</th><th>Remark</th><th>Status</th><th>HO solution</th><th>Action</th></tr></thead><tbody>';
+    items.sort(function (a, b) { return (a.storeCode || '').localeCompare(b.storeCode || ''); }).forEach(function (x) {
+      var last = (x.sol && x.sol.lines && x.sol.lines.length) ? x.sol.lines[x.sol.lines.length - 1] : null;
+      var stBadge = x.status === 'done' ? '<span class="badge badge-green">Done</span>' : (x.status === 'wip' ? '<span class="badge badge-amber">WIP</span>' : '<span class="badge badge-gray">Not Initiated</span>');
+      var sol = last ? esc(last.solution || '') + ' <span class="small text3">· ' + esc(last.byDate || '') + '</span>' : '—';
+      var redoBtn = x.subId
+        ? '<button type="button" class="btn btn-xs btn-pink ho-drill-redo" data-sid="' + esc(x.subId) + '" data-store="' + esc(x.storeCode) + '">Re-do</button>'
+        : '<span class="small text3">—</span>';
+      h += '<tr><td class="mono"><b>' + esc(x.storeCode) + '</b></td><td>' + esc(x.storeName || '') + '</td><td>' + esc(x.amName || '—') + '</td><td style="color:var(--red);font-weight:700">' + esc(x.answer) + '</td><td class="small">' + esc(x.detailText || '—') + '</td><td class="small">' + esc(x.remark || '—') + '</td><td>' + stBadge + '</td><td class="small">' + sol + '</td><td>' + redoBtn + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+    body.innerHTML = h;
+    body.querySelectorAll('.ho-drill-redo').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var sid = this.getAttribute('data-sid');
+        var store = this.getAttribute('data-store') || '';
+        var remark = prompt('Re-do remark for store ' + store + ' (shown to store):', 'Please re-check and re-submit — answer needs correction.');
+        if (remark === null) return;
+        remark = remark.trim();
+        if (!remark) { toast('A remark is required'); return; }
+        loader(true, 'Sending re-do…');
+        db.collection('submissions').doc(sid).update({
+          reviewStatus: 'rejected', reviewRemark: remark,
+          reviewedBy: (S.empName || '') + ' (' + (S.empcode || '') + ') · Admin HO',
+          reviewedAt: nowISO(), mailedAt: ''
+        }).then(function () {
+          loader(false);
+          toast('🔁 ' + store + ' pushed for Re-do');
+          renderAdminHOIssues();
+        }).catch(function (e) { loader(false); toast(e.message); });
+      });
+    });
+    $('ovHoDrill').classList.add('show');
+  }
+  function closeHoDrill() { closeOv('ovHoDrill'); }
   function exportAdmHoXls() {
     var list = admHoFiltered(); if (!list.length) { toast('Nothing to export'); return; }
-    var aoa = [['Dept', 'Subject', 'Store', 'Store Name', 'AM', 'ZFM', 'Q#', 'Question', 'Answer', 'Store Remark', 'Status', 'Solution', 'By Date', 'Extended', 'HO By Name', 'HO Emp Code']];
+    var aoa = [['Dept', 'Subject', 'Store', 'Store Name', 'AM', 'ZFM', 'Q#', 'Question', 'Answer', 'Follow-up detail', 'Store Remark', 'Status', 'Solution', 'By Date', 'Extended', 'HO By Name', 'HO Emp Code']];
     list.forEach(function (x) {
       var last = (x.sol && x.sol.lines && x.sol.lines.length) ? x.sol.lines[x.sol.lines.length - 1] : null;
-      aoa.push([x.dept, x.subjectName, x.storeCode, x.storeName, x.amName || '', x.zfmName || '', x.qIdx + 1, x.qLabel, x.answer, x.remark || '', x.status, last ? last.solution : '', last ? last.byDate : '', last && last.extended ? 'Y' : '', last ? (last.byName || '') : ((x.sol && x.sol.updatedByName) || ''), last ? (last.byEmp || '') : ((x.sol && x.sol.updatedBy) || '')]);
+      aoa.push([x.dept, x.subjectName, x.storeCode, x.storeName, x.amName || '', x.zfmName || '', x.qIdx + 1, x.qLabel, x.answer, x.detailText || '', x.remark || '', x.status, last ? last.solution : '', last ? last.byDate : '', last && last.extended ? 'Y' : '', last ? (last.byName || '') : ((x.sol && x.sol.updatedByName) || ''), last ? (last.byEmp || '') : ((x.sol && x.sol.updatedBy) || '')]);
     });
     var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'HO_Issues'); XLSX.writeFile(wb, 'HO_Issues_' + toDateStr(new Date()) + '.xlsx');
   }
@@ -3127,6 +3266,10 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       '<div id="hoSnapHost"></div>';
     document.body.appendChild(wrap);
     var host = wrap.querySelector('#hoSnapHost'); host.innerHTML = src.innerHTML;
+    host.querySelectorAll('button.ho-num-link').forEach(function (b) {
+      var sp = document.createElement('span'); sp.textContent = b.textContent; sp.style.cssText = 'font-weight:800;color:#1565C0';
+      b.parentNode.replaceChild(sp, b);
+    });
     var tw = host.querySelector('.tbl-wrap'); if (tw) { tw.style.overflow = 'visible'; tw.style.maxWidth = 'none'; tw.style.width = 'auto'; }
     var tbl = host.querySelector('table');
     if (tbl) {
@@ -3212,6 +3355,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           '<td style="' + td + '">' + esc(x.amName || '') + '</td>' +
           '<td style="' + td + '">' + esc(x.qLabel) + '</td>' +
           '<td style="' + td + ';color:#c0392b">' + esc(x.answer) + '</td>' +
+          '<td style="' + td + '">' + esc(x.detailText || '—') + '</td>' +
           '<td style="' + td + '">' + esc(x.remark || '—') + '</td>' +
           '<td style="' + td + '">' + esc(x.status === 'wip' ? 'WIP' : 'Not initiated') + '</td>' +
           '<td style="' + td + '">' + esc(last ? last.solution : '—') + '</td>' +
@@ -3231,7 +3375,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         '<p style="margin:0 0 8px;font-size:11pt"><b>' + esc(dept) + '</b> · ' + esc(taskSubj) + ' · ' + rows.length + ' pending (WIP / Not initiated)</p>' +
         '<table style="border-collapse:collapse;width:100%;font-family:Calibri,Candara,Segoe UI,sans-serif;font-size:10pt">' +
         '<thead><tr>' +
-        '<th style="' + th + '">#</th><th style="' + th + '">Store</th><th style="' + th + '">Name</th><th style="' + th + '">AM</th><th style="' + th + '">Question</th><th style="' + th + '">Answer</th><th style="' + th + '">Store remark</th><th style="' + th + '">Status</th><th style="' + th + '">Solution</th><th style="' + th + '">By date</th>' +
+        '<th style="' + th + '">#</th><th style="' + th + '">Store</th><th style="' + th + '">Name</th><th style="' + th + '">AM</th><th style="' + th + '">Question</th><th style="' + th + '">Answer</th><th style="' + th + '">Follow-up detail</th><th style="' + th + '">Store remark</th><th style="' + th + '">Status</th><th style="' + th + '">Solution</th><th style="' + th + '">By date</th>' +
         '</tr></thead><tbody>' + bodyRows + '</tbody></table>' +
         '</div>';
       var mailSubj = dept + ' Issue - ' + taskSubj + ' - ' + rows.length;
@@ -3711,6 +3855,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     $('qLabel').value = ''; $('qOptions').value = ''; $('qSys').value = ''; $('qRequired').checked = false;
     if ($('qMin')) $('qMin').value = ''; if ($('qMax')) $('qMax').value = ''; if ($('qRemarks')) $('qRemarks').checked = false;
     if ($('qDeptOn')) $('qDeptOn').checked = false; if ($('qDept')) $('qDept').value = '';
+    if ($('qFlagHo')) $('qFlagHo').checked = false;
     if ($('qBranchOn')) $('qBranchOn').checked = false;
     toggleQDeptUI(); toggleQBranchUI();
     _editQIdx = -1; if ($('btnAddQ')) $('btnAddQ').textContent = '+ Add question'; if ($('btnCancelQEdit')) $('btnCancelQEdit').style.display = 'none';
@@ -3724,6 +3869,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (ty === 'number') { var mn = readNum('qMin'), mx = readNum('qMax'); if (mn != null && mx != null && mn > mx) { toast('Min cannot be greater than Max'); return; } if (mn != null) q.min = mn; if (mx != null) q.max = mx; }
     q.deptOn = !!( $('qDeptOn') && $('qDeptOn').checked );
     q.dept = q.deptOn ? (($('qDept') && $('qDept').value) || '').trim() : '';
+    q.flagHo = !!( $('qFlagHo') && $('qFlagHo').checked );
+    if (q.flagHo && (!q.deptOn || !q.dept)) { toast('Flag to HO needs a Department — turn Department ON and pick one'); return; }
     if (q.deptOn && !q.dept) { toast('Enter department name (or turn Department off)'); return; }
     var br = readBranchFromUI(ty);
     q.branchOn = !!br.branchOn;
@@ -3739,6 +3886,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     $('qRequired').checked = !!q.required; if ($('qRemarks')) $('qRemarks').checked = !!q.remarks;
     if ($('qMin')) $('qMin').value = (q.min != null ? q.min : ''); if ($('qMax')) $('qMax').value = (q.max != null ? q.max : '');
     if ($('qDeptOn')) $('qDeptOn').checked = !!q.deptOn;
+    if ($('qFlagHo')) $('qFlagHo').checked = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : !!q.deptOn;
     if ($('qBranchOn')) $('qBranchOn').checked = !!q.branchOn;
     toggleQDeptUI(); toggleQBranchUI();
     if ($('qDept')) { fillDeptSelect($('qDept'), q.dept || '', false); $('qDept').value = q.dept || ''; }
@@ -3759,7 +3907,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var box = $('openQList'); box.innerHTML = '';
     _openQs.forEach(function (q, i) {
       var hasOpts = (q.type === 'choice' || q.type === 'multi' || q.type === 'dropdown');
-      var sub = esc(q.type) + (hasOpts ? ' · ' + esc((q.options || []).join(', ')) : '') + (q.type === 'physcount' ? ' · Sys ' + esc(q.sys) : '') + (q.type === 'number' ? esc(rangeTxt(q)) : '') + (q.remarks ? ' · 📝 remarks' : '') + (q.deptOn ? ' · 🏢 ' + esc(q.dept || '') : '') + (q.branchOn ? ' · ⑂ branch' : '');
+      var flagOn = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : !!q.deptOn;
+      var sub = esc(q.type) + (hasOpts ? ' · ' + esc((q.options || []).join(', ')) : '') + (q.type === 'physcount' ? ' · Sys ' + esc(q.sys) : '') + (q.type === 'number' ? esc(rangeTxt(q)) : '') + (q.remarks ? ' · 📝 remarks' : '') + (q.deptOn ? ' · 🏢 ' + esc(q.dept || '') : '') + (flagOn ? ' · 🚩 Flag HO' : '') + (q.branchOn ? ' · ⑂ branch' : '');
       var d = document.createElement('div'); d.className = 'lrow' + (i === _editQIdx ? ' editing' : '');
       var mv = '<div class="qmove"><button type="button" data-up="' + i + '" title="Move up"' + (i === 0 ? ' disabled' : '') + '>▲</button><button type="button" data-dn="' + i + '" title="Move down"' + (i === _openQs.length - 1 ? ' disabled' : '') + '>▼</button></div>';
       d.innerHTML = '<div class="linfo"><div class="lname">Q' + (i + 1) + '. ' + esc(q.label) + (q.required ? ' <span style="color:var(--red)">*</span>' : '') + '</div><div class="lsub">' + sub + '</div></div><div class="lactions">' + mv + '<button class="btn btn-xs btn-blue" data-ed="' + i + '">Edit</button><button class="btn btn-xs btn-red" data-i="' + i + '">×</button></div>';
@@ -3775,18 +3924,14 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function normType(s) { return (s == null ? '' : s).toString().trim().toLowerCase().replace(/[_\-]+/g, ' ').replace(/\s+/g, ' '); }
   function resolveType(raw) { var k = normType(raw); if (TYPE_ALIASES[k]) return TYPE_ALIASES[k]; var k2 = k.replace(/\s+/g, ''); for (var a in TYPE_ALIASES) { if (TYPE_ALIASES.hasOwnProperty(a) && TYPE_ALIASES[a] && a.replace(/\s+/g, '') === k2) return TYPE_ALIASES[a]; } return null; }
   function dlOpenTemplate() {
-    var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department'],
-      ['Short answer', 'Store Manager name', '', 'Y', 'N', '', '', '', 'N', ''],
-      ['Single choice', 'Is the display set as per planogram?', 'Yes,No,Partially', 'Y', 'N', '', '', '', 'Y', 'Ops'],
-      ['Multiple choice', 'Which sizes are short?', 'S,M,L,XL,XXL', 'N', 'Y', '', '', ''],
-      ['Dropdown', 'Zone', 'North,South,East,West', 'N', 'N', '', '', ''],
-      ['Number', 'Rate cleanliness (1-5)', '', 'Y', 'N', '1', '5', ''],
-      ['Number', 'Footfall today (any number)', '', 'N', 'N', '', '', ''],
-      ['Rating', 'Overall rating', '', 'N', 'N', '', '', ''],
-      ['Drop Down', 'Select the reason(s)', 'Reason A,Reason B,Other', 'N', 'Y', '', '', ''],
-      ['Long answer', 'Remarks / additional observations', '', 'N', 'N', '', '', ''],
-      ['Live Picture', 'Capture the fire safety door', '', 'Y', 'N', '', '', ''],
-      ['Physical Count Check', 'Jeans 799 stock', '', 'Y', 'N', '', '', '120']];
+    var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department', 'Flag to HO (Y/N)'],
+      ['Short answer', 'Store Manager name', '', 'Y', 'N', '', '', '', 'N', '', 'N'],
+      ['Single choice', 'Is the display set as per planogram?', 'Yes,No,Partially', 'Y', 'N', '', '', '', 'Y', 'Ops', 'Y'],
+      ['Single choice', 'All Cash Counters are working', 'Yes,No', 'Y', 'N', '', '', '', 'Y', 'IT Infra / POS', 'Y'],
+      ['Long answer', 'Provide all OPEN issue numbers with issue details for Cash Counters', '', 'N', 'N', '', '', '', 'Y', 'IT Infra / POS', 'N'],
+      ['Multiple choice', 'Which sizes are short?', 'S,M,L,XL,XXL', 'N', 'Y', '', '', '', 'N', '', 'N'],
+      ['Number', 'Rate cleanliness (1-5)', '', 'Y', 'N', '1', '5', '', 'N', '', 'N'],
+      ['Long answer', 'Remarks / additional observations', '', 'N', 'N', '', '', '', 'N', '', 'N']];
     var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Questions'); XLSX.writeFile(wb, 'RawData_Template.xlsx');
   }
   function importOpenQs(file) {
@@ -3798,7 +3943,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         var H = rows[0].map(function (x) { return (x == null ? '' : x).toString(); });
         var cType = findCol(H, [/^type$/]), cLbl = findCol(H, [/^label$/, /question/]), cOpt = findCol(H, [/option/]),
           cReq = findCol(H, [/required/]), cRem = findCol(H, [/remark/]), cMin = findCol(H, [/^min/]), cMax = findCol(H, [/^max/]), cSys = findCol(H, [/sys/]),
-          cDeptOn = findCol(H, [/^dept\s*\(y\/n\)$/, /^dept\s*y/, /department\s*\(y/]), cDept = findCol(H, [/^department$/, /^dept$/]);
+          cDeptOn = findCol(H, [/^dept\s*\(y\/n\)$/, /^dept\s*y/, /department\s*\(y/]), cDept = findCol(H, [/^department$/, /^dept$/]),
+          cFlag = findCol(H, [/flag\s*to\s*ho/, /^flag\s*ho/, /flag\s*\(y/]);
         if (cType < 0) { cType = 0; cLbl = 1; cOpt = 2; cReq = 3; cSys = 4; }  // legacy positional fallback
         function cell(row, idx) { return idx > -1 && row[idx] != null ? row[idx].toString() : ''; }
         var yes = function (v) { return /^y(es)?$|^true$|^1$/i.test((v || '').trim()); };
@@ -3812,6 +3958,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           if (ty === 'number') { var mn = cell(rows[i], cMin).trim(), mx = cell(rows[i], cMax).trim(); if (mn !== '' && !isNaN(Number(mn))) q.min = Number(mn); if (mx !== '' && !isNaN(Number(mx))) q.max = Number(mx); }
           q.deptOn = yes(cell(rows[i], cDeptOn)); q.dept = q.deptOn ? cell(rows[i], cDept).trim() : '';
           if (q.deptOn && !q.dept && cDept < 0) q.dept = '';
+          if (cFlag > -1) q.flagHo = yes(cell(rows[i], cFlag));
+          else q.flagHo = !!q.deptOn; // legacy rows without Flag column
           _openQs.push(q); added++;
         }
         var bt = Object.keys(badTypes); loader(false); renderOpenQs(); toast('Imported ' + added + ' question(s)' + (bad ? ', ' + bad + ' skipped' : '') + (bt.length ? ' — unknown type(s): ' + bt.join(', ') : ''));
@@ -3821,8 +3969,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   function exportOpenQs() {
     if (!_openQs.length) { toast('No questions to export'); return; }
-    var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department']];
-    _openQs.forEach(function (q) { aoa.push([q.type, q.label, (q.options || []).join(','), q.required ? 'Y' : 'N', q.remarks ? 'Y' : 'N', (q.min != null ? q.min : ''), (q.max != null ? q.max : ''), q.sys || '', q.deptOn ? 'Y' : 'N', q.dept || '']); });
+    var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department', 'Flag to HO (Y/N)']];
+    _openQs.forEach(function (q) {
+      var flag = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : !!q.deptOn;
+      aoa.push([q.type, q.label, (q.options || []).join(','), q.required ? 'Y' : 'N', q.remarks ? 'Y' : 'N', (q.min != null ? q.min : ''), (q.max != null ? q.max : ''), q.sys || '', q.deptOn ? 'Y' : 'N', q.dept || '', flag ? 'Y' : 'N']);
+    });
     var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Questions'); XLSX.writeFile(wb, 'RawData_Questions.xlsx');
   }
   function dlSysphyTemplate() {
@@ -4756,6 +4907,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     (function () { var sg = document.getElementById('prevSeg'); if (sg) { var bs = sg.querySelectorAll('.seg-btn'); for (var i = 0; i < bs.length; i++) bs[i].addEventListener('click', function () { setPreviewMode(this.getAttribute('data-pv')); }); } })();
     on('btnDetailClose', 'click', function () { $('ovDetail').classList.remove('show'); });
     on('btnDetailClose2', 'click', function () { $('ovDetail').classList.remove('show'); });
+    on('btnHoDrillClose', 'click', closeHoDrill);
+    on('btnHoDrillClose2', 'click', closeHoDrill);
     on('btnImgClose', 'click', function () { $('ovImg').classList.remove('show'); });
     on('btnConsentAgree', 'click', function () { acceptConsent(); });
     on('lnkPolicy', 'click', function (e) { e.preventDefault(); openPolicy(); });
