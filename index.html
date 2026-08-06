@@ -381,17 +381,28 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
 .branch-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
 .branch-row .br-opt{font-size:12px;font-weight:700;min-width:80px;color:var(--text2)}
 .dept-chip{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:#E3F2FD;color:var(--blue);margin-left:6px}
-.ho-store-block{border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden;background:#fff}
-.ho-store-head{background:#F5F7FA;padding:10px 12px;font-weight:800;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
-.ho-issue-row{padding:12px;border-bottom:1px solid var(--border)}
+.ho-store-block{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;background:#fff}
+.ho-store-head{background:#F5F7FA;padding:6px 10px;font-weight:800;font-size:13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.ho-issue-row{padding:6px 10px;border-bottom:1px solid var(--border)}
 .ho-issue-row:last-child{border-bottom:none}
-.ho-act-row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:8px}
-.ho-act-row .form-group{margin:0;flex:1;min-width:140px}
-.ho-hist-tog{background:none;border:none;color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;padding:0;font-family:inherit}
-.ho-hist-box{display:none;margin-top:6px}
+.ho-line1{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;line-height:1.35}
+.ho-line1 .ho-q{font-weight:800;font-size:13px;flex:1;min-width:180px}
+.ho-line1 .ho-ans{font-size:12px;color:var(--red);font-weight:700;white-space:nowrap}
+.ho-line1 .ho-rem-inline{font-size:11px;color:#9a6700;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ho-line1 .ho-latest-inline{font-size:11px;color:var(--text2);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ho-act-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px}
+.ho-act-row .ho-sol{flex:1;min-width:140px;padding:5px 8px;font-size:12.5px;height:32px}
+.ho-act-row .ho-date{width:132px;max-width:40%;padding:5px 8px;font-size:12.5px;height:32px}
+.ho-act-row .btn{padding:5px 10px;font-size:12px;height:32px;white-space:nowrap}
+.ho-hist-tog{background:none;border:none;color:var(--blue);font-size:11px;font-weight:700;cursor:pointer;padding:0 4px;font-family:inherit;flex-shrink:0}
+.ho-hist-box{display:none;margin-top:4px}
 .ho-hist-box.open{display:block}
 .ho-recent{font-size:12px;margin-top:6px;padding:6px 8px;background:#F5F7FA;border-radius:6px}
 .ho-remark{background:#FFF8E1;border-left:3px solid var(--amber);padding:6px 8px;margin:6px 0;font-size:12px;border-radius:0 6px 6px 0}
+.ho-mail-body{display:none}
+.ho-mail-body.open{display:block}
+.ho-mail-tog{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;width:100%}
+.ho-mail-tog .chev{font-size:12px;color:var(--blue);font-weight:800}
 
 /* additions */
 /* ---- v22 additions ---- */
@@ -956,8 +967,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
-          <div class="card-head"><span class="card-title">HO Issue Push Mail</span></div>
-          <div class="card-body">
+          <div class="card-head ho-mail-tog" id="hoMailRibbon" title="Click to expand / hide">
+            <span class="chev" id="hoMailChev">▸</span>
+            <span class="card-title">HO Issue Push Mail</span>
+            <span class="small text3" style="font-weight:500">click to expand</span>
+          </div>
+          <div class="card-body ho-mail-body" id="hoMailBody">
             <div class="info-box">Save mail IDs per department, then download Outlook <b>.eml</b> drafts (one per dept) with pending/WIP issue data — same style as store reject mailers.</div>
             <div id="hoDeptMailList" style="margin-bottom:10px"></div>
             <div class="flex gap wrap">
@@ -967,7 +982,13 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
-          <div class="card-head"><span class="card-title">Issue × Dept × Store summary</span><span class="small text2" id="admHoMeta"></span></div>
+          <div class="card-head">
+            <span class="card-title">Issue × Dept × Store summary</span>
+            <span class="small text2" id="admHoMeta"></span>
+            <div style="flex:1"></div>
+            <button class="btn btn-sm btn-green" id="btnAdmHoSumXls" title="Download Excel">⬇</button>
+            <button class="btn btn-sm btn-outline" id="btnAdmHoSnap" title="Snapshot">📸</button>
+          </div>
           <div class="card-body" id="admHoSummary"><div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Open this tab to load</div></div></div>
         </div>
         <div class="card">
@@ -2818,42 +2839,45 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var lines = (iss.sol && iss.sol.lines) ? iss.sol.lines : [];
     var recent = lines.length ? lines[lines.length - 1] : null;
     var histOlder = lines.length > 1 ? lines.slice(0, -1) : [];
-    var recentHtml = recent
-      ? '<div class="ho-recent' + (recent.extended ? ' ho-ext' : '') + '"><b>Latest:</b> ' + esc(recent.solution || '') + ' · by <b>' + esc(recent.byDate || '—') + '</b>' + (recent.extended ? ' <span class="ho-ext">(extended)</span>' : '') + ' · ' + esc(recent.byName || '') + '</div>'
+    var remInline = iss.remark ? '<span class="ho-rem-inline" title="' + esc(iss.remark) + '">📝 ' + esc(iss.remark) + '</span>' : '';
+    var latestInline = recent
+      ? '<span class="ho-latest-inline' + (recent.extended ? ' ho-ext' : '') + '" title="' + esc((recent.solution || '') + ' · ' + (recent.byName || '') + ' (' + (recent.byEmp || '') + ')') + '">💡 ' + esc(recent.solution || '') + ' · ' + esc(recent.byDate || '') + ' · ' + esc(recent.byName || '') + '</span>'
       : '';
-    var histHtml = '';
+    var histBtn = histOlder.length
+      ? '<button type="button" class="ho-hist-tog" data-hid="' + esc(iss.id) + '" title="History">▸' + histOlder.length + '</button>'
+      : '';
+    var histBox = '';
     if (histOlder.length) {
-      histHtml = '<button type="button" class="ho-hist-tog" data-hid="' + esc(iss.id) + '">▸ Solution history (' + histOlder.length + ')</button><div class="ho-hist-box" id="hist_' + esc(iss.id) + '">';
+      histBox = '<div class="ho-hist-box" id="hist_' + esc(iss.id) + '">';
       histOlder.slice().reverse().forEach(function (ln) {
-        histHtml += '<div class="ho-line' + (ln.extended ? ' ext' : '') + '"><div' + (ln.extended ? ' class="ho-ext"' : '') + '><b>By ' + esc(ln.byDate || '—') + '</b> — ' + esc(ln.solution || '') + '</div><div class="small text3">' + esc(ln.byName || '') + ' · ' + esc(ln.byEmp || '') + '</div></div>';
+        histBox += '<div class="ho-line' + (ln.extended ? ' ext' : '') + '"><div' + (ln.extended ? ' class="ho-ext"' : '') + '><b>By ' + esc(ln.byDate || '—') + '</b> — ' + esc(ln.solution || '') + '</div><div class="small text3">' + esc(ln.byName || '') + ' · ' + esc(ln.byEmp || '') + '</div></div>';
       });
-      histHtml += '</div>';
+      histBox += '</div>';
     }
-    var remarkHtml = iss.remark
-      ? '<div class="ho-remark"><b>Store remark → HO:</b> ' + esc(iss.remark) + '</div>'
-      : '';
     var actHtml = '';
     if (iss.status !== 'done') {
       actHtml = '<div class="ho-act-row">' +
-        '<div class="form-group"><label class="form-label">Solution</label><input class="form-control ho-sol" data-id="' + esc(iss.id) + '" placeholder="What will be done"></div>' +
-        '<div class="form-group" style="max-width:150px"><label class="form-label">By date</label><input class="form-control ho-date" type="date" data-id="' + esc(iss.id) + '"></div>' +
-        '<button class="btn btn-sm btn-blue ho-add" data-id="' + esc(iss.id) + '">' + (lines.length ? 'Add / Update' : 'Submit') + '</button>' +
-        '<button class="btn btn-sm btn-green ho-done" data-id="' + esc(iss.id) + '">Mark Done</button>' +
-        '</div>';
+        '<input class="form-control ho-sol" data-id="' + esc(iss.id) + '" placeholder="Solution">' +
+        '<input class="form-control ho-date" type="date" data-id="' + esc(iss.id) + '" title="By date">' +
+        '<button class="btn btn-sm btn-blue ho-add" data-id="' + esc(iss.id) + '">' + (lines.length ? 'Update' : 'Submit') + '</button>' +
+        '<button class="btn btn-sm btn-green ho-done" data-id="' + esc(iss.id) + '">Done</button>' +
+        histBtn +
+        '</div>' + histBox;
     } else {
-      actHtml = '<div class="small text3" style="margin-top:6px">Issue closed.</div>';
+      actHtml = '<div class="ho-act-row"><span class="small text3">Closed · ' + esc(recent ? ((recent.byName || '') + ' · ' + (recent.byEmp || '')) : '') + '</span>' + histBtn + '</div>' + histBox;
     }
-    card.innerHTML = '<div style="display:flex;gap:8px;align-items:flex-start">' +
-      '<div style="flex:1"><div style="font-weight:800">Q' + (iss.qIdx + 1) + '. ' + esc(iss.qLabel) + '</div>' +
-      '<div class="small" style="color:var(--red);font-weight:700">Answer: ' + esc(iss.answer) + '</div>' +
-      remarkHtml + recentHtml + histHtml + actHtml +
-      '</div>' + badge + '</div>';
+    card.innerHTML =
+      '<div class="ho-line1">' +
+        '<span class="ho-q">Q' + (iss.qIdx + 1) + '. ' + esc(iss.qLabel) + '</span>' +
+        '<span class="ho-ans">Ans: ' + esc(iss.answer) + '</span>' +
+        remInline + latestInline + badge +
+      '</div>' + actHtml;
     var tog = card.querySelector('.ho-hist-tog');
     if (tog) tog.addEventListener('click', function () {
       var el = $('hist_' + this.getAttribute('data-hid'));
       if (!el) return;
       var open = el.classList.toggle('open');
-      this.textContent = (open ? '▾' : '▸') + ' Solution history (' + histOlder.length + ')';
+      this.textContent = (open ? '▾' : '▸') + histOlder.length;
     });
     var addBtn = card.querySelector('.ho-add'); if (addBtn) addBtn.addEventListener('click', function () { hoAddLine(this.getAttribute('data-id'), false); });
     var doneBtn = card.querySelector('.ho-done'); if (doneBtn) doneBtn.addEventListener('click', function () { hoMarkDone(this.getAttribute('data-id')); });
@@ -2874,7 +2898,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var doc = {
       subjectId: iss.subjectId, subjectName: iss.subjectName, storeCode: iss.storeCode, storeName: iss.storeName,
       qIdx: iss.qIdx, qLabel: iss.qLabel, dept: iss.dept, answerValue: iss.answer, storeRemark: iss.remark || '',
-      status: forceDone ? 'done' : 'wip', lines: lines, updatedAt: nowISO(), updatedBy: S.empcode
+      status: forceDone ? 'done' : 'wip', lines: lines, updatedAt: nowISO(),
+      updatedBy: S.empcode, updatedByName: S.empName || '', updatedByDept: S.dept || ''
     };
     loader(true, 'Saving…');
     db.collection('hosolutions').doc(id).set(doc, { merge: true }).then(function () {
@@ -2894,7 +2919,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (byDate && solution) { hoAddLine(id, true); return; }
     if (!(iss.sol && iss.sol.lines && iss.sol.lines.length)) { toast('Add a solution before marking done'); return; }
     loader(true, 'Saving…');
-    db.collection('hosolutions').doc(id).set({ status: 'done', updatedAt: nowISO(), updatedBy: S.empcode }, { merge: true }).then(function () {
+    db.collection('hosolutions').doc(id).set({ status: 'done', updatedAt: nowISO(), updatedBy: S.empcode, updatedByName: S.empName || '', updatedByDept: S.dept || '' }, { merge: true }).then(function () {
       loader(false); toast('Marked done');
       if (_hoSolMap[id]) _hoSolMap[id].status = 'done';
       iss.status = 'done'; if (iss.sol) iss.sol.status = 'done';
@@ -3028,26 +3053,80 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     }
     var box = $('admHoIssueList'); if (!box) return;
     if (!list.length) { box.innerHTML = '<div class="empty"><div class="empty-i">✅</div><div class="empty-t">No matching issues</div></div>'; return; }
-    var h2 = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Store</th><th>AM</th><th>ZFM</th><th>Dept</th><th>Question</th><th>Answer</th><th>Store remark</th><th>Status</th><th>Latest solution</th><th>By date</th></tr></thead><tbody>';
+    var h2 = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Store</th><th>AM</th><th>ZFM</th><th>Dept</th><th>Question</th><th>Answer</th><th>Store remark</th><th>Status</th><th>Latest solution</th><th>By date</th><th>HO By</th></tr></thead><tbody>';
     list.slice(0, 500).forEach(function (x) {
       var last = (x.sol && x.sol.lines && x.sol.lines.length) ? x.sol.lines[x.sol.lines.length - 1] : null;
       var stBadge = x.status === 'done' ? '<span class="badge badge-green">Done</span>' : (x.status === 'wip' ? '<span class="badge badge-amber">WIP</span>' : '<span class="badge badge-gray">Not Initiated</span>');
       var solTxt = last ? esc(last.solution || '') : '—';
       var dateTxt = last ? ('<span' + (last.extended ? ' class="ho-ext"' : '') + '>' + esc(last.byDate || '') + (last.extended ? ' (ext)' : '') + '</span>') : '—';
-      h2 += '<tr><td class="mono">' + esc(x.storeCode) + '</td><td>' + esc(x.amName || '—') + '</td><td>' + esc(x.zfmName || '—') + '</td><td>' + esc(x.dept) + '</td><td>' + esc(x.qLabel) + '</td><td style="color:var(--red)">' + esc(x.answer) + '</td><td>' + esc(x.remark || '—') + '</td><td>' + stBadge + '</td><td>' + solTxt + '</td><td>' + dateTxt + '</td></tr>';
+      var hoBy = last ? (esc(last.byName || '') + (last.byEmp ? ' · ' + esc(last.byEmp) : '')) : (x.sol && x.sol.updatedByName ? esc(x.sol.updatedByName) + (x.sol.updatedBy ? ' · ' + esc(x.sol.updatedBy) : '') : '—');
+      h2 += '<tr><td class="mono">' + esc(x.storeCode) + '</td><td>' + esc(x.amName || '—') + '</td><td>' + esc(x.zfmName || '—') + '</td><td>' + esc(x.dept) + '</td><td>' + esc(x.qLabel) + '</td><td style="color:var(--red)">' + esc(x.answer) + '</td><td>' + esc(x.remark || '—') + '</td><td>' + stBadge + '</td><td>' + solTxt + '</td><td>' + dateTxt + '</td><td>' + hoBy + '</td></tr>';
     });
     h2 += '</tbody></table></div>';
     box.innerHTML = h2;
   }
   function exportAdmHoXls() {
     var list = admHoFiltered(); if (!list.length) { toast('Nothing to export'); return; }
-    var aoa = [['Dept', 'Subject', 'Store', 'Store Name', 'AM', 'ZFM', 'Q#', 'Question', 'Answer', 'Store Remark', 'Status', 'Solution', 'By Date', 'Extended', 'Updated By']];
+    var aoa = [['Dept', 'Subject', 'Store', 'Store Name', 'AM', 'ZFM', 'Q#', 'Question', 'Answer', 'Store Remark', 'Status', 'Solution', 'By Date', 'Extended', 'HO By Name', 'HO Emp Code']];
     list.forEach(function (x) {
       var last = (x.sol && x.sol.lines && x.sol.lines.length) ? x.sol.lines[x.sol.lines.length - 1] : null;
-      aoa.push([x.dept, x.subjectName, x.storeCode, x.storeName, x.amName || '', x.zfmName || '', x.qIdx + 1, x.qLabel, x.answer, x.remark || '', x.status, last ? last.solution : '', last ? last.byDate : '', last && last.extended ? 'Y' : '', last ? last.byName : '']);
+      aoa.push([x.dept, x.subjectName, x.storeCode, x.storeName, x.amName || '', x.zfmName || '', x.qIdx + 1, x.qLabel, x.answer, x.remark || '', x.status, last ? last.solution : '', last ? last.byDate : '', last && last.extended ? 'Y' : '', last ? (last.byName || '') : ((x.sol && x.sol.updatedByName) || ''), last ? (last.byEmp || '') : ((x.sol && x.sol.updatedBy) || '')]);
     });
     var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'HO_Issues'); XLSX.writeFile(wb, 'HO_Issues_' + toDateStr(new Date()) + '.xlsx');
   }
+  function exportAdmHoSumXls() {
+    var list = admHoFiltered(); if (!list.length) { toast('Nothing to export'); return; }
+    var map = {};
+    list.forEach(function (x) {
+      var key = (x.subjectName || '') + '||' + (x.qLabel || '') + '||' + (x.dept || '');
+      if (!map[key]) map[key] = { subject: x.subjectName, q: x.qLabel, dept: x.dept, stores: {}, done: 0, wip: 0, ni: 0 };
+      map[key].stores[x.storeCode] = 1;
+      if (x.status === 'done') map[key].done++; else if (x.status === 'wip') map[key].wip++; else map[key].ni++;
+    });
+    var aoa = [['Dept', 'Issue (question)', 'Subject', 'Stores', 'Done', 'WIP', 'Not Initiated']];
+    Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) { return (a.dept || '').localeCompare(b.dept || '') || (a.q || '').localeCompare(b.q || ''); })
+      .forEach(function (r) { aoa.push([r.dept, r.q, r.subject, Object.keys(r.stores).length, r.done, r.wip, r.ni]); });
+    var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'HO_Summary'); XLSX.writeFile(wb, 'HO_Issue_Summary_' + toDateStr(new Date()) + '.xlsx');
+  }
+  function snapHOSummary() {
+    var src = $('admHoSummary'); if (!src || !src.querySelector('table')) { toast('Load HO Issues summary first'); return; }
+    if (typeof html2canvas !== 'function') { toast('Snapshot tool still loading…'); return; }
+    loader(true, 'Capturing…');
+    var meta = ($('admHoMeta') && $('admHoMeta').textContent) || '';
+    var wrap = document.createElement('div');
+    // Generous padding + larger fonts so text stays sharp (avoid over-compression)
+    wrap.style.cssText = 'position:fixed;left:-99999px;top:0;background:#ffffff;padding:28px 32px;display:inline-block;font-family:Roboto,Arial,sans-serif;color:#222';
+    wrap.innerHTML = '<div style="font-weight:800;font-size:20px;color:#1565C0;letter-spacing:.2px">VMM Exec Check — Issue × Dept × Store</div>' +
+      '<div style="font-size:13px;color:#555;margin:6px 0 16px">' + esc(meta) + ' · ' + esc(new Date().toLocaleString('en-IN')) + '</div>' +
+      '<div id="hoSnapHost"></div>';
+    document.body.appendChild(wrap);
+    var host = wrap.querySelector('#hoSnapHost'); host.innerHTML = src.innerHTML;
+    var tw = host.querySelector('.tbl-wrap'); if (tw) { tw.style.overflow = 'visible'; tw.style.maxWidth = 'none'; tw.style.width = 'auto'; }
+    var tbl = host.querySelector('table');
+    if (tbl) {
+      tbl.style.fontSize = '14px'; tbl.style.borderCollapse = 'collapse';
+      tbl.querySelectorAll('th,td').forEach(function (c) { c.style.padding = '10px 12px'; c.style.border = '1px solid #cfd8dc'; c.style.whiteSpace = 'nowrap'; });
+      tbl.querySelectorAll('th').forEach(function (c) { c.style.background = '#1565C0'; c.style.color = '#fff'; c.style.fontWeight = '700'; });
+    }
+    var W = Math.max(wrap.scrollWidth, 900), H = wrap.scrollHeight, sc = 3;
+    if (W * H * sc * sc > 40000000) sc = 2.5;
+    html2canvas(wrap, { backgroundColor: '#ffffff', scale: sc, useCORS: true, allowTaint: true, logging: false, width: W, height: H, windowWidth: W, imageTimeout: 0 }).then(function (canvas) {
+      document.body.removeChild(wrap); loader(false);
+      canvas.toBlob(function (blob) {
+        if (!blob) { toast('Snapshot failed'); return; }
+        var fname = 'VMM_HO_Issue_Summary_' + toDateStr(new Date()) + '.png';
+        try { if (navigator.clipboard && window.ClipboardItem) { navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(function () { toast('📸 Copied — paste into WhatsApp/Mail'); }).catch(function () { dlBlob(blob, fname); }); return; } } catch (e) { }
+        dlBlob(blob, fname);
+      }, 'image/png');
+    }).catch(function (e) { try { document.body.removeChild(wrap); } catch (x) { } loader(false); toast('Capture failed: ' + e.message); });
+  }
+  function toggleHoMailRibbon() {
+    var body = $('hoMailBody'), chev = $('hoMailChev');
+    if (!body) return;
+    var open = body.classList.toggle('open');
+    if (chev) chev.textContent = open ? '▾' : '▸';
+  }
+
 
   /* --- HO push mail (dept emails + .eml) --- */
   function paintHoDeptMailList() {
@@ -4551,6 +4630,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     on('hoStoreSearch', 'input', paintHOIssueList);
     on('btnAdmHoRefresh', 'click', renderAdminHOIssues);
     on('btnAdmHoXls', 'click', exportAdmHoXls);
+    on('btnAdmHoSumXls', 'click', exportAdmHoSumXls);
+    on('btnAdmHoSnap', 'click', snapHOSummary);
+    on('hoMailRibbon', 'click', toggleHoMailRibbon);
     on('admHoSubject', 'change', function () { renderAdminHOIssues(); });
     on('admHoDept', 'change', paintAdminHO);
     on('admHoZfm', 'change', paintAdminHO);
