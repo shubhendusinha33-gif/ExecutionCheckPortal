@@ -850,7 +850,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           <div id="dataFields" style="display:none">
             <div class="form-group"><label class="form-label">Data mode</label><select class="form-control" id="newDataMode"><option value="open">Raw Data (MS-Form style)</option><option value="sysphy">Sys vs Phy (Excel)</option></select></div>
             <div id="openBuilder">
-              <div class="info-box">Per question: <b>Department</b> + <b>🚩 Flag to HO</b>. Tip: Yes/No questions = Flag <b>ON</b>; branched “open issue / S.No.” text = Flag <b>OFF</b> (counts as 1 issue with detail). Defaults auto-apply for older questions (choice→ON, text→OFF).</div>
+              <div class="info-box">Per question: <b>Department</b> + <b>🚩 Flag to HO</b>. Tip: Yes/No = Flag <b>ON</b>; branched “open issue” text = Flag <b>OFF</b>. For <b>number</b> Qs like “How many … NOT WORKING?” — answer <b>0</b> is OK (not an HO issue); only &gt;0 counts.</div>
               <div class="flex gap wrap" style="margin-bottom:12px">
                 <button class="btn btn-outline btn-sm" id="btnQTemplate">⬇ Excel template</button>
                 <label class="btn btn-purple btn-sm" style="cursor:pointer">⬆ Import questions<input type="file" id="btnQImport" accept=".xlsx,.xls" style="display:none"></label>
@@ -2697,9 +2697,47 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (/^not\s+available\b/.test(s) || /^not\s+applicable\b/.test(s)) return false;
     return true;
   }
+  /* Number HO smart filter by question wording:
+     - “how many NOT working / NW / broken…” → issue only if answer > 0 (0 = OK)
+     - “how many working / OK…” → issue only if answer is 0
+     - default for Flagged number Qs → same as problem-count (0 / blank = not an issue)
+  */
+  function hoLabelText(q) { return String((q && q.label) || '').toLowerCase().replace(/\s+/g, ' '); }
+  function isHoWorkingCountLabel(label) {
+    var s = String(label || '').toLowerCase();
+    if (/not\s*working|\bnw\b|broken|missing|down|inactive|faulty|defective|open\s+issue/.test(s)) return false;
+    if (/how\s+many.{0,40}\b(working|functional|active|available|ok)\b/.test(s)) return true;
+    if (/\b(are|is)\s+working\b/.test(s) && /how\s+many/.test(s)) return true;
+    return false;
+  }
+  function isHoProblemCountLabel(label) {
+    var s = String(label || '').toLowerCase();
+    if (/not\s*working|\bnw\b|not\s+ok|not\s+okay/.test(s)) return true;
+    if (/broken|missing|down|inactive|faulty|defective|failed|open\s+issue/.test(s)) return true;
+    if (/how\s+many.{0,60}\b(not|no)\b/.test(s)) return true;
+    return false;
+  }
+  function isHoNumberIssue(q, val) {
+    var s = String(val == null ? '' : val).trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!s) return false;
+    if (HO_TEXT_EMPTY[s] || NEG_EXCLUDE[s]) return false;
+    if (/^not\s+available\b/.test(s) || /^not\s+applicable\b/.test(s)) return false;
+    var n = Number(String(val).trim());
+    if (isNaN(n)) return isHoTextIssue(val);
+    var label = hoLabelText(q);
+    if (isHoWorkingCountLabel(label)) return n <= 0;
+    /* problem-count labels + default for any Flagged number Q */
+    return n > 0;
+  }
   function isHoIssueAnswer(q, val) {
     var ty = (q && q.type) || '';
-    if (ty === 'text' || ty === 'para' || ty === 'number' || ty === 'email' || ty === 'phone') return isHoTextIssue(val);
+    if (ty === 'number') return isHoNumberIssue(q, val);
+    if (ty === 'text' || ty === 'para' || ty === 'email' || ty === 'phone') {
+      /* If a text answer is purely numeric (e.g. “0” on Mosambee NW), apply number smart filter */
+      var raw = String(val == null ? '' : val).trim();
+      if (raw !== '' && !isNaN(Number(raw)) && /^-?\d+(\.\d+)?$/.test(raw)) return isHoNumberIssue(q, val);
+      return isHoTextIssue(val);
+    }
     return isNegativeAnswer(val);
   }
   function ansMapFromSub(o) {
@@ -3164,7 +3202,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ($('admHoWip')) $('admHoWip').textContent = c.wip;
     if ($('admHoNI')) $('admHoNI').textContent = c.ni;
     if ($('admHoIssueCount')) $('admHoIssueCount').textContent = list.length;
-    if ($('admHoMeta')) $('admHoMeta').textContent = list.length + ' issue(s) · click a number to see stores';
+    if ($('admHoMeta')) $('admHoMeta').textContent = list.length + ' issue(s) · click a number to see stores · number “0” / blank excluded (e.g. Mosambee NW = 0 is OK)';
     var map = {};
     list.forEach(function (x) {
       var key = (x.subjectId || '') + '||' + (x.qLabel || '') + '||' + (x.dept || '') + '||' + String(x.qIdx);
