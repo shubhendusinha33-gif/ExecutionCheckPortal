@@ -1,7 +1,7 @@
 name: Deploy GitHub Pages
 on:
   push:
-    branches: [main, gh-pages]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,8 +22,7 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html _site/
-          printf '
-' > _site/.nojekyll
+          printf '\n' > _site/.nojekyll
           cp README.md _site/ 2>/dev/null || true
       - name: Setup Pages
         uses: actions/configure-pages@v5
