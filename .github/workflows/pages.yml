@@ -5,13 +5,12 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
-  pages: write
-  id-token: write
 concurrency:
-  group: pages
+  group: pages-branch
   cancel-in-progress: true
 jobs:
-  # Keep gh-pages branch updated (user can point Pages source to gh-pages)
+  # Legacy "Deploy from branch" builds are stuck/errored for this repo.
+  # Keep a clean gh-pages branch so Pages can be pointed at it.
   publish-gh-pages-branch:
     runs-on: ubuntu-latest
     steps:
@@ -29,20 +28,3 @@ jobs:
           publish_dir: ./_site
           force_orphan: true
           commit_message: Deploy from main ${{ github.sha }}
-  # Native Pages deploy (works after Settings → Pages → Source = GitHub Actions)
-  deploy-actions-pages:
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
