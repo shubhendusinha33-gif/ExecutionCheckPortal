@@ -1978,7 +1978,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var flags = S.viewShots.map(function (p) { return !!(p && p.flagged); });
     var flaggedAny = flags.some(function (x) { return x; });
     var best = matches.reduce(function (a, b) { return (b && b.score > (a ? a.score : -1)) ? b : a; }, null);
-    var doc = { type: 'pic', subjectId: subj.id, subjectName: subj.name, storeCode: S.storeCode, storeName: S.storeName, smEmail: st.smEmail || '', amEmail: st.amEmail || '', zfmEmail: st.zfmEmail || '', amName: st.amName || '', zfmName: st.zfmName || '', designation: S.designation, empcode: S.empcode, empName: S.empName, selfie: S.selfie, pic: pics[0], pics: pics, viewMeta: viewMeta, gps: S.gps, match: best, matches: matches, flagged: flaggedAny, flags: flags, reviewStatus: 'pending', reviewRemark: '', reviewedBy: '', reviewedAt: '', mailedAt: '', ts: nowISO() };
+    var doc = { type: 'pic', subjectId: subj.id, subjectName: subj.name, storeCode: S.storeCode, storeName: S.storeName, smEmail: st.smEmail || '', amEmail: st.amEmail || '', zfmEmail: st.zfmEmail || '', amName: st.amName || '', zfmName: storeZfmDisplay(st, ''), zfmCode: storeZfmCode(st), designation: S.designation, empcode: S.empcode, empName: S.empName, selfie: S.selfie, pic: pics[0], pics: pics, viewMeta: viewMeta, gps: S.gps, match: best, matches: matches, flagged: flaggedAny, flags: flags, reviewStatus: 'pending', reviewRemark: '', reviewedBy: '', reviewedAt: '', mailedAt: '', ts: nowISO() };
     db.collection('submissions').doc(subDocId(subj.id)).set(doc).then(function () { loader(false); doneMsg(pics.length + ' photo(s) submitted for review.'); }).catch(function (e) { loader(false); toast(e.message); });
   }
 
@@ -2173,7 +2173,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       payload = { answers: ans };
     }
     loader(true, 'Submitting…');
-    var doc = { type: 'data', subjectId: subj.id, subjectName: subj.name, dataMode: subj.dataMode, storeCode: S.storeCode, storeName: S.storeName, smEmail: st.smEmail || '', amEmail: st.amEmail || '', zfmEmail: st.zfmEmail || '', amName: st.amName || '', zfmName: st.zfmName || '', designation: S.designation, empcode: S.empcode, empName: S.empName, selfie: S.selfie, gps: S.gps, ts: nowISO() };
+    var doc = { type: 'data', subjectId: subj.id, subjectName: subj.name, dataMode: subj.dataMode, storeCode: S.storeCode, storeName: S.storeName, smEmail: st.smEmail || '', amEmail: st.amEmail || '', zfmEmail: st.zfmEmail || '', amName: st.amName || '', zfmName: storeZfmDisplay(st, ''), zfmCode: storeZfmCode(st), designation: S.designation, empcode: S.empcode, empName: S.empName, selfie: S.selfie, gps: S.gps, ts: nowISO() };
     if (payload.rows) { doc.rows = payload.rows; doc.descLabels = payload.descLabels || []; } else doc.answers = payload.answers;
     db.collection('submissions').doc(subDocId(subj.id)).set(doc).then(function () { loader(false); doneMsg('Data submitted successfully.'); }).catch(function (e) { loader(false); toast(e.message); });
   }
@@ -2774,19 +2774,52 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       return d.qLabel + ': ' + (d.answer || '—') + (d.remark ? ' (📝 ' + d.remark + ')' : '');
     }).join(' · ');
   }
+  /* Store master DDR has “ZFM Code” (often the ZFM name/id). Prefer that over submission snapshot. */
+  function storeFromCache(stores, code) {
+    if (!stores) return {};
+    if (stores[code]) return stores[code];
+    var c = String(code == null ? '' : code).trim();
+    if (!c) return {};
+    if (stores[c]) return stores[c];
+    var low = c.toLowerCase(), k;
+    for (k in stores) {
+      if (Object.prototype.hasOwnProperty.call(stores, k) && String(k).trim().toLowerCase() === low) return stores[k];
+    }
+    return {};
+  }
+  function storeZfmCode(st) {
+    return String((st && (st.zfmCode || st.zfmName)) || '').trim();
+  }
+  function storeZfmDisplay(st, fallback) {
+    var name = String((st && st.zfmName) || '').trim();
+    var code = String((st && st.zfmCode) || '').trim();
+    if (name) return name;
+    if (code) return code;
+    return String(fallback == null ? '' : fallback).trim();
+  }
+  function hoZfmMatches(x, selected) {
+    if (!selected) return true;
+    var sel = String(selected).trim().toLowerCase();
+    if (!sel) return true;
+    var name = String((x && x.zfmName) || '').trim().toLowerCase();
+    var code = String((x && x.zfmCode) || '').trim().toLowerCase();
+    return (name && name === sel) || (code && code === sel);
+  }
   function buildHoIssueFromAnswer(subj, o, stores, solMap, qIdx, q, a, details, subDocId) {
     var sid = subj.id || o.subjectId;
     var dept = a.dept || q.dept || '';
     var id = hoSolId(sid, o.storeCode, qIdx);
     var sol = (solMap && solMap[id]) || null;
     var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : 'wip');
-    var st = stores[o.storeCode] || {};
+    var st = storeFromCache(stores, o.storeCode);
+    var zCode = storeZfmCode(st);
+    var zDisp = storeZfmDisplay(st, o.zfmName || '');
     return {
       id: id, subId: subDocId || o.id || '',
       subjectId: sid, subjectName: o.subjectName || subj.name || '',
       storeCode: o.storeCode, storeName: o.storeName || st.name || '',
-      amName: o.amName || st.amName || '', zfmName: o.zfmName || st.zfmName || '',
-      amCode: st.amCode || '', zfmCode: st.zfmCode || '',
+      amName: st.amName || o.amName || '', amCode: st.amCode || o.amCode || '',
+      zfmName: zDisp, zfmCode: zCode || zDisp,
       qIdx: qIdx, qLabel: a.label || q.label || ('Q' + (qIdx + 1)),
       answer: a.value, remark: a.remark || '', dept: dept, status: status, sol: sol,
       followUps: details || [], detailText: formatHoFollowUps(details || []),
@@ -3168,9 +3201,18 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     }
     fillDeptSelect(deptSel, curD, true);
     if (zfmSel) {
-      var zset = {}; _admHoIssues.forEach(function (x) { if (x.zfmName) zset[x.zfmName] = 1; });
+      /* Build from store-master ZFM Code/Name resolved onto each issue */
+      var zset = {};
+      _admHoIssues.forEach(function (x) {
+        var lab = (x.zfmName || x.zfmCode || '').trim();
+        if (lab) zset[lab] = 1;
+      });
       zfmSel.innerHTML = '<option value="">All ZFM</option>';
-      Object.keys(zset).sort().forEach(function (n) { var o = document.createElement('option'); o.value = n; o.textContent = n; if (n === curZ) o.selected = true; zfmSel.appendChild(o); });
+      Object.keys(zset).sort().forEach(function (n) {
+        var o = document.createElement('option'); o.value = n; o.textContent = n;
+        if (n === curZ) o.selected = true;
+        zfmSel.appendChild(o);
+      });
     }
     if (amSel) {
       var aset = {}; _admHoIssues.forEach(function (x) { if (x.amName) aset[x.amName] = 1; });
@@ -3187,7 +3229,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     return _admHoIssues.filter(function (x) {
       if (sid && x.subjectId !== sid) return false;
       if (dept && normDept(x.dept) !== dept) return false;
-      if (zfm && (x.zfmName || '') !== zfm) return false;
+      if (zfm && !hoZfmMatches(x, zfm)) return false;
       if (am && (x.amName || '') !== am) return false;
       if (st !== 'all' && x.status !== st) return false;
       return true;
@@ -4343,7 +4385,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           if (seen[code]) continue; seen[code] = 1;
           var rec = { code: code, name: g(row, C.name), smName: g(row, C.smName), smEmail: g(row, C.smEmail), amName: g(row, C.amName), amEmail: g(row, C.amEmail), zfmName: g(row, C.zfmName), zfmEmail: g(row, C.zfmEmail), city: g(row, C.city), state: g(row, C.state) };
           var amCd = g(row, C.amCode); if (amCd) rec.amCode = amCd;
-          var zfCd = g(row, C.zfmCode); if (zfCd) rec.zfmCode = zfCd;
+          var zfCd = g(row, C.zfmCode); if (zfCd) { rec.zfmCode = zfCd; if (!rec.zfmName) rec.zfmName = zfCd; }
           var upBy = g(row, C.updatedBy); if (upBy) rec.updatedBy = upBy;
           if (C.active > -1) { rec.active = !/^(n|no|0|inactive|false|closed)$/i.test(g(row, C.active)); if (rec.active === false) inactive++; }
           var la = g(row, C.lat), ln = g(row, C.lng);
