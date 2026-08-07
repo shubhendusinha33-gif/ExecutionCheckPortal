@@ -970,7 +970,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           <div class="card-head"><span class="card-title">Filters</span></div>
           <div class="card-body">
             <div class="flex gap wrap" style="align-items:center">
-              <select class="form-control" id="admHoSubject" style="max-width:220px"><option value="">All subjects</option></select>
+              <select class="form-control" id="admHoSubject" style="max-width:220px"><option value="">— Select subject —</option></select>
               <select class="form-control" id="admHoDept" style="max-width:160px"><option value="">All departments</option></select>
               <select class="form-control" id="admHoZfm" style="max-width:160px"><option value="">All ZFM</option></select>
               <select class="form-control" id="admHoAm" style="max-width:160px"><option value="">All AM</option></select>
@@ -1497,7 +1497,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     try {
       firebase.initializeApp(firebaseConfig);
       db = firebase.firestore();
-      try { db.settings({ experimentalForceLongPolling: true, useFetchStreams: false }); } catch (e) { }
+      /* Long-polling is much slower — only enable when forced (some locked-down networks). */
+      try {
+        var forceLP = /(?:\?|&)longpoll=1(?:&|$)/.test(location.search || '') || localStorage.getItem('vmm_force_longpoll') === '1';
+        if (forceLP) db.settings({ experimentalForceLongPolling: true, useFetchStreams: false });
+      } catch (e) { }
       // NOTE: offline persistence intentionally NOT enabled — it could serve an empty local
       // cache on first load and make everything read as 0. Reads go straight to the server.
       auth = firebase.auth();
@@ -2904,14 +2908,55 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
 
   /* --- Store master cache (speeds HO + admin filters) --- */
+  var _subjActiveCache = null, _subjActiveCacheAt = 0;
+  var _dashSubsLight = null, _dashSubsLightAt = 0;
+  var SUB_LIGHT_FIELDS = ['storeCode', 'storeName', 'type', 'reviewStatus', 'reviewRemark', 'subjectId', 'subjectName', 'ts', 'amStatus', 'amAction', 'amRemark', 'amValidatedBy', 'amName', 'amEmail', 'amCode', 'zfmName', 'zfmCode', 'zfmEmail', 'empName', 'empcode', 'designation', 'flagged', 'match', 'dataMode', 'mailedAt'];
+  function withSelect(ref, fields) {
+    try {
+      if (ref && typeof ref.select === 'function') return ref.select.apply(ref, fields);
+    } catch (e) { }
+    return ref;
+  }
+  function loadActiveSubjects(cb) {
+    if (_subjActiveCache && (Date.now() - _subjActiveCacheAt) < 10 * 60 * 1000) { cb(_subjActiveCache); return; }
+    db.collection('subjects').where('active', '==', true).get().then(function (qs) {
+      var map = {}; qs.forEach(function (d) { var o = d.data(); o.id = d.id; map[d.id] = o; });
+      _subjActiveCache = map; _subjActiveCacheAt = Date.now();
+      cb(map);
+    }).catch(function () { cb(_subjActiveCache || {}); });
+  }
   function loadStoreCache(cb) {
-    if (_hoStoreCache && (Date.now() - _hoStoreCacheAt) < 5 * 60 * 1000) { cb(_hoStoreCache); return; }
+    if (_hoStoreCache && (Date.now() - _hoStoreCacheAt) < 15 * 60 * 1000) { cb(_hoStoreCache); return; }
     db.collection('stores').get().then(function (qs) {
       var map = {};
       qs.forEach(function (d) { var o = d.data(); o.code = o.code || d.id; map[o.code] = o; });
       _hoStoreCache = map; _hoStoreCacheAt = Date.now();
       cb(map);
     }).catch(function () { cb(_hoStoreCache || {}); });
+  }
+  function loadSubsLight(cb, force, subjectId) {
+    if (!force && !subjectId && _dashSubsLight && (Date.now() - _dashSubsLightAt) < 3 * 60 * 1000) { cb(_dashSubsLight); return; }
+    var base = db.collection('submissions');
+    if (subjectId) base = base.where('subjectId', '==', subjectId);
+    var q = withSelect(base, SUB_LIGHT_FIELDS);
+    var t0 = Date.now();
+    q.get().then(function (qs) {
+      var arr = []; qs.forEach(function (d) { var o = d.data(); o._id = d.id; arr.push(o); });
+      console.log('[SubsLight]', arr.length, 'docs in', Date.now() - t0, 'ms', subjectId ? ('subj ' + subjectId) : 'all');
+      if (!subjectId) { _dashSubsLight = arr; _dashSubsLightAt = Date.now(); }
+      cb(arr);
+    }).catch(function (e) {
+      console.warn('[SubsLight] select/query failed, scoped fallback', e && e.message);
+      /* Never pull the entire unfiltered collection (photos make it hang). Prefer subject scope. */
+      var fb = subjectId
+        ? db.collection('submissions').where('subjectId', '==', subjectId)
+        : null;
+      if (!fb) { cb(_dashSubsLight || []); return; }
+      fb.get().then(function (qs) {
+        var arr = []; qs.forEach(function (d) { var o = d.data(); o._id = d.id; arr.push(o); });
+        cb(arr);
+      }).catch(function (e2) { toast(e2.message || e.message); cb([]); });
+    });
   }
 
   function enterHOSupport() {
@@ -3156,35 +3201,69 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function renderAdminHOIssues() {
     ensureConfigExtras();
     paintHoDeptMailList();
+    var sidFilter = ($('admHoSubject') && $('admHoSubject').value) || '';
+    /* Fast path: no subject selected — only fill subject list, do NOT download all submissions */
+    if (!sidFilter) {
+      _admHoIssues = [];
+      loadActiveSubjects(function (subjMap) {
+        var subSel = $('admHoSubject');
+        var cur = subSel ? subSel.value : '';
+        if (subSel) {
+          var arr = Object.keys(subjMap).map(function (id) { return subjMap[id]; })
+            .filter(function (o) { return o.type === 'data' && o.dataMode !== 'sysphy'; })
+            .sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
+          subSel.innerHTML = '<option value="">— Select subject (required) —</option>';
+          arr.forEach(function (o) {
+            var opt = document.createElement('option'); opt.value = o.id; opt.textContent = o.name || o.id;
+            if (o.id === cur) opt.selected = true;
+            subSel.appendChild(opt);
+          });
+        }
+        fillDeptSelect($('admHoDept'), ($('admHoDept') && $('admHoDept').value) || '', true);
+        if ($('admHoZfm')) $('admHoZfm').innerHTML = '<option value="">All ZFM</option>';
+        if ($('admHoAm')) $('admHoAm').innerHTML = '<option value="">All AM</option>';
+        paintAdminHO();
+        if ($('admHoSummary')) $('admHoSummary').innerHTML = '<div class="empty"><div class="empty-i">⚡</div><div class="empty-t">Select a subject to load HO issues</div><div class="small text3" style="margin-top:6px">Keeps the page fast — only that subject’s data is downloaded</div></div>';
+        if ($('admHoMeta')) $('admHoMeta').textContent = 'Select a subject';
+      });
+      return;
+    }
     loader(true, 'Loading HO issues…');
     var t0 = Date.now();
-    var sidFilter = ($('admHoSubject') && $('admHoSubject').value) || '';
     loadStoreCache(function (stores) {
       _admHoStoreMeta = stores;
-      var pSubj = db.collection('subjects').where('active', '==', true).get();
-      var pSubs = sidFilter
-        ? db.collection('submissions').where('subjectId', '==', sidFilter).get()
-        : db.collection('submissions').where('type', '==', 'data').get();
-      var pSol = sidFilter
-        ? db.collection('hosolutions').where('subjectId', '==', sidFilter).get().catch(function () { return { forEach: function () { } }; })
-        : db.collection('hosolutions').get().catch(function () { return { forEach: function () { } }; });
-      Promise.all([pSubj, pSubs, pSol]).then(function (res) {
+      var pSubs = db.collection('submissions').where('subjectId', '==', sidFilter).get();
+      var pSol = db.collection('hosolutions').where('subjectId', '==', sidFilter).get().catch(function () { return { forEach: function () { } }; });
+      Promise.all([
+        new Promise(function (res) { loadActiveSubjects(function (m) { res(m); }); }),
+        pSubs,
+        pSol
+      ]).then(function (res) {
         loader(false);
-        var subjMap = {}; res[0].forEach(function (d) { var o = d.data(); o.id = d.id; subjMap[d.id] = o; });
-        // also include inactive if filtered subject not in active set
-        var solMap = {}; res[2].forEach(function (d) { solMap[d.id] = d.data(); });
-        var issues = [];
-        res[1].forEach(function (d) {
-          var o = d.data(); if (o.type && o.type !== 'data') return; if (o.reviewStatus === 'rejected') return;
-          var subj = subjMap[o.subjectId];
-          if (!subj) return;
-          o.id = d.id;
-          extractHOIssuesFromSub(subj, o, stores, solMap, null, d.id).forEach(function (iss) { issues.push(iss); });
-        });
-        _admHoIssues = issues;
-        populateAdmHoFilterDropdowns();
-        paintAdminHO();
-        console.log('[AdminHO] loaded in', Date.now() - t0, 'ms ·', issues.length);
+        var subjMap = res[0] || {};
+        /* ensure selected subject present even if inactive */
+        var need = sidFilter && !subjMap[sidFilter];
+        var cont = function () {
+          var solMap = {}; res[2].forEach(function (d) { solMap[d.id] = d.data(); });
+          var issues = [];
+          res[1].forEach(function (d) {
+            var o = d.data(); if (o.type && o.type !== 'data') return; if (o.reviewStatus === 'rejected') return;
+            var subj = subjMap[o.subjectId];
+            if (!subj) return;
+            o.id = d.id;
+            extractHOIssuesFromSub(subj, o, stores, solMap, null, d.id).forEach(function (iss) { issues.push(iss); });
+          });
+          _admHoIssues = issues;
+          populateAdmHoFilterDropdowns();
+          paintAdminHO();
+          console.log('[AdminHO] loaded in', Date.now() - t0, 'ms ·', issues.length);
+        };
+        if (need) {
+          db.collection('subjects').doc(sidFilter).get().then(function (d) {
+            if (d.exists) { var o = d.data(); o.id = d.id; subjMap[d.id] = o; }
+            cont();
+          }).catch(function () { cont(); });
+        } else cont();
       }).catch(function (e) { loader(false); toast(e.message); });
     });
   }
@@ -3192,11 +3271,23 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var subSel = $('admHoSubject'), deptSel = $('admHoDept'), zfmSel = $('admHoZfm'), amSel = $('admHoAm');
     var curS = subSel ? subSel.value : '', curD = deptSel ? deptSel.value : '', curZ = zfmSel ? zfmSel.value : '', curA = amSel ? amSel.value : '';
     if (subSel) {
-      var seen = {}; subSel.innerHTML = '<option value="">All subjects</option>';
+      /* Keep subject list from active subjects cache when possible */
+      var seen = {};
+      var keepOpts = '<option value="">— Select subject (required) —</option>';
+      if (_subjActiveCache) {
+        Object.keys(_subjActiveCache).map(function (id) { return _subjActiveCache[id]; })
+          .filter(function (o) { return o.type === 'data' && o.dataMode !== 'sysphy'; })
+          .sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); })
+          .forEach(function (o) {
+            seen[o.id] = 1;
+            keepOpts += '<option value="' + esc(o.id) + '"' + (o.id === curS ? ' selected' : '') + '>' + esc(o.name || o.id) + '</option>';
+          });
+      }
       _admHoIssues.forEach(function (x) {
         if (seen[x.subjectId]) return; seen[x.subjectId] = 1;
-        var opt = document.createElement('option'); opt.value = x.subjectId; opt.textContent = x.subjectName || x.subjectId; subSel.appendChild(opt);
+        keepOpts += '<option value="' + esc(x.subjectId) + '"' + (x.subjectId === curS ? ' selected' : '') + '>' + esc(x.subjectName || x.subjectId) + '</option>';
       });
+      subSel.innerHTML = keepOpts;
       if (curS) subSel.value = curS;
     }
     fillDeptSelect(deptSel, curD, true);
@@ -4411,11 +4502,28 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     _subFilter.date = '';
     if ($('subDate')) $('subDate').value = '';
     var cached = _subAll.length > 0;
-    if (cached) applySubFilters(); else loader(true, 'Loading…');
-    db.collection('submissions').get().then(function (qs) {
-      if (!cached) loader(false); _subRows = {}; _subAll = []; qs.forEach(function (d) { var o = d.data(); o._id = d.id; _subRows[d.id] = o; _subAll.push(o); }); _subAll.sort(function (a, b) { return (b.ts || '').localeCompare(a.ts || ''); });
+    if (cached) applySubFilters();
+    else if ($('subTable')) $('subTable').innerHTML = '<div class="empty"><div class="empty-i">⚡</div><div class="empty-t">Loading submissions…</div></div>';
+    /* Prefer light fields; if that fails, require subject filter rather than downloading every photo */
+    var subjName = _subFilter.subject || '';
+    var sid = '';
+    if (subjName && _subjActiveCache) {
+      Object.keys(_subjActiveCache).forEach(function (id) {
+        if ((_subjActiveCache[id].name || '') === subjName) sid = id;
+      });
+    }
+    loadSubsLight(function (arr) {
+      if (!arr.length && !cached) {
+        loadActiveSubjects(function () {
+          if ($('subTable')) $('subTable').innerHTML = '<div class="empty"><div class="empty-i">⚡</div><div class="empty-t">Pick a subject filter above, then Refresh</div><div class="small text3" style="margin-top:6px">Full “all submissions” download is disabled to keep the portal fast</div></div>';
+        });
+        return;
+      }
+      _subRows = {}; _subAll = arr.slice();
+      _subAll.forEach(function (o) { _subRows[o._id] = o; });
+      _subAll.sort(function (a, b) { return (b.ts || '').localeCompare(a.ts || ''); });
       applySubFilters();
-    }).catch(function (e) { if (!cached) loader(false); if ($('subTable')) $('subTable').innerHTML = '<div class="warn-box">Could not load submissions: ' + esc(e.message) + '</div>'; toast(e.message); });
+    }, !cached, sid);
   }
   function subStatusOf(o) { return o.reviewStatus ? o.reviewStatus : (o.type === 'pic' ? 'pending' : 'submitted'); }
   /* v24 — AM validation cell / export values */
@@ -4566,6 +4674,21 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function showImgModal(title, src) { $('ovImgTitle').textContent = title; $('ovImgPic').src = src; $('ovImg').classList.add('show'); }
   function showSubDetail(id) {
     var o = _subRows[id]; if (!o) { toast('Not found'); return; }
+    /* Light list omits answers/photos — fetch full doc once when opening */
+    var needsFull = (o.type === 'pic' && !(o.pic || (o.pics && o.pics.length))) ||
+      (o.type !== 'pic' && !o.answers && !o.rows);
+    if (needsFull && !o._fullLoaded) {
+      loader(true, 'Opening…');
+      db.collection('submissions').doc(id).get().then(function (d) {
+        loader(false);
+        if (!d.exists) { toast('Not found'); return; }
+        var full = d.data(); full._id = d.id; full._fullLoaded = true;
+        _subRows[id] = full;
+        for (var i = 0; i < _subAll.length; i++) { if (_subAll[i]._id === id) { _subAll[i] = full; break; } }
+        showSubDetail(id);
+      }).catch(function (e) { loader(false); toast(e.message); });
+      return;
+    }
     $('ovDetailTitle').textContent = o.storeCode + ' · ' + o.subjectName;
     var status = o.reviewStatus ? o.reviewStatus : (o.type === 'pic' ? 'pending' : 'submitted');
     var h = '<div class="small text2" style="margin-bottom:10px">' + esc(o.type.toUpperCase()) + ' · ' + esc(o.designation || '') + ' ' + esc(o.empName || '') + ' · ' + (o.ts ? new Date(o.ts).toLocaleString() : '') + ' · 📍' + esc(o.gps || '–') + ' · <b>' + status + '</b>' + (o.reviewedBy ? ' by ' + esc(o.reviewedBy) : '') + (o.reviewRemark ? '<br><span style="color:var(--red)">Remark: ' + esc(o.reviewRemark) + '</span>' : '') + '</div>';
@@ -4609,25 +4732,41 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (_dashDate === null) _dashDate = '';
     if ($('dashDate')) $('dashDate').value = _dashDate;
     var cached = !!_lastAM;
-    if (cached) renderAMSummary(_lastAM); else loader(true, 'Building…');
-    Promise.all([db.collection('stores').get(), db.collection('submissions').get(), db.collection('subjects').get()]).then(function (res) {
-      if (!cached) loader(false);
-      var stores = [], subs = [], subjList = []; res[0].forEach(function (d) { stores.push(d.data()); });
-      res[2].forEach(function (d) { var o = d.data(); o.id = d.id; subjList.push(o); });
+    if (cached) renderAMSummary(_lastAM);
+    else if ($('amSummary') && !$('amSummary').innerHTML) $('amSummary').innerHTML = '<div class="empty"><div class="empty-i">⚡</div><div class="empty-t">Loading dashboard…</div></div>';
+    var t0 = Date.now();
+    /* Light fields only — never pull base64 photos/selfies for the dashboard */
+    Promise.all([
+      new Promise(function (res) { loadStoreCache(function (m) { res(m); }); }),
+      new Promise(function (res) { loadSubsLight(function (a) { res(a); }, false, _dashSubject || ''); }),
+      new Promise(function (res) { loadActiveSubjects(function (m) { res(m); }); })
+    ]).then(function (res) {
+      console.log('[Dash] light load', Date.now() - t0, 'ms');
+      var storeMap = res[0] || {};
+      var stores = Object.keys(storeMap).map(function (k) { return storeMap[k]; });
+      var allSubs = res[1] || [];
+      var subjMap = res[2] || {};
+      var subjList = Object.keys(subjMap).map(function (id) { return subjMap[id]; });
+      /* also include inactive subjects referenced by filter if needed */
       populateDashSubjects(subjList);
       var selSubj = _dashSubject ? subjList.filter(function (s) { return s.id === _dashSubject; })[0] : null;
-      /* AM Valid columns/KPIs only when the (selected) subject requires AM validation */
+      if (_dashSubject && !selSubj) {
+        /* try from cache of all — load one doc */
+        selSubj = null;
+      }
       var showAmVal = selSubj ? amValOn(selSubj) : subjList.some(function (sj) { return sj && sj.active !== false && amValOn(sj); });
       setDashAmValVisible(showAmVal);
-      res[1].forEach(function (d) { var o = d.data(); if (_dashDate && (!o.ts || toDateStr(new Date(o.ts)) !== _dashDate)) return; if (selSubj && o.subjectId !== selSubj.id) return; subs.push(o); });
+      var subs = [];
+      allSubs.forEach(function (o) {
+        if (_dashDate && (!o.ts || toDateStr(new Date(o.ts)) !== _dashDate)) return;
+        if (selSubj && o.subjectId !== selSubj.id) return;
+        subs.push(o);
+      });
       var applSet = null;
       if (selSubj) { applSet = {}; stores.forEach(function (s) { if (selSubj.scope !== 'select' || (Array.isArray(selSubj.storeList) && selSubj.storeList.indexOf(s.code) > -1)) applSet[s.code] = 1; }); }
-      // store -> mapping
       var stMap = {}; stores.forEach(function (s) { stMap[s.code] = { am: s.amEmail || s.amCode || '(unmapped)', zfm: zfmKey(s), amName: amLabel(s), zfmName: zfmLabel(s) }; });
-      // AM aggregation (key = AM email)
       var AM = {};
       function amrec(am, zfm, amName, zfmName) { if (!AM[am]) AM[am] = { am: am, zfm: zfm, amName: amName || localPart(am), zfmName: zfmName || localPart(zfm), total: 0, picRecd: {}, picPr: {}, dataRecd: {}, dataPr: {}, amVal: 0, amValPend: 0, amRedo: 0, amScope: 0 }; return AM[am]; }
-      // v25 — subject lookup is needed inside the submission loop below (AM-validation tallies)
       var subjById = {}; subjList.forEach(function (sj) { subjById[sj.id] = sj; });
       stores.forEach(function (s) { if (applSet && !applSet[s.code]) return; var a = amrec(s.amEmail || s.amCode || '(unmapped)', zfmKey(s), amLabel(s), zfmLabel(s)); a.total++; });
       var reasons = {}, anySubStores = {};
@@ -4637,7 +4776,6 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         var st = o.reviewStatus ? o.reviewStatus : (o.type === 'pic' ? 'pending' : 'submitted');
         if (o.type === 'pic') { a.picRecd[o.storeCode] = 1; if (st === 'pending' || st === 'rejected') a.picPr[o.storeCode] = 1; if (st === 'rejected') { var rs = o.reviewRemark || 'No remark'; reasons[rs] = (reasons[rs] || 0) + 1; } }
         else { a.dataRecd[o.storeCode] = 1; if (st === 'rejected') { a.dataPr[o.storeCode] = 1; var rs2 = o.reviewRemark || 'No remark'; reasons[rs2] = (reasons[rs2] || 0) + 1; } }
-        // v25 — AM validation tallies (only submissions belonging to AM-validation tasks)
         if (amValOn(subjById[o.subjectId])) {
           a.amScope++;
           if (o.amStatus === 'validated') a.amVal++;
@@ -4645,12 +4783,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           else a.amValPend++;
         }
       });
-      // KPI totals
       var totalStores = applSet ? Object.keys(applSet).length : stores.length, picRecdTot = 0, picPrTot = 0, dataRecdTot = 0, dataPrTot = 0, picDoneTot = 0, dataDoneTot = 0, pendTot = 0, rejTot = 0;
-      var picSet = {}, dataSet = {};
-      subs.forEach(function (o) { var st = o.reviewStatus ? o.reviewStatus : (o.type === 'pic' ? 'pending' : 'submitted'); if (o.type === 'pic') { picSet[o.storeCode] = picSet[o.storeCode] || st; if (st === 'pending') pendTot++; else if (st === 'rejected') rejTot++; } else if (st === 'rejected') rejTot++; });
+      subs.forEach(function (o) { var st = o.reviewStatus ? o.reviewStatus : (o.type === 'pic' ? 'pending' : 'submitted'); if (o.type === 'pic') { if (st === 'pending') pendTot++; else if (st === 'rejected') rejTot++; } else if (st === 'rejected') rejTot++; });
       Object.keys(AM).forEach(function (k) { var a = AM[k]; var pr = Object.keys(a.picRecd).length, ppr = Object.keys(a.picPr).length, dr = Object.keys(a.dataRecd).length, dpr = Object.keys(a.dataPr).length; picRecdTot += pr; picPrTot += ppr; dataRecdTot += dr; dataPrTot += dpr; picDoneTot += (pr - ppr); dataDoneTot += (dr - dpr); });
-      // v24 — AM validation KPIs (only tasks with AM validation ON count here)
       var amTot = 0, amDone = 0, amRedo = 0;
       subs.forEach(function (o) {
         var sj = subjById[o.subjectId];
@@ -4673,7 +4808,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       renderAMSummary(AM);
       renderPendExtract(stores, subs, subjList, selSubj);
       drawBar('chReason', 'Rejection / re-do reasons', Object.keys(reasons), Object.keys(reasons).map(function (k) { return reasons[k]; }), '#E91E8C');
-    }).catch(function (e) { if (!cached) loader(false); if ($('amSummary')) $('amSummary').innerHTML = '<div class="warn-box">Could not load dashboard: ' + esc(e.message) + '</div>'; toast(e.message); });
+    }).catch(function (e) { if ($('amSummary')) $('amSummary').innerHTML = '<div class="warn-box">Could not load dashboard: ' + esc(e.message) + '</div>'; toast(e.message); });
   }
   var _lastAM = null, _dashView = { mode: 'both', pendingOnly: false }, _dashDate = null, _dashSubject = '', _dashShowAmVal = false;
   function setDashAmValVisible(show) {
