@@ -2,37 +2,37 @@
 
 Triggers `C:\Users\shubhendu.sinha\DOD_HourlyTracker_v21.vbs` on a Windows PC that has IE/Excel/Outlook available (same machine the VBS already runs on).
 
-## Recommended: Task Scheduler
+## Recommended: Task Scheduler (no install)
 
-1. Copy this folder to the PC (or pull the repo).
-2. Open **PowerShell as the same Windows user** that uses Outlook/Excel (preferably elevated).
-3. Run:
+Built-in Windows only — nothing to install.
+
+### Easiest (double-click)
+
+1. Copy this folder to the Windows PC that already runs the VBS.
+2. Right-click **`Install-With-Schtasks.bat`** → **Run as administrator**.
+3. Confirm with: `schtasks /Query /TN DOD_HourlyTracker_10min /V /FO LIST`
+
+Remove: double-click **`Uninstall-With-Schtasks.bat`**.
+
+### PowerShell alternative (same schedule)
 
 ```powershell
 cd <path-to>\DOD_HourlyTracker_Scheduler
 powershell -ExecutionPolicy Bypass -File .\Register-DODScheduler.ps1
 ```
 
-4. In `DOD_HourlyTracker_v21.vbs`, set:
+Remove: `.\Unregister-DODScheduler.ps1`
+
+### VBS time-gate (required for LIVE mode)
+
+In `DOD_HourlyTracker_v21.vbs`, set:
 
 ```vb
 ALLOWED_HOURS = Array(11,12,13,14,15,16,17,18,19,20,21,22)
 Const TEST_MODE = False   ' when ready for live recipients
 ```
 
-5. Confirm:
-
-```powershell
-Get-ScheduledTask -TaskName 'DOD_HourlyTracker_10min' | Get-ScheduledTaskInfo
-```
-
-Or open `taskschd.msc` → **DOD_HourlyTracker_10min**.
-
-### Remove
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\Unregister-DODScheduler.ps1
-```
+Open `taskschd.msc` → **DOD_HourlyTracker_10min** to inspect visually.
 
 ## Alternative: keep-alive daemon
 
