@@ -892,7 +892,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
             <label class="flex center gap" style="margin-bottom:4px"><span class="tgl"><input type="checkbox" id="amValToggle" checked><span class="tgl-sl"></span></span><span><b>AM validation required</b><div class="small text2" id="amValHint">AM must check every store submission and mark Validated / Re-Edit / Re-do before final submission.</div></span></label>
             <div class="small text3">Existing tasks created before v24 default to <b>ON</b> — switch this off here to skip the AM layer for a task.</div>
           </div>
-          <button class="btn btn-green btn-full" id="btnSaveSubject" style="margin-top:10px">Save Subject</button>
+          <button class="btn btn-green btn-full" id="btnSaveSubject" style="margin-top:10px">Save &amp; Go Live</button>
           <button class="btn btn-outline btn-full" id="btnResetSubject" style="margin-top:8px">↺ Clear / New</button>
         </div></div>
         <div class="card"><div class="card-head"><span class="card-title">Existing Subjects</span></div><div class="card-body">
@@ -2917,13 +2917,16 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     } catch (e) { }
     return ref;
   }
-  function loadActiveSubjects(cb) {
-    if (_subjActiveCache && (Date.now() - _subjActiveCacheAt) < 10 * 60 * 1000) { cb(_subjActiveCache); return; }
+  function loadActiveSubjectMap(cb, force) {
+    if (!force && _subjActiveCache && (Date.now() - _subjActiveCacheAt) < 10 * 60 * 1000) { cb(_subjActiveCache); return; }
     db.collection('subjects').where('active', '==', true).get().then(function (qs) {
       var map = {}; qs.forEach(function (d) { var o = d.data(); o.id = d.id; map[d.id] = o; });
       _subjActiveCache = map; _subjActiveCacheAt = Date.now();
       cb(map);
     }).catch(function () { cb(_subjActiveCache || {}); });
+  }
+  function invalidateSubjectCaches() {
+    _subjActiveCache = null; _subjActiveCacheAt = 0; _adminSubjects = [];
   }
   function loadStoreCache(cb) {
     if (_hoStoreCache && (Date.now() - _hoStoreCacheAt) < 15 * 60 * 1000) { cb(_hoStoreCache); return; }
@@ -3205,7 +3208,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     /* Fast path: no subject selected — only fill subject list, do NOT download all submissions */
     if (!sidFilter) {
       _admHoIssues = [];
-      loadActiveSubjects(function (subjMap) {
+      loadActiveSubjectMap(function (subjMap) {
         var subSel = $('admHoSubject');
         var cur = subSel ? subSel.value : '';
         if (subSel) {
@@ -3235,7 +3238,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       var pSubs = db.collection('submissions').where('subjectId', '==', sidFilter).get();
       var pSol = db.collection('hosolutions').where('subjectId', '==', sidFilter).get().catch(function () { return { forEach: function () { } }; });
       Promise.all([
-        new Promise(function (res) { loadActiveSubjects(function (m) { res(m); }); }),
+        new Promise(function (res) { loadActiveSubjectMap(function (m) { res(m); }); }),
         pSubs,
         pSol
       ]).then(function (res) {
@@ -3866,7 +3869,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       var ed = document.createElement('button'); ed.className = 'btn btn-sm btn-blue'; ed.textContent = 'Edit'; ed.addEventListener('click', function () { editSubject(o); });
       var cp = document.createElement('button'); cp.className = 'btn btn-sm btn-purple'; cp.textContent = 'Copy'; cp.addEventListener('click', function () { copySubject(o); });
       var tg = document.createElement('button'); tg.className = 'btn btn-sm ' + (o.active ? 'btn-outline' : 'btn-green'); tg.textContent = o.active ? 'Deactivate' : 'Activate';
-      tg.addEventListener('click', function () { db.collection('subjects').doc(o.id).update({ active: !o.active }).then(renderAdminSubjects).catch(function (e) { toast(e.message); }); });
+      tg.addEventListener('click', function () { db.collection('subjects').doc(o.id).update({ active: !o.active }).then(function () { try { invalidateSubjectCaches(); } catch (e) { } renderAdminSubjects(); }).catch(function (e) { toast(e.message); }); });
       var del = document.createElement('button'); del.className = 'btn btn-sm btn-red'; del.textContent = 'Del';
       del.addEventListener('click', function () { if (confirm('Delete "' + o.name + '"?')) db.collection('subjects').doc(o.id).delete().then(renderAdminSubjects); });
       act.appendChild(pv); act.appendChild(ed); act.appendChild(cp); act.appendChild(tg); act.appendChild(del); box.appendChild(row);
@@ -4227,7 +4230,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   function saveSubject() {
     var name = ($('newSubjName').value || '').trim(); if (!name) { toast('Enter subject name'); return; }
-    var type = $('newSubjType').value, doc = { name: name, type: type, active: false, createdAt: nowISO() };
+    var type = $('newSubjType').value, doc = { name: name, type: type, active: true, createdAt: nowISO() };
     if (type === 'pic') {
       var shots = _picShots.filter(function (s) { return (s.label && s.label.trim()) || s.sample; });
       if (!shots.length) { toast('Add at least one shot'); return; }
@@ -4247,7 +4250,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     doc.startAt = readStartAt();
     doc.amValidation = $('amValToggle') ? !!$('amValToggle').checked : true;   // v24
     loader(true, 'Saving…');
-    var done = function () { loader(false); toast(_editId ? 'Subject updated' : 'Subject saved'); resetSubjectForm(); renderAdminSubjects(); };
+    var done = function () { loader(false); try { invalidateSubjectCaches(); } catch (e) { } toast(_editId ? 'Subject updated' : 'Subject saved — now ACTIVE for stores'); resetSubjectForm(); renderAdminSubjects(); };
     if (_editId) { delete doc.active; delete doc.createdAt; doc.updatedAt = nowISO(); db.collection('subjects').doc(_editId).set(doc, { merge: true }).then(done).catch(function (e) { loader(false); toast(e.message); }); }
     else { db.collection('subjects').add(doc).then(done).catch(function (e) { loader(false); toast(e.message); }); }
   }
@@ -4514,7 +4517,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     }
     loadSubsLight(function (arr) {
       if (!arr.length && !cached) {
-        loadActiveSubjects(function () {
+        loadActiveSubjectMap(function () {
           if ($('subTable')) $('subTable').innerHTML = '<div class="empty"><div class="empty-i">⚡</div><div class="empty-t">Pick a subject filter above, then Refresh</div><div class="small text3" style="margin-top:6px">Full “all submissions” download is disabled to keep the portal fast</div></div>';
         });
         return;
@@ -4739,7 +4742,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     Promise.all([
       new Promise(function (res) { loadStoreCache(function (m) { res(m); }); }),
       new Promise(function (res) { loadSubsLight(function (a) { res(a); }, false, _dashSubject || ''); }),
-      new Promise(function (res) { loadActiveSubjects(function (m) { res(m); }); })
+      new Promise(function (res) { loadActiveSubjectMap(function (m) { res(m); }); })
     ]).then(function (res) {
       console.log('[Dash] light load', Date.now() - t0, 'ms');
       var storeMap = res[0] || {};
