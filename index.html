@@ -859,7 +859,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           <div id="dataFields" style="display:none">
             <div class="form-group"><label class="form-label">Data mode</label><select class="form-control" id="newDataMode"><option value="open">Raw Data (MS-Form style)</option><option value="sysphy">Sys vs Phy (Excel)</option></select></div>
             <div id="openBuilder">
-              <div class="info-box">Per question: <b>Department</b> + <b>🚩 Flag to HO</b> + <b>Branching</b> (Excel: <b>Branch On</b>, <b>Branch Map</b>, <b>Go To</b>). Tip: Yes/No = Flag <b>ON</b>; branched “open issue” text = Flag <b>OFF</b>. Branch Map e.g. <code>Yes=5,No=4</code> (1-based Q# / next / end). For <b>number</b> Qs like “How many … NOT WORKING?” — answer <b>0</b> is OK (not an HO issue); only &gt;0 counts.</div>
+              <div class="info-box">Per question: <b>Department</b> + <b>🚩 Flag to HO</b> + <b>Camera (Y/N)</b> + <b>Branching</b>. Excel columns: <b>Camera (Y/N)</b>, <b>Branch On</b>, <b>Branch Map</b>, <b>Go To</b>. Tip: Yes/No = Flag <b>ON</b>; branched “open issue” text = Flag <b>OFF</b>. Branch Map e.g. <code>Yes=5,No=4</code> (1-based Q# / next / end). Camera <b>Y</b> = live picture (camera only). For <b>number</b> Qs like “How many … NOT WORKING?” — answer <b>0</b> is OK (not an HO issue); only &gt;0 counts.</div>
               <div class="flex gap wrap" style="margin-bottom:12px">
                 <button class="btn btn-outline btn-sm" id="btnQTemplate">⬇ Excel template</button>
                 <label class="btn btn-purple btn-sm" style="cursor:pointer">⬆ Import questions<input type="file" id="btnQImport" accept=".xlsx,.xls" style="display:none"></label>
@@ -1713,9 +1713,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function lerr(m) { var e = $('loginErr'); e.textContent = m; e.style.display = 'block'; }
   function showStoreNotInMaster() {
     if ($('ovStoreMasterMsg')) $('ovStoreMasterMsg').textContent = 'Store code not in master. Contact Shubehndu Sinha on 9871986263.';
-    if ($('ovStoreMaster')) $('ovStoreMaster').classList.add('show');
+    showOv('ovStoreMaster');
   }
-  function closeStoreNotInMaster() { if ($('ovStoreMaster')) $('ovStoreMaster').classList.remove('show'); }
+  function closeStoreNotInMaster() { closeOv('ovStoreMaster'); }
   function geoRadiusM() { var r = (S.config && S.config.geoRadius != null) ? Number(S.config.geoRadius) : GEO_RADIUS_M; return (isFinite(r) && r > 0) ? r : GEO_RADIUS_M; }
   function doContinue() {
     var code = ($('loginCode').value || '').trim();
@@ -4176,15 +4176,39 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function normType(s) { return (s == null ? '' : s).toString().trim().toLowerCase().replace(/[_\-]+/g, ' ').replace(/\s+/g, ' '); }
   function resolveType(raw) { var k = normType(raw); if (TYPE_ALIASES[k]) return TYPE_ALIASES[k]; var k2 = k.replace(/\s+/g, ''); for (var a in TYPE_ALIASES) { if (TYPE_ALIASES.hasOwnProperty(a) && TYPE_ALIASES[a] && a.replace(/\s+/g, '') === k2) return TYPE_ALIASES[a]; } return null; }
   function dlOpenTemplate() {
-    var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department', 'Flag to HO (Y/N)', 'Branch On (Y/N)', 'Branch Map', 'Go To'],
-      ['Short answer', 'Store Manager name', '', 'Y', 'N', '', '', '', 'N', '', 'N', 'N', '', ''],
-      ['Single choice', 'Is the display set as per planogram?', 'Yes,No,Partially', 'Y', 'N', '', '', '', 'Y', 'Ops', 'Y', 'N', '', ''],
-      ['Single choice', 'All Cash Counters are working', 'Yes,No', 'Y', 'N', '', '', '', 'Y', 'IT Infra / POS', 'Y', 'Y', 'Yes=5,No=4', ''],
-      ['Long answer', 'Provide all OPEN issue numbers with issue details for Cash Counters', '', 'N', 'N', '', '', '', 'Y', 'IT Infra / POS', 'N', 'N', '', ''],
-      ['Multiple choice', 'Which sizes are short?', 'S,M,L,XL,XXL', 'N', 'Y', '', '', '', 'N', '', 'N', 'N', '', ''],
-      ['Number', 'Rate cleanliness (1-5)', '', 'Y', 'N', '1', '5', '', 'N', '', 'N', 'N', '', ''],
-      ['Long answer', 'Remarks / additional observations', '', 'N', 'N', '', '', '', 'N', '', 'N', 'N', '', '']];
-    var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Questions'); XLSX.writeFile(wb, 'RawData_Template.xlsx');
+    var headers = ['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Camera (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department', 'Flag to HO (Y/N)', 'Branch On (Y/N)', 'Branch Map', 'Go To'];
+    var aoa = [headers,
+      /* Q1 */ ['Short answer', 'Store Manager name', '', 'Y', 'N', 'N', '', '', '', 'N', '', 'N', 'N', '', ''],
+      /* Q2 */ ['Single choice', 'Is the display set as per planogram?', 'Yes,No,Partially', 'Y', 'N', 'N', '', '', '', 'Y', 'Ops', 'Y', 'N', '', ''],
+      /* Q3 */ ['Single choice', 'All Cash Counters are working', 'Yes,No', 'Y', 'N', 'N', '', '', '', 'Y', 'IT Infra / POS', 'Y', 'Y', 'Yes=5,No=4', ''],
+      /* Q4 */ ['Long answer', 'Provide all OPEN issue numbers with issue details for Cash Counters', '', 'N', 'N', 'N', '', '', '', 'Y', 'IT Infra / POS', 'N', 'N', '', ''],
+      /* Q5 */ ['Live Picture', 'Take a live photo of the cash counter area', '', 'Y', 'N', 'Y', '', '', '', 'Y', 'IT Infra / POS', 'N', 'N', '', ''],
+      /* Q6 */ ['Multiple choice', 'Which sizes are short?', 'S,M,L,XL,XXL', 'N', 'Y', 'N', '', '', '', 'N', '', 'N', 'N', '', ''],
+      /* Q7 */ ['Number', 'Rate cleanliness (1-5)', '', 'Y', 'N', 'N', '1', '5', '', 'N', '', 'N', 'N', '', ''],
+      /* Q8 */ ['Long answer', 'Remarks / additional observations', '', 'N', 'N', 'N', '', '', '', 'N', '', 'N', 'N', '', '']];
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [
+      { wch: 16 }, { wch: 56 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
+      { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 16 },
+      { wch: 16 }, { wch: 22 }, { wch: 10 }
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'Questions');
+    var guide = [
+      ['Column', 'How to fill'],
+      ['Type', 'Short answer / Long answer / Number / Single choice / Multiple choice / Dropdown / Rating / Physical Count Check / Live Picture / Camera'],
+      ['Camera (Y/N)', 'Y = live camera photo question (same as Type = Live Picture). N = no camera.'],
+      ['Branch On (Y/N)', 'Y = this question jumps based on the answer (MS Forms style).'],
+      ['Branch Map', 'For choice / multi / dropdown only. Example: Yes=5,No=4  → Yes goes to Q5, No goes to Q4. Use next or end too.'],
+      ['Go To', 'For non-choice questions when Branch On = Y. Use next, end, or a 1-based question number (e.g. 6).'],
+      ['Flag to HO (Y/N)', 'Y = creates an HO issue. Branched follow-up text (open issue details) should be N.'],
+      ['Q numbers', 'Row 2 in Questions sheet = Q1, row 3 = Q2, … (header is row 1). Branch Map / Go To use these 1-based numbers.'],
+      ['Sample Q3', 'Branch On = Y, Branch Map = Yes=5,No=4 — Yes skips open-issue text and goes to live photo (Q5); No asks Q4 first.']
+    ];
+    var ws2 = XLSX.utils.aoa_to_sheet(guide);
+    ws2['!cols'] = [{ wch: 18 }, { wch: 110 }];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Instructions');
+    XLSX.writeFile(wb, 'RawData_Template.xlsx');
   }
   /* Branch Map: Yes=5,No=4,Partially=end — Q# is 1-based in Excel; next/end allowed */
   function parseBranchTarget(raw, qCount) {
@@ -4230,9 +4254,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       try {
         var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }), rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 }), added = 0, bad = 0, badTypes = {};
         if (!rows.length) { loader(false); toast('Empty file'); return; }
+        // Prefer sheet named Questions if present
+        if (wb.SheetNames.indexOf('Questions') > -1) rows = XLSX.utils.sheet_to_json(wb.Sheets.Questions, { header: 1 });
         var H = rows[0].map(function (x) { return (x == null ? '' : x).toString(); });
         var cType = findCol(H, [/^type$/]), cLbl = findCol(H, [/^label$/, /question/]), cOpt = findCol(H, [/option/]),
-          cReq = findCol(H, [/required/]), cRem = findCol(H, [/remark/]), cMin = findCol(H, [/^min/]), cMax = findCol(H, [/^max/]), cSys = findCol(H, [/sys/]),
+          cReq = findCol(H, [/required/]), cRem = findCol(H, [/remark/]), cCam = findCol(H, [/^camera/, /live\s*pic/, /live\s*photo/]),
+          cMin = findCol(H, [/^min/]), cMax = findCol(H, [/^max/]), cSys = findCol(H, [/sys/]),
           cDeptOn = findCol(H, [/^dept\s*\(y\/n\)$/, /^dept\s*y/, /department\s*\(y/]), cDept = findCol(H, [/^department$/, /^dept$/]),
           cFlag = findCol(H, [/flag\s*to\s*ho/, /^flag\s*ho/, /flag\s*\(y/]),
           cBrOn = findCol(H, [/branch\s*on/, /^branch\s*\(y/, /^branching/]),
@@ -4246,6 +4273,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           var rawT = cell(rows[i], cType).trim(); if (!rawT) continue;
           var ty = resolveType(rawT), lbl = cell(rows[i], cLbl).trim();
           if (!ty || !lbl) { bad++; if (ty === null && rawT) badTypes[rawT] = 1; continue; }
+          if (cCam > -1 && yes(cell(rows[i], cCam))) ty = 'livepic';
           var opts = cell(rows[i], cOpt).split(',').map(function (s) { return s.trim(); }).filter(Boolean);
           if ((ty === 'choice' || ty === 'multi' || ty === 'dropdown') && opts.length < 2) { bad++; continue; }
           var q = { type: ty, label: lbl, options: opts, sys: cell(rows[i], cSys) || 0, required: yes(cell(rows[i], cReq)), remarks: yes(cell(rows[i], cRem)) };
@@ -4268,13 +4296,23 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   function exportOpenQs() {
     if (!_openQs.length) { toast('No questions to export'); return; }
-    var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department', 'Flag to HO (Y/N)', 'Branch On (Y/N)', 'Branch Map', 'Go To']];
+    var headers = ['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Camera (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department', 'Flag to HO (Y/N)', 'Branch On (Y/N)', 'Branch Map', 'Go To'];
+    var aoa = [headers];
     _openQs.forEach(function (q) {
       var flag = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : !!q.deptOn;
       var hasOpts = (q.type === 'choice' || q.type === 'multi' || q.type === 'dropdown');
-      aoa.push([q.type, q.label, (q.options || []).join(','), q.required ? 'Y' : 'N', q.remarks ? 'Y' : 'N', (q.min != null ? q.min : ''), (q.max != null ? q.max : ''), q.sys || '', q.deptOn ? 'Y' : 'N', q.dept || '', flag ? 'Y' : 'N', q.branchOn ? 'Y' : 'N', hasOpts ? fmtBranchMap(q) : '', (!hasOpts && q.branchOn) ? fmtBranchTarget(q.goTo) : '']);
+      var typeOut = q.type === 'livepic' ? 'Live Picture' : q.type;
+      aoa.push([typeOut, q.label, (q.options || []).join(','), q.required ? 'Y' : 'N', q.remarks ? 'Y' : 'N', q.type === 'livepic' ? 'Y' : 'N', (q.min != null ? q.min : ''), (q.max != null ? q.max : ''), q.sys || '', q.deptOn ? 'Y' : 'N', q.dept || '', flag ? 'Y' : 'N', q.branchOn ? 'Y' : 'N', hasOpts ? fmtBranchMap(q) : '', (!hasOpts && q.branchOn) ? fmtBranchTarget(q.goTo) : '']);
     });
-    var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Questions'); XLSX.writeFile(wb, 'RawData_Questions.xlsx');
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [
+      { wch: 16 }, { wch: 56 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
+      { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 16 },
+      { wch: 16 }, { wch: 22 }, { wch: 10 }
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'Questions');
+    XLSX.writeFile(wb, 'RawData_Questions.xlsx');
   }
   function dlSysphyTemplate() {
     var aoa = [['St Cd', 'Article', 'Description', 'MRP', 'Sys'],
