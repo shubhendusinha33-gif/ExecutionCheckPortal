@@ -163,18 +163,26 @@ select.form-control{cursor:pointer}
 .kpi-v{font-size:26px;font-weight:900;line-height:1;letter-spacing:-.5px}
 .kpi-l{font-size:11px;color:var(--text2);margin-top:6px;font-weight:500}
 /* AM summary table */
-.amsum{width:100%;border-collapse:collapse;font-size:12px}
+.amsum{width:100%;border-collapse:collapse;font-size:13.5px}
 .amsum .valcol{background:#F1F8E9}
 .amsum thead .valcol{background:#33691E;color:#fff}
 .amsum tr.grand .valcol,.amsum tr.zfm-sub .valcol{background:#DCEDC8}
-.amsum th{padding:8px 7px;background:#0D47A1;color:#fff;border:1px solid #0D47A1;font-weight:600;text-align:center;white-space:nowrap;position:sticky;top:0}
+.amsum th{padding:9px 8px;background:#0D47A1;color:#fff;border:1px solid #0D47A1;font-weight:700;text-align:center;white-space:nowrap;position:sticky;top:0;font-size:13px}
 .amsum th.grp{background:#1565C0}
-.amsum td{padding:7px;border:1px solid var(--border);text-align:center;white-space:nowrap}
+.amsum td{padding:8px 8px;border:1px solid var(--border);text-align:center;white-space:nowrap;font-size:13.5px;line-height:1.35}
 .amsum td.l{text-align:left}
 .amsum tr.zfm-sub td{background:var(--blue-ll);font-weight:700;color:var(--blue-d)}
 .amsum tr.grand td{background:#0D47A1;color:#fff;font-weight:700}
 .amsum tr:hover td{background:#FAFFFE}
 .amsum tr.zfm-sub:hover td{background:var(--blue-lll)}
+/* Collapsible dashboard / DB cards (same pattern as HO mail ribbon) */
+.coll-body{display:none!important;padding-top:12px}
+.coll-body.open{display:block!important}
+.coll-tog{cursor:pointer;user-select:none;display:flex!important;align-items:center;justify-content:flex-start!important;gap:8px;width:100%;background:#F8FAFC}
+.coll-tog:hover{background:#EEF3F9}
+.coll-tog .chev{font-size:12px;color:var(--blue);font-weight:800;width:14px;flex-shrink:0}
+.coll-tog .coll-hint{margin-left:auto;font-size:11px;color:var(--text3);font-weight:600}
+.coll-tog .card-actions{margin-left:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 
 /* LOGIN */
 .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--blue-d) 0%,var(--blue) 60%,#1565C0 100%);padding:20px}
@@ -932,6 +940,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
                 <button class="seg-btn" data-t="data">📋 Data</button>
               </div>
               <select class="form-control" id="subSubject" style="max-width:200px" title="Filter by subject"><option value="">All subjects</option></select>
+              <select class="form-control" id="subZfm" style="max-width:160px" title="Filter by ZFM"><option value="">All ZFM</option></select>
+              <select class="form-control" id="subAm" style="max-width:160px" title="Filter by AM"><option value="">All AM</option></select>
               <select class="form-control" id="subStatus" style="max-width:170px"><option value="all">All status</option><option value="pending">Pending review</option><option value="approved">Done (approved)</option><option value="rejected">Rejected / Re-do</option><option value="submitted">Data submitted</option></select>
               <input class="form-control" type="date" id="subDate" style="max-width:160px" title="Filter by date">
               <button class="btn btn-sm btn-outline" id="btnSubDateAll" title="Show all dates">All dates</button>
@@ -941,6 +951,27 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
               <button class="btn btn-sm btn-blue" id="btnSubPhotos">⬇ Export Photos (zip)</button>
             </div>
             <div id="subTable"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px" id="subPendCard">
+          <div class="card-head coll-tog" id="subPendTog" title="Click to expand / hide" role="button" tabindex="0" aria-expanded="true">
+            <span class="chev" id="subPendChev">▾</span>
+            <span class="card-title">⏳ Pending stores (not yet submitted)</span>
+            <span class="badge badge-amber" id="subPendCount" style="display:none">0</span>
+            <span class="coll-hint" id="subPendHint">click to hide</span>
+            <div class="card-actions" onclick="event.stopPropagation()">
+              <button class="btn btn-sm btn-green" id="btnSubPendXls" style="display:none">⬇ Export Excel</button>
+            </div>
+          </div>
+          <div class="card-body coll-body open" id="subPendBody">
+            <div class="warn-box small" id="subPendNoSubj">Pick a <b>subject</b> (defaults to latest active). Optionally filter by <b>ZFM / AM</b> to see which of their stores are still pending.</div>
+            <div id="subPendTableWrap" style="display:none">
+              <div class="info-box small" style="margin-bottom:10px">In-scope stores with <b>no non-rejected submission</b> for the selected subject. Sorted by AM.</div>
+              <div class="tbl-wrap"><table class="tbl">
+                <thead><tr><th>#</th><th>Store Code</th><th>Store Name</th><th>AM Name</th><th>AM Email</th><th>ZFM</th><th>City</th></tr></thead>
+                <tbody id="subPendBodyRows"></tbody>
+              </table></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1028,16 +1059,72 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           <div class="kpi-card"><div class="kpi-v" style="color:var(--amber)" id="kpiAmPend">0</div><div class="kpi-l">AM Validation Pending</div><div class="small text3" id="kpiAmPendPct"></div></div>
         </div>
 
-        <!-- PENDING STORES EXTRACT — shows when a specific subject is selected in the filter below -->
-        <div class="card" id="pendExtractCard">
-          <div class="card-head">
-            <span class="card-title">⏳ Pending Stores — <span id="pendExtractSubjName" style="color:var(--amber)">select a subject below ↓</span></span>
-            <span class="badge badge-amber" id="pendExtractCount" style="display:none">0</span>
-            <div style="flex:1"></div>
-            <button class="btn btn-sm btn-green" id="btnPendExtractXls" style="display:none">⬇ Export Excel</button>
-          </div>
+        <!-- Filters sit above collapsible summary cards -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-head"><span class="card-title">Dashboard filters</span><span class="small text2" id="amSumMeta"></span></div>
           <div class="card-body">
-            <div class="warn-box small" id="pendNoSubjHint" style="margin-bottom:0">💡 Pick a <b>specific subject</b> from the "Filter by subject" dropdown in the Compliance Summary below to see stores that haven't submitted it yet — with AM name for direct follow-up.</div>
+            <div class="flex gap wrap" style="align-items:center">
+              <div class="seg" id="dashSlicer">
+                <button class="seg-btn" data-m="both">Both</button>
+                <button class="seg-btn" data-m="pic">📸 Pic</button>
+                <button class="seg-btn active" data-m="data">📋 Data</button>
+              </div>
+              <select class="form-control" id="dashSubject" style="max-width:220px" title="Filter by subject (applicability-aware)"><option value="">All subjects</option></select>
+              <select class="form-control" id="dashZfm" style="max-width:160px" title="Filter by ZFM"><option value="">All ZFM</option></select>
+              <select class="form-control" id="dashAm" style="max-width:160px" title="Filter by AM"><option value="">All AM</option></select>
+              <label class="flex center gap small"><span class="tgl"><input type="checkbox" id="dashPendingOnly"><span class="tgl-sl"></span></span><b>Pending / Rejected only</b></label>
+              <input class="form-control" type="date" id="dashDate" style="max-width:160px" title="Filter by date">
+              <button class="btn btn-sm btn-outline" id="btnDashDateAll" title="Show all dates">All dates</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1) ZFM → AM Compliance Summary -->
+        <div class="card" style="margin-bottom:14px" id="amSumCard">
+          <div class="card-head coll-tog" id="amSumTog" title="Click to expand / hide" role="button" tabindex="0" aria-expanded="true">
+            <span class="chev" id="amSumChev">▾</span>
+            <span class="card-title">ZFM → AM Compliance Summary</span>
+            <span class="coll-hint" id="amSumHint">click to hide</span>
+            <div class="card-actions" onclick="event.stopPropagation()">
+              <button class="btn btn-sm btn-green" id="btnDashXls">⬇ Export Excel</button>
+              <button class="btn btn-sm btn-outline" id="btnDashSnap">📸 Snapshot</button>
+            </div>
+          </div>
+          <div class="card-body coll-body open" id="amSumBody">
+            <div id="amSummary"><div class="empty"><div class="empty-i">📊</div><div class="empty-t">Open Dashboard to build</div></div></div>
+          </div>
+        </div>
+
+        <!-- 2) Question-wise summary (HO Flag logic) -->
+        <div class="card" style="margin-bottom:14px" id="dashQSumCard">
+          <div class="card-head coll-tog" id="dashQSumTog" title="Click to expand / hide" role="button" tabindex="0" aria-expanded="true">
+            <span class="chev" id="dashQSumChev">▾</span>
+            <span class="card-title">Question-wise summary (HO Flag)</span>
+            <span class="small text2" id="dashQSumMeta"></span>
+            <span class="coll-hint" id="dashQSumHint">click to hide</span>
+            <div class="card-actions" onclick="event.stopPropagation()">
+              <button type="button" class="btn btn-sm btn-green" id="btnDashQSumXls" title="Download Excel">⬇ Download</button>
+              <button type="button" class="btn btn-sm btn-outline" id="btnDashQSumSnap" title="Snapshot image">📸 Snapshot</button>
+            </div>
+          </div>
+          <div class="card-body coll-body open" id="dashQSumBody">
+            <div id="dashQSummary"><div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Same Flag-to-HO logic as HO Issues · blue numbers open store drill-down</div></div></div>
+          </div>
+        </div>
+
+        <!-- 3) Pending Stores -->
+        <div class="card" style="margin-bottom:14px" id="pendExtractCard">
+          <div class="card-head coll-tog" id="pendExtractTog" title="Click to expand / hide" role="button" tabindex="0" aria-expanded="true">
+            <span class="chev" id="pendExtractChev">▾</span>
+            <span class="card-title">⏳ Pending Stores — <span id="pendExtractSubjName" style="color:var(--amber)">select a subject</span></span>
+            <span class="badge badge-amber" id="pendExtractCount" style="display:none">0</span>
+            <span class="coll-hint" id="pendExtractHint">click to hide</span>
+            <div class="card-actions" onclick="event.stopPropagation()">
+              <button class="btn btn-sm btn-green" id="btnPendExtractXls" style="display:none">⬇ Export Excel</button>
+            </div>
+          </div>
+          <div class="card-body coll-body open" id="pendExtractBodyWrap">
+            <div class="warn-box small" id="pendNoSubjHint" style="margin-bottom:0">💡 Subject defaults to the <b>latest active survey</b>. Use ZFM / AM filters above to narrow pending stores for follow-up.</div>
             <div id="pendExtractTableWrap" style="display:none">
               <div class="info-box small" style="margin-bottom:10px">Stores that have <b>not yet submitted</b> the selected subject (non-rejected). AM name included for direct follow-up. Sorted by AM.</div>
               <div class="tbl-wrap"><table class="tbl" id="pendExtractTbl">
@@ -1048,25 +1135,6 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           </div>
         </div>
 
-        <div class="card"><div class="card-head"><span class="card-title">ZFM → AM Compliance Summary</span><span class="small text2" id="amSumMeta"></span></div>
-          <div class="card-body">
-            <div class="flex gap wrap" style="align-items:center;margin-bottom:10px">
-              <div class="seg" id="dashSlicer">
-                <button class="seg-btn active" data-m="both">Both</button>
-                <button class="seg-btn" data-m="pic">📸 Pic</button>
-                <button class="seg-btn" data-m="data">📋 Data</button>
-              </div>
-              <select class="form-control" id="dashSubject" style="max-width:200px" title="Filter by subject (applicability-aware)"><option value="">All subjects</option></select>
-              <label class="flex center gap small"><span class="tgl"><input type="checkbox" id="dashPendingOnly"><span class="tgl-sl"></span></span><b>Pending / Rejected only</b></label>
-              <input class="form-control" type="date" id="dashDate" style="max-width:160px" title="Filter by date">
-              <button class="btn btn-sm btn-outline" id="btnDashDateAll" title="Show all dates">All dates</button>
-              <div style="flex:1"></div>
-              <button class="btn btn-sm btn-green" id="btnDashXls">⬇ Export Excel</button>
-              <button class="btn btn-sm btn-outline" id="btnDashSnap">📸 Snapshot</button>
-            </div>
-            <div id="amSummary"><div class="empty"><div class="empty-i">📊</div><div class="empty-t">Open Dashboard to build</div></div></div>
-          </div>
-        </div>
         <div class="card"><div class="card-head"><span class="card-title">Rejection / Re-do reasons</span></div><div class="card-body"><canvas id="chReason" height="150"></canvas></div></div>
       </div>
 
@@ -2910,6 +2978,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   /* --- Store master cache (speeds HO + admin filters) --- */
   var _subjActiveCache = null, _subjActiveCacheAt = 0;
   var _dashSubsLight = null, _dashSubsLightAt = 0;
+  var _subsLightBySubj = {};
   var SUB_LIGHT_FIELDS = ['storeCode', 'storeName', 'type', 'reviewStatus', 'reviewRemark', 'subjectId', 'subjectName', 'ts', 'amStatus', 'amAction', 'amRemark', 'amValidatedBy', 'amName', 'amEmail', 'amCode', 'zfmName', 'zfmCode', 'zfmEmail', 'empName', 'empcode', 'designation', 'flagged', 'match', 'dataMode', 'mailedAt'];
   function withSelect(ref, fields) {
     try {
@@ -2927,6 +2996,20 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   function invalidateSubjectCaches() {
     _subjActiveCache = null; _subjActiveCacheAt = 0; _adminSubjects = [];
+    _subsLightBySubj = {}; _dashSubsLight = null; _dashSubsLightAt = 0;
+  }
+  /** Latest active subject by createdAt (fallback: name). Prefer data questionnaires. */
+  function latestActiveSubject(subjMap, preferData) {
+    var arr = Object.keys(subjMap || {}).map(function (id) { return subjMap[id]; })
+      .filter(function (s) { return s && s.active !== false; });
+    if (preferData) {
+      var dataOnly = arr.filter(function (s) { return s.type === 'data' && s.dataMode !== 'sysphy'; });
+      if (dataOnly.length) arr = dataOnly;
+    }
+    arr.sort(function (a, b) {
+      return String(b.createdAt || '').localeCompare(String(a.createdAt || '')) || String(b.name || '').localeCompare(String(a.name || ''));
+    });
+    return arr[0] || null;
   }
   function loadStoreCache(cb) {
     if (_hoStoreCache && (Date.now() - _hoStoreCacheAt) < 15 * 60 * 1000) { cb(_hoStoreCache); return; }
@@ -2938,6 +3021,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     }).catch(function () { cb(_hoStoreCache || {}); });
   }
   function loadSubsLight(cb, force, subjectId) {
+    if (!force && subjectId && _subsLightBySubj[subjectId] && (Date.now() - _subsLightBySubj[subjectId].at) < 3 * 60 * 1000) {
+      cb(_subsLightBySubj[subjectId].arr); return;
+    }
     if (!force && !subjectId && _dashSubsLight && (Date.now() - _dashSubsLightAt) < 3 * 60 * 1000) { cb(_dashSubsLight); return; }
     var base = db.collection('submissions');
     if (subjectId) base = base.where('subjectId', '==', subjectId);
@@ -2946,7 +3032,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     q.get().then(function (qs) {
       var arr = []; qs.forEach(function (d) { var o = d.data(); o._id = d.id; arr.push(o); });
       console.log('[SubsLight]', arr.length, 'docs in', Date.now() - t0, 'ms', subjectId ? ('subj ' + subjectId) : 'all');
-      if (!subjectId) { _dashSubsLight = arr; _dashSubsLightAt = Date.now(); }
+      if (subjectId) _subsLightBySubj[subjectId] = { arr: arr, at: Date.now() };
+      else { _dashSubsLight = arr; _dashSubsLightAt = Date.now(); }
       cb(arr);
     }).catch(function (e) {
       console.warn('[SubsLight] select/query failed, scoped fallback', e && e.message);
@@ -2954,12 +3041,38 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       var fb = subjectId
         ? db.collection('submissions').where('subjectId', '==', subjectId)
         : null;
-      if (!fb) { cb(_dashSubsLight || []); return; }
+      if (!fb) {
+        /* Keep previous cache visible rather than wiping the UI */
+        if (_dashSubsLight && _dashSubsLight.length) { cb(_dashSubsLight); return; }
+        cb([]);
+        return;
+      }
       fb.get().then(function (qs) {
         var arr = []; qs.forEach(function (d) { var o = d.data(); o._id = d.id; arr.push(o); });
+        _subsLightBySubj[subjectId] = { arr: arr, at: Date.now() };
         cb(arr);
-      }).catch(function (e2) { toast(e2.message || e.message); cb([]); });
+      }).catch(function (e2) {
+        var cached = subjectId && _subsLightBySubj[subjectId] ? _subsLightBySubj[subjectId].arr : (_dashSubsLight || []);
+        if (cached.length) { cb(cached); return; }
+        toast(e2.message || e.message); cb([]);
+      });
     });
+  }
+  function toggleCollSection(togId, bodyId, chevId, hintId) {
+    var body = $(bodyId), chev = $(chevId), tog = $(togId), hint = $(hintId);
+    if (!body) return;
+    var open = body.classList.toggle('open');
+    if (chev) chev.textContent = open ? '▾' : '▸';
+    if (hint) hint.textContent = open ? 'click to hide' : 'click to expand';
+    if (tog) tog.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function wireCollToggle(togId, bodyId, chevId, hintId) {
+    var handler = function (e) {
+      if (e && e.target && e.target.closest && e.target.closest('button,a,input,select,textarea,.card-actions')) return;
+      toggleCollSection(togId, bodyId, chevId, hintId);
+    };
+    on(togId, 'click', handler);
+    on(togId, 'keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(e); } });
   }
 
   function enterHOSupport() {
@@ -3424,7 +3537,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         }).then(function () {
           loader(false);
           toast('🔁 ' + store + ' pushed for Re-do');
-          renderAdminHOIssues();
+          /* Refresh whichever view is open — never rewrite store answers */
+          try { renderAdminHOIssues(); } catch (e1) { }
+          try { if (_dashSubject) loadDashQuestionSummary((_subjActiveCache && _subjActiveCache[_dashSubject]) || null, _dashStoreMap); } catch (e2) { }
         }).catch(function (e) { loader(false); toast(e.message); });
       });
     });
@@ -4500,33 +4615,50 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     };
     r.readAsArrayBuffer(file);
   }
-  var _subRows = {}, _subAll = [], _subFilter = { type: 'all', status: 'all', q: '', date: '', subject: '' };
+  var _subRows = {}, _subAll = [], _subFilter = { type: 'all', status: 'all', q: '', date: '', subject: '', subjectId: '', zfm: '', am: '' };
+  var _subSubjectUserSet = false, _subPendRows = [], _subStoreMap = {};
   function renderSubmissions() {
     _subFilter.date = '';
     if ($('subDate')) $('subDate').value = '';
     var cached = _subAll.length > 0;
     if (cached) applySubFilters();
     else if ($('subTable')) $('subTable').innerHTML = '<div class="empty"><div class="empty-i">⚡</div><div class="empty-t">Loading submissions…</div></div>';
-    /* Prefer light fields; if that fails, require subject filter rather than downloading every photo */
-    var subjName = _subFilter.subject || '';
-    var sid = '';
-    if (subjName && _subjActiveCache) {
-      Object.keys(_subjActiveCache).forEach(function (id) {
-        if ((_subjActiveCache[id].name || '') === subjName) sid = id;
-      });
-    }
-    loadSubsLight(function (arr) {
-      if (!arr.length && !cached) {
-        loadActiveSubjectMap(function () {
-          if ($('subTable')) $('subTable').innerHTML = '<div class="empty"><div class="empty-i">⚡</div><div class="empty-t">Pick a subject filter above, then Refresh</div><div class="small text3" style="margin-top:6px">Full “all submissions” download is disabled to keep the portal fast</div></div>';
-        });
-        return;
+    loadActiveSubjectMap(function (subjMap) {
+      /* Default DB subject → latest active survey */
+      if (!_subSubjectUserSet && !_subFilter.subjectId) {
+        var latest = latestActiveSubject(subjMap, true);
+        if (latest) {
+          _subFilter.subjectId = latest.id;
+          _subFilter.subject = latest.name || latest.id;
+        }
       }
-      _subRows = {}; _subAll = arr.slice();
-      _subAll.forEach(function (o) { _subRows[o._id] = o; });
-      _subAll.sort(function (a, b) { return (b.ts || '').localeCompare(a.ts || ''); });
-      applySubFilters();
-    }, !cached, sid);
+      var sid = _subFilter.subjectId || '';
+      if (!sid && _subFilter.subject && subjMap) {
+        Object.keys(subjMap).forEach(function (id) {
+          if ((subjMap[id].name || '') === _subFilter.subject) sid = id;
+        });
+        _subFilter.subjectId = sid;
+      }
+      loadStoreCache(function (stores) {
+        _subStoreMap = stores || {};
+        loadSubsLight(function (arr) {
+          if (!arr.length && !cached && !sid) {
+            if ($('subTable')) $('subTable').innerHTML = '<div class="empty"><div class="empty-i">⚡</div><div class="empty-t">Pick a subject filter above</div><div class="small text3" style="margin-top:6px">Full “all submissions” download is disabled to keep the portal fast</div></div>';
+            renderSubPending(null, []);
+            return;
+          }
+          /* Prefer fresh data; fall back to cache if empty result during live use */
+          if (arr.length || !cached) {
+            _subRows = {}; _subAll = arr.slice();
+            _subAll.forEach(function (o) { _subRows[o._id] = o; });
+            _subAll.sort(function (a, b) { return (b.ts || '').localeCompare(a.ts || ''); });
+          }
+          applySubFilters();
+          var selSubj = sid && subjMap[sid] ? subjMap[sid] : null;
+          renderSubPending(selSubj, _subAll);
+        }, !cached, sid);
+      });
+    });
   }
   function subStatusOf(o) { return o.reviewStatus ? o.reviewStatus : (o.type === 'pic' ? 'pending' : 'submitted'); }
   /* v24 — AM validation cell / export values */
@@ -4536,35 +4668,136 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (o.amStatus === 'redo') return '<span class="badge badge-red">🔁 Re-do</span>' + (o.amRemark ? '<div class="small" style="color:var(--red)">' + esc(o.amRemark) + '</div>' : '');
     return '<span class="badge badge-gray">pending</span>';
   }
+  function subStoreMeta(o) {
+    var st = (_subStoreMap && o.storeCode && _subStoreMap[o.storeCode]) || {};
+    return {
+      zfm: (st.zfmName || st.zfmCode || o.zfmName || o.zfmCode || '').trim(),
+      am: (st.amName || o.amName || '').trim()
+    };
+  }
   function filteredSubs() {
     var q = (_subFilter.q || '').toLowerCase();
     return _subAll.filter(function (o) {
       if (_subFilter.type !== 'all' && o.type !== _subFilter.type) return false;
       if (_subFilter.status !== 'all' && subStatusOf(o) !== _subFilter.status) return false;
-      if (_subFilter.subject && (o.subjectName || '') !== _subFilter.subject) return false;
+      if (_subFilter.subjectId && o.subjectId !== _subFilter.subjectId) return false;
+      if (!_subFilter.subjectId && _subFilter.subject && (o.subjectName || '') !== _subFilter.subject) return false;
       if (_subFilter.date && (!o.ts || toDateStr(new Date(o.ts)) !== _subFilter.date)) return false;
-      if (q && ((o.storeCode || '') + ' ' + (o.subjectName || '') + ' ' + (o.amName || '') + ' ' + (o.empName || '')).toLowerCase().indexOf(q) < 0) return false;
+      var meta = subStoreMeta(o);
+      if (_subFilter.zfm && meta.zfm !== _subFilter.zfm) return false;
+      if (_subFilter.am && meta.am !== _subFilter.am) return false;
+      if (q && ((o.storeCode || '') + ' ' + (o.subjectName || '') + ' ' + (o.amName || '') + ' ' + (o.empName || '') + ' ' + meta.zfm).toLowerCase().indexOf(q) < 0) return false;
       return true;
     });
   }
   var _subSel = {};
-  function populateSubSubjects() {
+  function populateSubSubjects(subjMap) {
     var sel = $('subSubject'); if (!sel) return;
-    var names = {}; _subAll.forEach(function (o) { if (o.subjectName) names[o.subjectName] = 1; });
-    var list = Object.keys(names).sort(), sig = list.join('|');
+    var list = [];
+    if (subjMap) {
+      list = Object.keys(subjMap).map(function (id) { return subjMap[id]; })
+        .sort(function (a, b) { return String(b.createdAt || '').localeCompare(String(a.createdAt || '')) || (a.name || '').localeCompare(b.name || ''); });
+    } else {
+      var names = {}; _subAll.forEach(function (o) { if (o.subjectName) names[o.subjectName] = o.subjectId || ''; });
+      list = Object.keys(names).sort().map(function (n) { return { id: names[n], name: n }; });
+    }
+    var sig = list.map(function (s) { return s.id || s.name; }).join('|') + '::' + (_subFilter.subjectId || _subFilter.subject || '');
     if (sel.getAttribute('data-sig') === sig) return;
     sel.setAttribute('data-sig', sig);
-    var cur = _subFilter.subject;
-    sel.innerHTML = '<option value="">All subjects</option>' + list.map(function (n) { return '<option value="' + esc(n) + '"' + (n === cur ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('');
+    var curId = _subFilter.subjectId, curName = _subFilter.subject;
+    sel.innerHTML = '<option value="">All subjects</option>' + list.map(function (s) {
+      var selected = (curId && s.id === curId) || (!curId && curName && (s.name || '') === curName);
+      return '<option value="' + esc(s.id || s.name) + '" data-name="' + esc(s.name || s.id) + '"' + (selected ? ' selected' : '') + '>' + esc(s.name || s.id) + '</option>';
+    }).join('');
+  }
+  function populateSubZfmAm() {
+    var zSel = $('subZfm'), aSel = $('subAm');
+    if (!zSel && !aSel) return;
+    var zset = {}, aset = {};
+    var stores = _subStoreMap || {};
+    Object.keys(stores).forEach(function (code) {
+      var s = stores[code];
+      var z = (s.zfmName || s.zfmCode || '').trim(); if (z) zset[z] = 1;
+      var a = (s.amName || '').trim(); if (a) aset[a] = 1;
+    });
+    /* Also from submissions in case store master incomplete */
+    _subAll.forEach(function (o) {
+      var m = subStoreMeta(o);
+      if (m.zfm) zset[m.zfm] = 1;
+      if (m.am) aset[m.am] = 1;
+    });
+    if (zSel) {
+      var curZ = _subFilter.zfm;
+      zSel.innerHTML = '<option value="">All ZFM</option>' + Object.keys(zset).sort().map(function (n) {
+        return '<option value="' + esc(n) + '"' + (n === curZ ? ' selected' : '') + '>' + esc(n) + '</option>';
+      }).join('');
+    }
+    if (aSel) {
+      var curA = _subFilter.am;
+      aSel.innerHTML = '<option value="">All AM</option>' + Object.keys(aset).sort().map(function (n) {
+        return '<option value="' + esc(n) + '"' + (n === curA ? ' selected' : '') + '>' + esc(n) + '</option>';
+      }).join('');
+    }
+  }
+  function renderSubPending(selSubj, subs) {
+    var hint = $('subPendNoSubj'), wrap = $('subPendTableWrap');
+    var cnt = $('subPendCount'), xlsBtn = $('btnSubPendXls'), body = $('subPendBodyRows');
+    if (!selSubj) {
+      _subPendRows = [];
+      if (hint) hint.style.display = 'block';
+      if (wrap) wrap.style.display = 'none';
+      if (cnt) cnt.style.display = 'none';
+      if (xlsBtn) xlsBtn.style.display = 'none';
+      return;
+    }
+    var done = {};
+    (subs || []).forEach(function (o) {
+      if (o.subjectId === selSubj.id && o.reviewStatus !== 'rejected') done[o.storeCode] = 1;
+    });
+    var zfmF = _subFilter.zfm || '', amF = _subFilter.am || '';
+    var rows = [];
+    Object.keys(_subStoreMap || {}).forEach(function (code) {
+      var s = _subStoreMap[code];
+      if (!s || !s.code || !isStoreCode(s.code)) return;
+      if (!subjInScope(selSubj, s.code)) return;
+      if (done[s.code]) return;
+      var zLab = (s.zfmName || s.zfmCode || '').trim();
+      var aLab = (s.amName || '').trim();
+      if (zfmF && zLab !== zfmF) return;
+      if (amF && aLab !== amF) return;
+      rows.push({ code: s.code, name: s.name || '', amName: s.amName || '', amEmail: s.amEmail || '', zfmName: zLab, city: s.city || '' });
+    });
+    rows.sort(function (a, b) { return (a.amName || '').localeCompare(b.amName || '') || (a.code || '').localeCompare(b.code || ''); });
+    _subPendRows = rows;
+    if (hint) hint.style.display = 'none';
+    if (wrap) wrap.style.display = 'block';
+    if (cnt) { cnt.style.display = 'inline-flex'; cnt.textContent = rows.length ? (rows.length + ' pending') : '✅ All submitted'; cnt.className = 'badge ' + (rows.length ? 'badge-amber' : 'badge-green'); }
+    if (xlsBtn) xlsBtn.style.display = rows.length ? 'inline-flex' : 'none';
+    if (!body) return;
+    if (!rows.length) { body.innerHTML = '<tr><td colspan="7" class="text3" style="text-align:center;padding:18px">✅ All in-scope stores have submitted' + (zfmF || amF ? ' (for this AM/ZFM filter)' : '') + '</td></tr>'; return; }
+    body.innerHTML = rows.map(function (r, i) {
+      return '<tr><td>' + (i + 1) + '</td><td><b>' + esc(r.code) + '</b></td><td>' + esc(r.name) + '</td><td><b>' + esc(r.amName) + '</b></td><td class="small text2">' + esc(r.amEmail) + '</td><td>' + esc(r.zfmName) + '</td><td>' + esc(r.city) + '</td></tr>';
+    }).join('');
+  }
+  function exportSubPendXls() {
+    if (typeof XLSX === 'undefined') { toast('Excel library not loaded'); return; }
+    if (!_subPendRows.length) { toast('No pending rows to export'); return; }
+    var aoa = [['#', 'Store Code', 'Store Name', 'AM Name', 'AM Email', 'ZFM', 'City', 'Subject', 'Status']];
+    _subPendRows.forEach(function (r, i) { aoa.push([i + 1, r.code, r.name, r.amName, r.amEmail, r.zfmName, r.city, _subFilter.subject || '', 'Pending']); });
+    var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Pending Stores');
+    XLSX.writeFile(wb, 'DB_PendingStores_' + (_subFilter.subject || 'All').replace(/[^A-Za-z0-9_-]/g, '_') + '_' + toDateStr(new Date()) + '.xlsx');
+    toast('Excel downloaded');
   }
   function applySubFilters() {
-    populateSubSubjects();
+    populateSubSubjects(_subjActiveCache);
+    populateSubZfmAm();
     var box = $('subTable'), rows = filteredSubs();
     var nPic = 0, nData = 0, nPend = 0, nDone = 0, nRej = 0;
     _subAll.forEach(function (o) { var s = subStatusOf(o); if (o.type === 'pic') nPic++; else nData++; if (s === 'pending') nPend++; else if (s === 'approved') nDone++; else if (s === 'rejected') nRej++; });
-    if ($('subMeta')) $('subMeta').textContent = _subAll.length + ' total · ' + nPic + ' pic · ' + nData + ' data · ' + nPend + ' pending · ' + nDone + ' done · ' + nRej + ' rejected';
-    if (!_subAll.length) { box.innerHTML = '<div class="empty"><div class="empty-i">📊</div><div class="empty-t">No submissions yet</div></div>'; return; }
-    if (!rows.length) { box.innerHTML = '<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">No submissions match this filter</div></div>'; return; }
+    if ($('subMeta')) $('subMeta').textContent = _subAll.length + ' total · ' + nPic + ' pic · ' + nData + ' data · ' + nPend + ' pending · ' + nDone + ' done · ' + nRej + ' rejected · showing ' + rows.length;
+    if (!_subAll.length) { box.innerHTML = '<div class="empty"><div class="empty-i">📊</div><div class="empty-t">No submissions yet</div></div>'; }
+    else if (!rows.length) { box.innerHTML = '<div class="empty"><div class="empty-i">🔍</div><div class="empty-t">No submissions match this filter</div></div>'; }
+    else {
     // prune selection to currently-visible rows
     var vis = {}; rows.forEach(function (o) { vis[o._id] = 1; }); Object.keys(_subSel).forEach(function (k) { if (!vis[k]) delete _subSel[k]; });
     var selCount = Object.keys(_subSel).length;
@@ -4596,6 +4829,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var sf = box.querySelectorAll('button[data-self]'); for (var s = 0; s < sf.length; s++) sf[s].addEventListener('click', function (e) { e.stopPropagation(); var o = _subRows[this.getAttribute('data-self')]; if (o && o.selfie) showImgModal('Store selfie · ' + o.storeCode, o.selfie); });
     var rj = box.querySelectorAll('button[data-rej]'); for (var i = 0; i < rj.length; i++) rj[i].addEventListener('click', function (e) { e.stopPropagation(); adminRedo(this.getAttribute('data-rej')); });
     var ap = box.querySelectorAll('button[data-app]'); for (var j = 0; j < ap.length; j++) ap[j].addEventListener('click', function (e) { e.stopPropagation(); adminApprove(this.getAttribute('data-app')); });
+    }
+    /* Refresh pending panel with current ZFM/AM filter */
+    var selSubj = null;
+    if (_subFilter.subjectId && _subjActiveCache && _subjActiveCache[_subFilter.subjectId]) selSubj = _subjActiveCache[_subFilter.subjectId];
+    renderSubPending(selSubj, _subAll);
   }
   function refreshSubSelBar() {
     var n = Object.keys(_subSel).length;
@@ -4736,27 +4974,39 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ($('dashDate')) $('dashDate').value = _dashDate;
     var cached = !!_lastAM;
     if (cached) renderAMSummary(_lastAM);
-    else if ($('amSummary') && !$('amSummary').innerHTML) $('amSummary').innerHTML = '<div class="empty"><div class="empty-i">⚡</div><div class="empty-t">Loading dashboard…</div></div>';
+    else if ($('amSummary') && !$('amSummary').querySelector('table')) $('amSummary').innerHTML = '<div class="empty"><div class="empty-i">⚡</div><div class="empty-t">Loading dashboard…</div></div>';
     var t0 = Date.now();
-    /* Light fields only — never pull base64 photos/selfies for the dashboard */
+    var reqGen = ++_dashLoadGen;
+    /* Light fields only — never pull base64 photos/selfies for the dashboard KPIs */
     Promise.all([
       new Promise(function (res) { loadStoreCache(function (m) { res(m); }); }),
-      new Promise(function (res) { loadSubsLight(function (a) { res(a); }, false, _dashSubject || ''); }),
       new Promise(function (res) { loadActiveSubjectMap(function (m) { res(m); }); })
-    ]).then(function (res) {
-      console.log('[Dash] light load', Date.now() - t0, 'ms');
-      var storeMap = res[0] || {};
+    ]).then(function (res0) {
+      if (reqGen !== _dashLoadGen) return;
+      var storeMap = res0[0] || {};
       var stores = Object.keys(storeMap).map(function (k) { return storeMap[k]; });
-      var allSubs = res[1] || [];
-      var subjMap = res[2] || {};
+      var subjMap = res0[1] || {};
       var subjList = Object.keys(subjMap).map(function (id) { return subjMap[id]; });
-      /* also include inactive subjects referenced by filter if needed */
-      populateDashSubjects(subjList);
-      var selSubj = _dashSubject ? subjList.filter(function (s) { return s.id === _dashSubject; })[0] : null;
-      if (_dashSubject && !selSubj) {
-        /* try from cache of all — load one doc */
-        selSubj = null;
+      /* Default dashboard subject → latest active survey (once, until user clears/changes) */
+      if (!_dashSubjectUserSet && !_dashSubject) {
+        var latest = latestActiveSubject(subjMap, true);
+        if (latest) _dashSubject = latest.id;
       }
+      populateDashSubjects(subjList);
+      var sid = _dashSubject || '';
+      return new Promise(function (res) {
+        loadSubsLight(function (a) { res({ storeMap: storeMap, stores: stores, subjMap: subjMap, subjList: subjList, allSubs: a || [] }); }, false, sid);
+      });
+    }).then(function (pack) {
+      if (!pack || reqGen !== _dashLoadGen) return;
+      console.log('[Dash] light load', Date.now() - t0, 'ms');
+      var storeMap = pack.storeMap || {};
+      var stores = pack.stores || [];
+      var allSubs = pack.allSubs || [];
+      var subjMap = pack.subjMap || {};
+      var subjList = pack.subjList || [];
+      var selSubj = _dashSubject ? subjList.filter(function (s) { return s.id === _dashSubject; })[0] : null;
+      if (_dashSubject && !selSubj && subjMap[_dashSubject]) selSubj = subjMap[_dashSubject];
       var showAmVal = selSubj ? amValOn(selSubj) : subjList.some(function (sj) { return sj && sj.active !== false && amValOn(sj); });
       setDashAmValVisible(showAmVal);
       var subs = [];
@@ -4767,14 +5017,28 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       });
       var applSet = null;
       if (selSubj) { applSet = {}; stores.forEach(function (s) { if (selSubj.scope !== 'select' || (Array.isArray(selSubj.storeList) && selSubj.storeList.indexOf(s.code) > -1)) applSet[s.code] = 1; }); }
-      var stMap = {}; stores.forEach(function (s) { stMap[s.code] = { am: s.amEmail || s.amCode || '(unmapped)', zfm: zfmKey(s), amName: amLabel(s), zfmName: zfmLabel(s) }; });
+      populateDashZfmAm(stores, applSet);
+      var zfmF = _dashZfm || '', amF = _dashAm || '';
+      function storePass(s) {
+        if (!s) return false;
+        if (zfmF && (s.zfmName || s.zfmCode || '') !== zfmF && zfmLabel(s) !== zfmF) return false;
+        if (amF && (s.amName || '') !== amF && amLabel(s) !== amF) return false;
+        return true;
+      }
+      var stMap = {}; stores.forEach(function (s) { stMap[s.code] = { am: s.amEmail || s.amCode || '(unmapped)', zfm: zfmKey(s), amName: amLabel(s), zfmName: zfmLabel(s), zfmLab: s.zfmName || s.zfmCode || '', amLab: s.amName || '' }; });
       var AM = {};
       function amrec(am, zfm, amName, zfmName) { if (!AM[am]) AM[am] = { am: am, zfm: zfm, amName: amName || localPart(am), zfmName: zfmName || localPart(zfm), total: 0, picRecd: {}, picPr: {}, dataRecd: {}, dataPr: {}, amVal: 0, amValPend: 0, amRedo: 0, amScope: 0 }; return AM[am]; }
       var subjById = {}; subjList.forEach(function (sj) { subjById[sj.id] = sj; });
-      stores.forEach(function (s) { if (applSet && !applSet[s.code]) return; var a = amrec(s.amEmail || s.amCode || '(unmapped)', zfmKey(s), amLabel(s), zfmLabel(s)); a.total++; });
+      stores.forEach(function (s) {
+        if (applSet && !applSet[s.code]) return;
+        if (!storePass(s)) return;
+        var a = amrec(s.amEmail || s.amCode || '(unmapped)', zfmKey(s), amLabel(s), zfmLabel(s)); a.total++;
+      });
       var reasons = {}, anySubStores = {};
       subs.forEach(function (o) {
-        var m = stMap[o.storeCode] || { am: o.amEmail || '(unmapped)', zfm: o.zfmEmail || '(unmapped)', amName: localPart(o.amEmail), zfmName: localPart(o.zfmEmail) };
+        var m = stMap[o.storeCode] || { am: o.amEmail || '(unmapped)', zfm: o.zfmEmail || '(unmapped)', amName: localPart(o.amEmail), zfmName: localPart(o.zfmEmail), zfmLab: o.zfmName || o.zfmCode || '', amLab: o.amName || '' };
+        if (zfmF && m.zfmLab !== zfmF && m.zfmName !== zfmF) return;
+        if (amF && m.amLab !== amF && m.amName !== amF) return;
         var a = amrec(m.am, m.zfm, m.amName, m.zfmName); anySubStores[o.storeCode] = 1;
         var st = o.reviewStatus ? o.reviewStatus : (o.type === 'pic' ? 'pending' : 'submitted');
         if (o.type === 'pic') { a.picRecd[o.storeCode] = 1; if (st === 'pending' || st === 'rejected') a.picPr[o.storeCode] = 1; if (st === 'rejected') { var rs = o.reviewRemark || 'No remark'; reasons[rs] = (reasons[rs] || 0) + 1; } }
@@ -4786,11 +5050,16 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           else a.amValPend++;
         }
       });
-      var totalStores = applSet ? Object.keys(applSet).length : stores.length, picRecdTot = 0, picPrTot = 0, dataRecdTot = 0, dataPrTot = 0, picDoneTot = 0, dataDoneTot = 0, pendTot = 0, rejTot = 0;
-      subs.forEach(function (o) { var st = o.reviewStatus ? o.reviewStatus : (o.type === 'pic' ? 'pending' : 'submitted'); if (o.type === 'pic') { if (st === 'pending') pendTot++; else if (st === 'rejected') rejTot++; } else if (st === 'rejected') rejTot++; });
+      var scopedStores = stores.filter(function (s) { if (applSet && !applSet[s.code]) return false; return storePass(s); });
+      var totalStores = scopedStores.length, picRecdTot = 0, picPrTot = 0, dataRecdTot = 0, dataPrTot = 0, picDoneTot = 0, dataDoneTot = 0, pendTot = 0, rejTot = 0;
+      subs.forEach(function (o) {
+        var m = stMap[o.storeCode]; if (m) { if (zfmF && m.zfmLab !== zfmF && m.zfmName !== zfmF) return; if (amF && m.amLab !== amF && m.amName !== amF) return; }
+        var st = o.reviewStatus ? o.reviewStatus : (o.type === 'pic' ? 'pending' : 'submitted'); if (o.type === 'pic') { if (st === 'pending') pendTot++; else if (st === 'rejected') rejTot++; } else if (st === 'rejected') rejTot++;
+      });
       Object.keys(AM).forEach(function (k) { var a = AM[k]; var pr = Object.keys(a.picRecd).length, ppr = Object.keys(a.picPr).length, dr = Object.keys(a.dataRecd).length, dpr = Object.keys(a.dataPr).length; picRecdTot += pr; picPrTot += ppr; dataRecdTot += dr; dataPrTot += dpr; picDoneTot += (pr - ppr); dataDoneTot += (dr - dpr); });
       var amTot = 0, amDone = 0, amRedo = 0;
       subs.forEach(function (o) {
+        var m = stMap[o.storeCode]; if (m) { if (zfmF && m.zfmLab !== zfmF && m.zfmName !== zfmF) return; if (amF && m.amLab !== amF && m.amName !== amF) return; }
         var sj = subjById[o.subjectId];
         if (!amValOn(sj)) return;
         amTot++;
@@ -4805,15 +5074,23 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       $('kpiRecd').textContent = recdStores; if ($('kpiRecdPct')) $('kpiRecdPct').textContent = pct(recdStores, totalStores) + '% of stores';
       $('kpiPending').textContent = pendingStores; if ($('kpiPendPct')) $('kpiPendPct').textContent = pct(pendingStores, totalStores) + '% of stores';
       $('kpiRejected').textContent = rejTot; if ($('kpiRejPct')) $('kpiRejPct').textContent = pct(rejTot, totalStores) + '% of stores';
-      if ($('dashStoreTotal')) $('dashStoreTotal').textContent = 'Total stores (master): ' + stores.length + (applSet ? ' · applicable to “' + (selSubj.name || '') + '”: ' + totalStores : '');
-      $('amSumMeta').textContent = 'Total stores ' + totalStores + ' · ' + (_dashDate ? ('date ' + _dashDate) : 'all dates') + ' · ' + new Date().toLocaleTimeString();
+      if ($('dashStoreTotal')) $('dashStoreTotal').textContent = 'Total stores (master): ' + stores.length + (applSet ? ' · applicable to “' + (selSubj.name || '') + '”: ' + Object.keys(applSet).length : '') + (zfmF || amF ? ' · filtered' : '');
+      $('amSumMeta').textContent = (selSubj ? (selSubj.name || selSubj.id) : 'All subjects') + ' · stores ' + totalStores + ' · ' + (_dashDate ? ('date ' + _dashDate) : 'all dates') + ' · ' + new Date().toLocaleTimeString();
       _lastAM = AM;
+      _dashStoreMap = storeMap;
       renderAMSummary(AM);
       renderPendExtract(stores, subs, subjList, selSubj);
+      loadDashQuestionSummary(selSubj, storeMap);
       drawBar('chReason', 'Rejection / re-do reasons', Object.keys(reasons), Object.keys(reasons).map(function (k) { return reasons[k]; }), '#E91E8C');
-    }).catch(function (e) { if ($('amSummary')) $('amSummary').innerHTML = '<div class="warn-box">Could not load dashboard: ' + esc(e.message) + '</div>'; toast(e.message); });
+    }).catch(function (e) {
+      /* Keep previous summary visible on transient failures (live portal — avoid blank flash) */
+      if ($('amSummary') && !$('amSummary').querySelector('table')) $('amSummary').innerHTML = '<div class="warn-box">Could not load dashboard: ' + esc(e.message) + '</div>';
+      toast(e.message);
+    });
   }
-  var _lastAM = null, _dashView = { mode: 'both', pendingOnly: false }, _dashDate = null, _dashSubject = '', _dashShowAmVal = false;
+  var _lastAM = null, _dashView = { mode: 'data', pendingOnly: false }, _dashDate = null, _dashSubject = '', _dashShowAmVal = false;
+  var _dashSubjectUserSet = false, _dashZfm = '', _dashAm = '', _dashLoadGen = 0, _dashStoreMap = {};
+  var _dashQSumGroups = {}, _dashQIssues = [], _dashQLoadGen = 0;
   function setDashAmValVisible(show) {
     _dashShowAmVal = !!show;
     ['kpiAmVal', 'kpiAmPend'].forEach(function (id) {
@@ -4824,11 +5101,37 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   function populateDashSubjects(subjList) {
     var sel = $('dashSubject'); if (!sel) return;
-    var list = subjList.slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
-    var sig = list.map(function (s) { return s.id; }).join('|');
+    var list = subjList.slice().sort(function (a, b) {
+      return String(b.createdAt || '').localeCompare(String(a.createdAt || '')) || (a.name || '').localeCompare(b.name || '');
+    });
+    var sig = list.map(function (s) { return s.id; }).join('|') + '::' + (_dashSubject || '');
     if (sel.getAttribute('data-sig') === sig) return;
     sel.setAttribute('data-sig', sig);
-    sel.innerHTML = '<option value="">All subjects</option>' + list.map(function (s) { return '<option value="' + esc(s.id) + '"' + (s.id === _dashSubject ? ' selected' : '') + '>' + esc(s.name || s.id) + (s.active ? '' : ' (off)') + '</option>'; }).join('');
+    sel.innerHTML = '<option value="">All subjects</option>' + list.map(function (s) { return '<option value="' + esc(s.id) + '"' + (s.id === _dashSubject ? ' selected' : '') + '>' + esc(s.name || s.id) + (s.active === false ? ' (off)' : '') + '</option>'; }).join('');
+  }
+  function populateDashZfmAm(stores, applSet) {
+    var zSel = $('dashZfm'), aSel = $('dashAm');
+    if (!zSel && !aSel) return;
+    var zset = {}, aset = {};
+    (stores || []).forEach(function (s) {
+      if (applSet && !applSet[s.code]) return;
+      var z = (s.zfmName || s.zfmCode || '').trim(); if (z) zset[z] = 1;
+      var a = (s.amName || '').trim(); if (a) aset[a] = 1;
+    });
+    if (zSel) {
+      var curZ = _dashZfm;
+      zSel.innerHTML = '<option value="">All ZFM</option>' + Object.keys(zset).sort().map(function (n) {
+        return '<option value="' + esc(n) + '"' + (n === curZ ? ' selected' : '') + '>' + esc(n) + '</option>';
+      }).join('');
+      if (curZ && !zset[curZ]) { _dashZfm = ''; zSel.value = ''; }
+    }
+    if (aSel) {
+      var curA = _dashAm;
+      aSel.innerHTML = '<option value="">All AM</option>' + Object.keys(aset).sort().map(function (n) {
+        return '<option value="' + esc(n) + '"' + (n === curA ? ' selected' : '') + '>' + esc(n) + '</option>';
+      }).join('');
+      if (curA && !aset[curA]) { _dashAm = ''; aSel.value = ''; }
+    }
   }
   /* v22 — Pending store extract shown only when a specific subject is selected */
   var _pendRows = [];
@@ -4838,7 +5141,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     // No subject selected — show hint, hide table
     if (!selSubj) {
       _pendRows = [];
-      if (nameEl) { nameEl.textContent = 'select a subject below ↓'; nameEl.style.color = 'var(--amber)'; }
+      if (nameEl) { nameEl.textContent = 'select a subject'; nameEl.style.color = 'var(--amber)'; }
       if (hint) hint.style.display = 'block';
       if (wrap) wrap.style.display = 'none';
       if (cnt) cnt.style.display = 'none';
@@ -4850,12 +5153,17 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     subs.forEach(function (o) {
       if (o.subjectId === selSubj.id && o.reviewStatus !== 'rejected') done[o.storeCode] = 1;
     });
+    var zfmF = _dashZfm || '', amF = _dashAm || '';
     var rows = [];
     stores.forEach(function (s) {
       if (!s.code || !isStoreCode(s.code)) return;
       if (!subjInScope(selSubj, s.code)) return;
       if (done[s.code]) return;
-      rows.push({ code: s.code, name: s.name || '', amName: s.amName || '', amEmail: s.amEmail || '', zfmName: s.zfmName || s.zfmCode || '', city: s.city || '' });
+      var zLab = (s.zfmName || s.zfmCode || '').trim();
+      var aLab = (s.amName || '').trim();
+      if (zfmF && zLab !== zfmF) return;
+      if (amF && aLab !== amF) return;
+      rows.push({ code: s.code, name: s.name || '', amName: s.amName || '', amEmail: s.amEmail || '', zfmName: zLab, city: s.city || '' });
     });
     rows.sort(function (a, b) { return (a.amName || '').localeCompare(b.amName || '') || (a.code || '').localeCompare(b.code || ''); });
     _pendRows = rows;
@@ -4866,7 +5174,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (wrap) wrap.style.display = 'block';
     var body = $('pendExtractBody');
     if (!body) return;
-    if (!rows.length) { body.innerHTML = '<tr><td colspan="7" class="text3" style="text-align:center;padding:18px">✅ All in-scope stores have submitted this subject</td></tr>'; return; }
+    if (!rows.length) { body.innerHTML = '<tr><td colspan="7" class="text3" style="text-align:center;padding:18px">✅ All in-scope stores have submitted this subject' + (zfmF || amF ? ' (for this filter)' : '') + '</td></tr>'; return; }
     body.innerHTML = rows.map(function (r, i) {
       return '<tr><td>' + (i + 1) + '</td><td><b>' + esc(r.code) + '</b></td><td>' + esc(r.name) + '</td><td><b>' + esc(r.amName) + '</b></td><td class="small text2">' + esc(r.amEmail) + '</td><td>' + esc(r.zfmName) + '</td><td>' + esc(r.city) + '</td></tr>';
     }).join('');
@@ -4882,6 +5190,148 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     XLSX.utils.book_append_sheet(wb, ws, 'Pending Stores');
     XLSX.writeFile(wb, 'PendingStores_' + (selSubj || 'All').replace(/[^A-Za-z0-9_-]/g, '_') + '_' + toDateStr(new Date()) + '.xlsx');
     toast('Excel downloaded');
+  }
+
+  /* Dashboard question-wise summary — same Flag-to-HO logic as HO Issues page */
+  function loadDashQuestionSummary(selSubj, storeMap) {
+    var box = $('dashQSummary'), meta = $('dashQSumMeta');
+    if (!box) return;
+    if (!selSubj) {
+      _dashQIssues = []; _dashQSumGroups = {};
+      box.innerHTML = '<div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Same Flag-to-HO logic as HO Issues</div></div>';
+      if (meta) meta.textContent = '';
+      return;
+    }
+    if (selSubj.type !== 'data' || selSubj.dataMode === 'sysphy') {
+      box.innerHTML = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">Question summary applies to data questionnaires</div></div>';
+      if (meta) meta.textContent = selSubj.name || '';
+      return;
+    }
+    var gen = ++_dashQLoadGen;
+    if (!box.querySelector('table')) box.innerHTML = '<div class="empty"><div class="empty-i">⚡</div><div class="empty-t">Loading question summary…</div></div>';
+    var sid = selSubj.id;
+    var needSubj = selSubj.questions ? Promise.resolve(selSubj) : db.collection('subjects').doc(sid).get().then(function (d) {
+      if (!d.exists) return selSubj;
+      var o = d.data(); o.id = d.id; return o;
+    });
+    Promise.all([
+      needSubj,
+      db.collection('submissions').where('subjectId', '==', sid).get(),
+      db.collection('hosolutions').where('subjectId', '==', sid).get().catch(function () { return { forEach: function () { } }; })
+    ]).then(function (res) {
+      if (gen !== _dashQLoadGen) return;
+      var subj = res[0] || selSubj;
+      var solMap = {}; res[2].forEach(function (d) { solMap[d.id] = d.data(); });
+      var stores = storeMap || _dashStoreMap || {};
+      var issues = [];
+      res[1].forEach(function (d) {
+        var o = d.data(); if (o.type && o.type !== 'data') return; if (o.reviewStatus === 'rejected') return;
+        o.id = d.id;
+        extractHOIssuesFromSub(subj, o, stores, solMap, null, d.id).forEach(function (iss) { issues.push(iss); });
+      });
+      /* Apply dash ZFM/AM filters */
+      var zfmF = _dashZfm || '', amF = _dashAm || '';
+      if (zfmF || amF) {
+        issues = issues.filter(function (x) {
+          if (zfmF && !hoZfmMatches(x, zfmF) && (x.zfmName || x.zfmCode || '') !== zfmF) return false;
+          if (amF && (x.amName || '') !== amF) return false;
+          return true;
+        });
+      }
+      _dashQIssues = issues;
+      paintDashQuestionSummary(issues, subj);
+    }).catch(function (e) {
+      if (gen !== _dashQLoadGen) return;
+      if (!box.querySelector('table')) box.innerHTML = '<div class="warn-box">Could not load question summary: ' + esc(e.message) + '</div>';
+    });
+  }
+  function paintDashQuestionSummary(list, subj) {
+    var box = $('dashQSummary'), meta = $('dashQSumMeta');
+    if (meta) meta.textContent = (subj ? (subj.name || '') + ' · ' : '') + list.length + ' issue(s)';
+    var map = {};
+    list.forEach(function (x) {
+      var key = (x.subjectId || '') + '||' + (x.qLabel || '') + '||' + (x.dept || '') + '||' + String(x.qIdx);
+      if (!map[key]) map[key] = { key: key, subject: x.subjectName, subjectId: x.subjectId, q: x.qLabel, qIdx: x.qIdx, dept: x.dept, items: [], done: 0, wip: 0, ni: 0 };
+      map[key].items.push(x);
+      if (x.status === 'done') map[key].done++; else if (x.status === 'wip') map[key].wip++; else map[key].ni++;
+    });
+    _dashQSumGroups = map;
+    if (!list.length) {
+      box.innerHTML = '<div class="empty"><div class="empty-i">✅</div><div class="empty-t">No Flag-to-HO issues for this subject' + (_dashZfm || _dashAm ? ' (filter)' : '') + '</div></div>';
+      return;
+    }
+    var rows = Object.keys(map).map(function (k) { return map[k]; });
+    rows.sort(function (a, b) { return (a.dept || '').localeCompare(b.dept || '') || (a.q || '').localeCompare(b.q || ''); });
+    var h = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Dept</th><th>Issue (question)</th><th>Stores</th><th>Done</th><th>WIP</th><th>Not Initiated</th></tr></thead><tbody>';
+    rows.forEach(function (r) {
+      var nStores = {}; r.items.forEach(function (x) { nStores[x.storeCode] = 1; });
+      var sk = esc(r.key);
+      function numBtn(n, st, color) {
+        if (!n) return '<span style="color:' + (color || 'var(--text3)') + ';font-weight:700">0</span>';
+        return '<button type="button" class="ho-num-link dash-q-num" data-gkey="' + sk + '" data-st="' + st + '" style="color:' + (color || 'var(--blue)') + '">' + n + '</button>';
+      }
+      h += '<tr><td><b>' + esc(r.dept) + '</b></td><td>' + esc(r.q) + '</td><td>' + numBtn(Object.keys(nStores).length, 'all') + '</td><td>' + numBtn(r.done, 'done', '#2E7D32') + '</td><td>' + numBtn(r.wip, 'wip', 'var(--amber)') + '</td><td>' + numBtn(r.ni, 'not_initiated') + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+    box.innerHTML = h;
+    box.querySelectorAll('.dash-q-num').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        /* Temporarily point HO drill at dashboard groups */
+        var prev = _admHoSumGroups;
+        _admHoSumGroups = _dashQSumGroups;
+        openHoIssueDrill(this.getAttribute('data-gkey'), this.getAttribute('data-st'));
+        _admHoSumGroups = prev;
+      });
+    });
+  }
+  function exportDashQSumXls() {
+    var list = _dashQIssues || []; if (!list.length) { toast('Nothing to export'); return; }
+    var map = {};
+    list.forEach(function (x) {
+      var key = (x.subjectName || '') + '||' + (x.qLabel || '') + '||' + (x.dept || '');
+      if (!map[key]) map[key] = { subject: x.subjectName, q: x.qLabel, dept: x.dept, stores: {}, done: 0, wip: 0, ni: 0 };
+      map[key].stores[x.storeCode] = 1;
+      if (x.status === 'done') map[key].done++; else if (x.status === 'wip') map[key].wip++; else map[key].ni++;
+    });
+    var aoa = [['Dept', 'Issue (question)', 'Stores', 'Done', 'WIP', 'Not Initiated']];
+    Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) { return (a.dept || '').localeCompare(b.dept || '') || (a.q || '').localeCompare(b.q || ''); })
+      .forEach(function (r) { aoa.push([r.dept, r.q, Object.keys(r.stores).length, r.done, r.wip, r.ni]); });
+    var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Q_Summary'); XLSX.writeFile(wb, 'Dash_Question_Summary_' + toDateStr(new Date()) + '.xlsx');
+  }
+  function snapDashQSummary() {
+    var src = $('dashQSummary'); if (!src || !src.querySelector('table')) { toast('Load question summary first'); return; }
+    if (typeof html2canvas !== 'function') { toast('Snapshot tool still loading…'); return; }
+    loader(true, 'Capturing…');
+    var meta = ($('dashQSumMeta') && $('dashQSumMeta').textContent) || '';
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;left:-99999px;top:0;background:#ffffff;padding:28px 32px;display:inline-block;font-family:Roboto,Arial,sans-serif;color:#222';
+    wrap.innerHTML = '<div style="font-weight:800;font-size:20px;color:#1565C0;letter-spacing:.2px">VMM Exec Check — Question-wise Summary</div>' +
+      '<div style="font-size:13px;color:#555;margin:6px 0 16px">' + esc(meta) + ' · ' + esc(new Date().toLocaleString('en-IN')) + '</div>' +
+      '<div id="dashQSnapHost"></div>';
+    document.body.appendChild(wrap);
+    var host = wrap.querySelector('#dashQSnapHost'); host.innerHTML = src.innerHTML;
+    host.querySelectorAll('button.ho-num-link').forEach(function (b) {
+      var sp = document.createElement('span'); sp.textContent = b.textContent; sp.style.cssText = 'font-weight:800;color:#1565C0';
+      b.parentNode.replaceChild(sp, b);
+    });
+    var tw = host.querySelector('.tbl-wrap'); if (tw) { tw.style.overflow = 'visible'; tw.style.maxWidth = 'none'; tw.style.width = 'auto'; }
+    var tbl = host.querySelector('table');
+    if (tbl) {
+      tbl.style.fontSize = '15px'; tbl.style.borderCollapse = 'collapse';
+      tbl.querySelectorAll('th,td').forEach(function (c) { c.style.padding = '11px 14px'; c.style.border = '1px solid #cfd8dc'; c.style.whiteSpace = 'nowrap'; c.style.fontSize = '15px'; });
+      tbl.querySelectorAll('th').forEach(function (c) { c.style.background = '#1565C0'; c.style.color = '#fff'; c.style.fontWeight = '700'; });
+    }
+    var W = Math.max(wrap.scrollWidth, 900), H = wrap.scrollHeight, sc = 3;
+    if (W * H * sc * sc > 40000000) sc = 2.5;
+    html2canvas(wrap, { backgroundColor: '#ffffff', scale: sc, useCORS: true, allowTaint: true, logging: false, width: W, height: H, windowWidth: W, imageTimeout: 0 }).then(function (canvas) {
+      document.body.removeChild(wrap); loader(false);
+      canvas.toBlob(function (blob) {
+        if (!blob) { toast('Snapshot failed'); return; }
+        var fname = 'VMM_Dash_Q_Summary_' + toDateStr(new Date()) + '.png';
+        try { if (navigator.clipboard && window.ClipboardItem) { navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(function () { toast('📸 Copied — paste into WhatsApp/Mail'); }).catch(function () { dlBlob(blob, fname); }); return; } } catch (e) { }
+        dlBlob(blob, fname);
+      }, 'image/png');
+    }).catch(function (e) { try { document.body.removeChild(wrap); } catch (x) { } loader(false); toast('Capture failed: ' + e.message); });
   }
 
   function renderAMSummary(AM) {
@@ -4987,20 +5437,20 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     loader(true, 'Capturing…');
     var meta = ($('amSumMeta') && $('amSumMeta').textContent) || '';
     var wrap = document.createElement('div');
-    // Same sharpness approach as HO summary snap: larger type + padding, high scale
-    wrap.style.cssText = 'position:fixed;left:-99999px;top:0;background:#ffffff;padding:28px 32px;display:inline-block;font-family:Roboto,Arial,sans-serif;color:#222';
-    wrap.innerHTML = '<div style="font-weight:800;font-size:20px;color:#1565C0;letter-spacing:.2px">VMM Execution — ZFM → AM Compliance</div>' +
-      '<div style="font-size:13px;color:#555;margin:6px 0 16px">' + esc(meta) + ' · ' + esc(new Date().toLocaleString('en-IN')) + '</div>' +
+    // Sharp snapshot: larger type + padding + high scale (avoid browser downscale blur)
+    wrap.style.cssText = 'position:fixed;left:-99999px;top:0;background:#ffffff;padding:32px 36px;display:inline-block;font-family:Roboto,Arial,sans-serif;color:#222;-webkit-font-smoothing:antialiased';
+    wrap.innerHTML = '<div style="font-weight:800;font-size:22px;color:#1565C0;letter-spacing:.2px">VMM Execution — ZFM → AM Compliance</div>' +
+      '<div style="font-size:14px;color:#555;margin:8px 0 18px">' + esc(meta) + ' · ' + esc(new Date().toLocaleString('en-IN')) + '</div>' +
       '<div id="snapTblHost"></div>';
     document.body.appendChild(wrap);
     var host = wrap.querySelector('#snapTblHost'); host.innerHTML = src.innerHTML;
     var tw = host.querySelector('.tbl-wrap'); if (tw) { tw.style.overflow = 'visible'; tw.style.maxWidth = 'none'; tw.style.width = 'auto'; }
     var tbl = host.querySelector('table');
     if (tbl) {
-      tbl.style.fontSize = '14px'; tbl.style.borderCollapse = 'collapse'; tbl.style.width = 'auto';
+      tbl.style.fontSize = '15px'; tbl.style.borderCollapse = 'collapse'; tbl.style.width = 'auto';
       tbl.querySelectorAll('th,td').forEach(function (c) {
-        c.style.padding = '10px 12px'; c.style.border = '1px solid #cfd8dc'; c.style.whiteSpace = 'nowrap';
-        c.style.fontSize = '14px'; c.style.lineHeight = '1.35';
+        c.style.padding = '11px 14px'; c.style.border = '1px solid #cfd8dc'; c.style.whiteSpace = 'nowrap';
+        c.style.fontSize = '15px'; c.style.lineHeight = '1.4'; c.style.letterSpacing = '0';
       });
       tbl.querySelectorAll('th').forEach(function (c) {
         c.style.background = c.classList.contains('grp') ? '#1565C0' : (c.classList.contains('valcol') ? '#33691E' : '#0D47A1');
@@ -5012,9 +5462,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       tbl.querySelectorAll('tr.grand td').forEach(function (c) { c.style.background = '#0D47A1'; c.style.color = '#fff'; c.style.fontWeight = '700'; });
       tbl.querySelectorAll('tr.grand td.valcol').forEach(function (c) { c.style.background = '#33691E'; c.style.color = '#fff'; });
     }
-    var W = Math.max(wrap.scrollWidth, 900), H = wrap.scrollHeight, sc = 3;
-    if (W * H * sc * sc > 40000000) sc = 2.5;
-    if (W * H * sc * sc > 50000000) sc = 2;   // last resort for extremely tall tables
+    var W = Math.max(wrap.scrollWidth, 1000), H = wrap.scrollHeight, sc = 3;
+    if (W * H * sc * sc > 45000000) sc = 2.5;
+    if (W * H * sc * sc > 55000000) sc = 2;
     html2canvas(wrap, { backgroundColor: '#ffffff', scale: sc, useCORS: true, allowTaint: true, logging: false, width: W, height: H, windowWidth: W, imageTimeout: 0 }).then(function (canvas) {
       document.body.removeChild(wrap); loader(false);
       canvas.toBlob(function (blob) {
@@ -5086,22 +5536,41 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var subSeg = document.getElementById('subSlicer');
     if (subSeg) { subSeg.querySelectorAll('.seg-btn').forEach(function (b) { b.addEventListener('click', function () { subSeg.querySelectorAll('.seg-btn').forEach(function (x) { x.classList.remove('active'); }); this.classList.add('active'); _subFilter.type = this.getAttribute('data-t'); applySubFilters(); }); }); }
     on('subStatus', 'change', function () { _subFilter.status = this.value; applySubFilters(); });
-    on('subSubject', 'change', function () { _subFilter.subject = this.value; applySubFilters(); });
+    on('subSubject', 'change', function () {
+      _subSubjectUserSet = true;
+      var opt = this.options[this.selectedIndex];
+      _subFilter.subjectId = this.value || '';
+      _subFilter.subject = opt ? (opt.getAttribute('data-name') || opt.textContent || '') : '';
+      if (!_subFilter.subjectId) _subFilter.subject = '';
+      /* Reload scoped data for new subject (read-only — does not touch live submissions) */
+      _subAll = []; renderSubmissions();
+    });
+    on('subZfm', 'change', function () { _subFilter.zfm = this.value; applySubFilters(); });
+    on('subAm', 'change', function () { _subFilter.am = this.value; applySubFilters(); });
     on('subSearch', 'input', function () { _subFilter.q = this.value; applySubFilters(); });
     on('subDate', 'change', function () { _subFilter.date = this.value; applySubFilters(); });
     on('btnSubDateAll', 'click', function () { _subFilter.date = ''; if ($('subDate')) $('subDate').value = ''; applySubFilters(); });
     on('btnSubXls', 'click', exportSubXls);
     on('btnSubPhotos', 'click', exportSubPhotos);
+    on('btnSubPendXls', 'click', exportSubPendXls);
+    wireCollToggle('subPendTog', 'subPendBody', 'subPendChev', 'subPendHint');
     // Dashboard: slicer + pending toggle + export + snapshot
     var dashSeg = document.getElementById('dashSlicer');
     if (dashSeg) { dashSeg.querySelectorAll('.seg-btn').forEach(function (b) { b.addEventListener('click', function () { dashSeg.querySelectorAll('.seg-btn').forEach(function (x) { x.classList.remove('active'); }); this.classList.add('active'); _dashView.mode = this.getAttribute('data-m'); if (_lastAM) renderAMSummary(_lastAM); }); }); }
     on('dashPendingOnly', 'change', function () { _dashView.pendingOnly = this.checked; if (_lastAM) renderAMSummary(_lastAM); });
-    on('dashSubject', 'change', function () { _dashSubject = this.value; renderDashboard(); });
+    on('dashSubject', 'change', function () { _dashSubjectUserSet = true; _dashSubject = this.value; renderDashboard(); });
+    on('dashZfm', 'change', function () { _dashZfm = this.value; renderDashboard(); });
+    on('dashAm', 'change', function () { _dashAm = this.value; renderDashboard(); });
     on('dashDate', 'change', function () { _dashDate = this.value; renderDashboard(); });
     on('btnDashDateAll', 'click', function () { _dashDate = ''; if ($('dashDate')) $('dashDate').value = ''; renderDashboard(); });
     on('btnDashXls', 'click', exportAMSummaryXls);
     on('btnDashSnap', 'click', snapSummary);
     on('btnPendExtractXls', 'click', exportPendExtractXls);
+    on('btnDashQSumXls', 'click', exportDashQSumXls);
+    on('btnDashQSumSnap', 'click', snapDashQSummary);
+    wireCollToggle('amSumTog', 'amSumBody', 'amSumChev', 'amSumHint');
+    wireCollToggle('dashQSumTog', 'dashQSumBody', 'dashQSumChev', 'dashQSumHint');
+    wireCollToggle('pendExtractTog', 'pendExtractBodyWrap', 'pendExtractChev', 'pendExtractHint');
     on('btnSaveSettings', 'click', saveSettings);
     on('btnPurgeJunk', 'click', purgeJunkStores);
     on('btnPurgeOld', 'click', purgeOldSubs);
