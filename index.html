@@ -163,18 +163,32 @@ select.form-control{cursor:pointer}
 .kpi-v{font-size:26px;font-weight:900;line-height:1;letter-spacing:-.5px}
 .kpi-l{font-size:11px;color:var(--text2);margin-top:6px;font-weight:500}
 /* AM summary table */
-.amsum{width:100%;border-collapse:collapse;font-size:13.5px}
-.amsum .valcol{background:#F1F8E9}
-.amsum thead .valcol{background:#33691E;color:#fff}
-.amsum tr.grand .valcol,.amsum tr.zfm-sub .valcol{background:#DCEDC8}
-.amsum th{padding:9px 8px;background:#0D47A1;color:#fff;border:1px solid #0D47A1;font-weight:700;text-align:center;white-space:nowrap;position:sticky;top:0;font-size:13px}
+.amsum{width:100%;border-collapse:collapse;font-size:14px}
+.amsum .valok{background:#fff}
+.amsum .valpend{background:#fff}
+.amsum thead .valok{background:#33691E;color:#fff}
+.amsum thead .valpend{background:#0D47A1;color:#fff}
+.amsum th{padding:9px 8px;background:#0D47A1;color:#fff;border:1px solid #0D47A1;font-weight:700;text-align:center;white-space:nowrap;position:sticky;top:0;font-size:13.5px}
 .amsum th.grp{background:#1565C0}
-.amsum td{padding:8px 8px;border:1px solid var(--border);text-align:center;white-space:nowrap;font-size:13.5px;line-height:1.35}
+.amsum td{padding:8px 8px;border:1px solid var(--border);text-align:center;white-space:nowrap;font-size:14px;line-height:1.35;color:var(--text)}
 .amsum td.l{text-align:left}
+.amsum td.pend{color:var(--red)!important;font-weight:700}
+.amsum td.valok{color:#1B5E20!important;font-weight:700}
+.amsum td.valpend{color:var(--red)!important;font-weight:700;background:#fff!important}
 .amsum tr.zfm-sub td{background:var(--blue-ll);font-weight:700;color:var(--blue-d)}
+.amsum tr.zfm-sub td.pend{color:var(--red)!important}
+.amsum tr.zfm-sub td.valok{color:#1B5E20!important;background:var(--blue-ll)!important}
+.amsum tr.zfm-sub td.valpend{color:var(--red)!important;background:var(--blue-ll)!important}
 .amsum tr.grand td{background:#0D47A1;color:#fff;font-weight:700}
+.amsum tr.grand td.pend{color:#FFCDD2!important}
+.amsum tr.grand td.valok{color:#C8E6C9!important;background:#0D47A1!important}
+.amsum tr.grand td.valpend{color:#FFCDD2!important;background:#0D47A1!important}
 .amsum tr:hover td{background:#FAFFFE}
 .amsum tr.zfm-sub:hover td{background:var(--blue-lll)}
+.amsum tr.grand:hover td{background:#0D47A1}
+/* legacy alias kept so older snapshots/markup don't break */
+.amsum .valcol{background:#fff}
+.amsum thead .valcol{background:#33691E;color:#fff}
 /* Collapsible dashboard / DB cards (same pattern as HO mail ribbon) */
 .coll-body{display:none!important;padding-top:12px}
 .coll-body.open{display:block!important}
@@ -925,7 +939,21 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           <label class="btn btn-pink" style="cursor:pointer">⬆ Upload Store Master<input type="file" id="btnStoreUp" accept=".csv,.xlsx,.xls" style="display:none"></label>
           <div class="small text2" id="storeStatus" style="margin-top:8px"></div>
         </div></div>
-        <div class="card"><div class="card-head"><span class="card-title">Store Master List</span><input class="filter-input" id="storeSearch" placeholder="Search code / name / AM…" style="max-width:240px"></div><div class="card-body" id="storeTableWrap"><div class="empty"><div class="empty-i">🏪</div><div class="empty-t">Open this tab to load the store master</div></div></div></div>
+        <div class="card"><div class="card-head"><span class="card-title">Store Master List</span></div>
+          <div class="card-body" style="padding-bottom:8px">
+            <div class="flex gap wrap" style="align-items:center;margin-bottom:10px">
+              <input class="filter-input" id="storeSearch" placeholder="Search code / name / AM / ZFM / city…" style="max-width:260px">
+              <select class="form-control" id="storeZfm" style="max-width:160px" title="Filter by ZFM"><option value="">All ZFM</option></select>
+              <select class="form-control" id="storeAm" style="max-width:160px" title="Filter by AM"><option value="">All AM</option></select>
+              <select class="form-control" id="storeActive" style="max-width:130px" title="Active filter">
+                <option value="all">All status</option>
+                <option value="Y" selected>Active only</option>
+                <option value="N">Inactive only</option>
+              </select>
+            </div>
+            <div id="storeTableWrap"><div class="empty"><div class="empty-i">🏪</div><div class="empty-t">Open this tab to load the store master</div></div></div>
+          </div>
+        </div>
       </div>
 
       <!-- SUBMISSIONS -->
@@ -1095,11 +1123,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           </div>
         </div>
 
-        <!-- 2) Question-wise summary (HO Flag logic) -->
+        <!-- 2) Question-wise summary (options tally for selected subject) -->
         <div class="card" style="margin-bottom:14px" id="dashQSumCard">
           <div class="card-head coll-tog" id="dashQSumTog" title="Click to expand / hide" role="button" tabindex="0" aria-expanded="true">
             <span class="chev" id="dashQSumChev">▾</span>
-            <span class="card-title">Question-wise summary (HO Flag)</span>
+            <span class="card-title">Question-wise summary</span>
             <span class="small text2" id="dashQSumMeta"></span>
             <span class="coll-hint" id="dashQSumHint">click to hide</span>
             <div class="card-actions" onclick="event.stopPropagation()">
@@ -1108,7 +1136,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
             </div>
           </div>
           <div class="card-body coll-body open" id="dashQSumBody">
-            <div id="dashQSummary"><div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Same Flag-to-HO logic as HO Issues · blue numbers open store drill-down</div></div></div>
+            <div id="dashQSummary"><div class="empty"><div class="empty-i">📋</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Shows each question and option counts from submissions for the filtered subject</div></div></div>
           </div>
         </div>
 
@@ -4537,17 +4565,50 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       _storeMaster.sort(function (a, b) { return (a.code || '').localeCompare(b.code || ''); });
       $('storeCountBadge').textContent = _storeMaster.length + ' store' + (_storeMaster.length === 1 ? '' : 's');
       $('storeStatus').textContent = _storeMaster.length ? ('Store master present — ' + _storeMaster.length + ' stores loaded.') : 'No store master loaded yet.';
-      paintStoreTable(_storeMaster);
+      populateStoreFilters();
+      filterStoreTable();
     }).catch(function (e) { wrap.innerHTML = '<div class="warn-box" style="margin:0">Load failed: ' + esc(e.message) + '</div>'; });
+  }
+  function populateStoreFilters() {
+    var zSel = $('storeZfm'), aSel = $('storeAm');
+    var curZ = zSel ? zSel.value : '', curA = aSel ? aSel.value : '';
+    var zset = {}, aset = {};
+    _storeMaster.forEach(function (s) {
+      var z = (s.zfmName || s.zfmCode || '').trim(); if (z) zset[z] = 1;
+      var a = (s.amName || '').trim(); if (a) aset[a] = 1;
+    });
+    if (zSel) {
+      zSel.innerHTML = '<option value="">All ZFM</option>' + Object.keys(zset).sort().map(function (n) {
+        return '<option value="' + esc(n) + '"' + (n === curZ ? ' selected' : '') + '>' + esc(n) + '</option>';
+      }).join('');
+    }
+    if (aSel) {
+      aSel.innerHTML = '<option value="">All AM</option>' + Object.keys(aset).sort().map(function (n) {
+        return '<option value="' + esc(n) + '"' + (n === curA ? ' selected' : '') + '>' + esc(n) + '</option>';
+      }).join('');
+    }
   }
   function paintStoreTable(list) {
     var wrap = $('storeTableWrap');
     if (!list.length) { wrap.innerHTML = '<div class="empty"><div class="empty-i">🏪</div><div class="empty-t">No stores match</div></div>'; return; }
-    var h = '<div class="small text2" style="margin-bottom:8px">Showing ' + list.length + ' store(s)</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>StoreCode</th><th>StoreName</th><th>SM Name</th><th>SM Mail</th><th>AM Name</th><th>AM Code</th><th>AM Mail</th><th>ZFM Code</th><th>ZFM Email</th><th>City</th><th>State</th><th>Latitude</th><th>Longitude</th><th>Active</th><th>Updated By</th></tr></thead><tbody>';
+    var h = '<div class="small text2" style="margin-bottom:8px">Showing ' + list.length + ' of ' + _storeMaster.length + ' store(s)</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>StoreCode</th><th>StoreName</th><th>SM Name</th><th>SM Mail</th><th>AM Name</th><th>AM Code</th><th>AM Mail</th><th>ZFM Code</th><th>ZFM Email</th><th>City</th><th>State</th><th>Latitude</th><th>Longitude</th><th>Active</th><th>Updated By</th></tr></thead><tbody>';
     list.forEach(function (s) { h += '<tr><td class="mono">' + esc(s.code) + '</td><td>' + esc(s.name || '') + '</td><td class="small">' + esc(s.smName || '') + '</td><td class="small">' + esc(s.smEmail || '') + '</td><td class="small">' + esc(s.amName || '') + '</td><td class="small mono">' + esc(s.amCode || '') + '</td><td class="small">' + esc(s.amEmail || '') + '</td><td class="small mono">' + esc(s.zfmCode || (s.zfmName || '')) + '</td><td class="small">' + esc(s.zfmEmail || '') + '</td><td class="small">' + esc(s.city || '') + '</td><td class="small">' + esc(s.state || '') + '</td><td class="small mono">' + esc(s.lat != null ? s.lat : '') + '</td><td class="small mono">' + esc(s.lng != null ? s.lng : '') + '</td><td class="small">' + (s.active === false ? 'N' : 'Y') + '</td><td class="small">' + esc(s.updatedBy || '') + '</td></tr>'; });
     h += '</tbody></table></div>'; wrap.innerHTML = h;
   }
-  function filterStoreTable() { var q = ($('storeSearch').value || '').toLowerCase().trim(); if (!q) { paintStoreTable(_storeMaster); return; } paintStoreTable(_storeMaster.filter(function (s) { return ((s.code || '') + ' ' + (s.name || '') + ' ' + (s.amName || '') + ' ' + (s.amEmail || '') + ' ' + (s.zfmName || '') + ' ' + (s.smName || '') + ' ' + (s.city || '')).toLowerCase().indexOf(q) > -1; })); }
+  function filterStoreTable() {
+    var q = (($('storeSearch') && $('storeSearch').value) || '').toLowerCase().trim();
+    var zfm = (($('storeZfm') && $('storeZfm').value) || '');
+    var am = (($('storeAm') && $('storeAm').value) || '');
+    var act = (($('storeActive') && $('storeActive').value) || 'all');
+    paintStoreTable(_storeMaster.filter(function (s) {
+      if (zfm && (s.zfmName || s.zfmCode || '') !== zfm) return false;
+      if (am && (s.amName || '') !== am) return false;
+      if (act === 'Y' && s.active === false) return false;
+      if (act === 'N' && s.active !== false) return false;
+      if (!q) return true;
+      return ((s.code || '') + ' ' + (s.name || '') + ' ' + (s.amName || '') + ' ' + (s.amEmail || '') + ' ' + (s.amCode || '') + ' ' + (s.zfmName || '') + ' ' + (s.zfmCode || '') + ' ' + (s.zfmEmail || '') + ' ' + (s.smName || '') + ' ' + (s.city || '') + ' ' + (s.state || '')).toLowerCase().indexOf(q) > -1;
+    }));
+  }
   function isStoreCode(c) { return /^[A-Za-z0-9_-]{2,12}$/.test(c); }   // no spaces, no %, plausible code → drops "AVG COMPLIANCE %", "DATE RANGE" etc.
   function findCol(headers, rxs) { for (var i = 0; i < headers.length; i++) { var h = (headers[i] || '').toString().trim().toLowerCase(); for (var j = 0; j < rxs.length; j++) if (rxs[j].test(h)) return i; } return -1; }
   function commitOps(ops, doneCb) {
@@ -5090,7 +5151,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   var _lastAM = null, _dashView = { mode: 'data', pendingOnly: false }, _dashDate = null, _dashSubject = '', _dashShowAmVal = false;
   var _dashSubjectUserSet = false, _dashZfm = '', _dashAm = '', _dashLoadGen = 0, _dashStoreMap = {};
-  var _dashQSumGroups = {}, _dashQIssues = [], _dashQLoadGen = 0;
+  var _dashQLoadGen = 0, _dashQRows = [], _dashQDrill = {};
   function setDashAmValVisible(show) {
     _dashShowAmVal = !!show;
     ['kpiAmVal', 'kpiAmPend'].forEach(function (id) {
@@ -5192,13 +5253,13 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     toast('Excel downloaded');
   }
 
-  /* Dashboard question-wise summary — same Flag-to-HO logic as HO Issues page */
+  /* Dashboard question-wise summary — questions + option counts for filtered subject */
   function loadDashQuestionSummary(selSubj, storeMap) {
     var box = $('dashQSummary'), meta = $('dashQSumMeta');
     if (!box) return;
     if (!selSubj) {
-      _dashQIssues = []; _dashQSumGroups = {};
-      box.innerHTML = '<div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Same Flag-to-HO logic as HO Issues</div></div>';
+      _dashQRows = []; _dashQDrill = {};
+      box.innerHTML = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Shows each question and option counts from submissions</div></div>';
       if (meta) meta.textContent = '';
       return;
     }
@@ -5210,92 +5271,160 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var gen = ++_dashQLoadGen;
     if (!box.querySelector('table')) box.innerHTML = '<div class="empty"><div class="empty-i">⚡</div><div class="empty-t">Loading question summary…</div></div>';
     var sid = selSubj.id;
-    var needSubj = selSubj.questions ? Promise.resolve(selSubj) : db.collection('subjects').doc(sid).get().then(function (d) {
+    var needSubj = (selSubj.questions && selSubj.questions.length) ? Promise.resolve(selSubj) : db.collection('subjects').doc(sid).get().then(function (d) {
       if (!d.exists) return selSubj;
       var o = d.data(); o.id = d.id; return o;
     });
     Promise.all([
       needSubj,
-      db.collection('submissions').where('subjectId', '==', sid).get(),
-      db.collection('hosolutions').where('subjectId', '==', sid).get().catch(function () { return { forEach: function () { } }; })
+      db.collection('submissions').where('subjectId', '==', sid).get()
     ]).then(function (res) {
       if (gen !== _dashQLoadGen) return;
       var subj = res[0] || selSubj;
-      var solMap = {}; res[2].forEach(function (d) { solMap[d.id] = d.data(); });
       var stores = storeMap || _dashStoreMap || {};
-      var issues = [];
+      var zfmF = _dashZfm || '', amF = _dashAm || '';
+      var subs = [];
       res[1].forEach(function (d) {
         var o = d.data(); if (o.type && o.type !== 'data') return; if (o.reviewStatus === 'rejected') return;
-        o.id = d.id;
-        extractHOIssuesFromSub(subj, o, stores, solMap, null, d.id).forEach(function (iss) { issues.push(iss); });
+        o._id = d.id;
+        var st = stores[o.storeCode] || {};
+        var zLab = (st.zfmName || st.zfmCode || o.zfmName || o.zfmCode || '').trim();
+        var aLab = (st.amName || o.amName || '').trim();
+        if (zfmF && zLab !== zfmF) return;
+        if (amF && aLab !== amF) return;
+        o._zfm = zLab; o._am = aLab; o._storeName = st.name || o.storeName || '';
+        subs.push(o);
       });
-      /* Apply dash ZFM/AM filters */
-      var zfmF = _dashZfm || '', amF = _dashAm || '';
-      if (zfmF || amF) {
-        issues = issues.filter(function (x) {
-          if (zfmF && !hoZfmMatches(x, zfmF) && (x.zfmName || x.zfmCode || '') !== zfmF) return false;
-          if (amF && (x.amName || '') !== amF) return false;
-          return true;
-        });
-      }
-      _dashQIssues = issues;
-      paintDashQuestionSummary(issues, subj);
+      paintDashQuestionSummary(subj, subs);
     }).catch(function (e) {
       if (gen !== _dashQLoadGen) return;
       if (!box.querySelector('table')) box.innerHTML = '<div class="warn-box">Could not load question summary: ' + esc(e.message) + '</div>';
     });
   }
-  function paintDashQuestionSummary(list, subj) {
+  function qOptionList(q) {
+    if (!q) return [];
+    if (q.type === 'choice' || q.type === 'dropdown' || q.type === 'multi') return (q.options || []).map(function (o) { return String(o); });
+    if (q.type === 'rating') return ['1', '2', '3', '4', '5'];
+    return null; /* free-text / number / photo — tally answered vs blank + distinct values */
+  }
+  function answerValuesForQ(a, q) {
+    if (!a) return [];
+    if (q && q.type === 'multi') {
+      if (Array.isArray(a.values) && a.values.length) return a.values.map(function (x) { return String(x).trim(); }).filter(Boolean);
+      return String(a.value || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+    }
+    if (q && q.type === 'livepic') return (a.photo || a.value) ? ['photo'] : [];
+    var v = a.value; if (v == null || v === '') return [];
+    return [String(v).trim()];
+  }
+  function paintDashQuestionSummary(subj, subs) {
     var box = $('dashQSummary'), meta = $('dashQSumMeta');
-    if (meta) meta.textContent = (subj ? (subj.name || '') + ' · ' : '') + list.length + ' issue(s)';
-    var map = {};
-    list.forEach(function (x) {
-      var key = (x.subjectId || '') + '||' + (x.qLabel || '') + '||' + (x.dept || '') + '||' + String(x.qIdx);
-      if (!map[key]) map[key] = { key: key, subject: x.subjectName, subjectId: x.subjectId, q: x.qLabel, qIdx: x.qIdx, dept: x.dept, items: [], done: 0, wip: 0, ni: 0 };
-      map[key].items.push(x);
-      if (x.status === 'done') map[key].done++; else if (x.status === 'wip') map[key].wip++; else map[key].ni++;
-    });
-    _dashQSumGroups = map;
-    if (!list.length) {
-      box.innerHTML = '<div class="empty"><div class="empty-i">✅</div><div class="empty-t">No Flag-to-HO issues for this subject' + (_dashZfm || _dashAm ? ' (filter)' : '') + '</div></div>';
+    var qs = subj.questions || [];
+    if (!qs.length) {
+      box.innerHTML = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">This subject has no questions</div></div>';
+      if (meta) meta.textContent = subj.name || '';
       return;
     }
-    var rows = Object.keys(map).map(function (k) { return map[k]; });
-    rows.sort(function (a, b) { return (a.dept || '').localeCompare(b.dept || '') || (a.q || '').localeCompare(b.q || ''); });
-    var h = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Dept</th><th>Issue (question)</th><th>Stores</th><th>Done</th><th>WIP</th><th>Not Initiated</th></tr></thead><tbody>';
-    rows.forEach(function (r) {
-      var nStores = {}; r.items.forEach(function (x) { nStores[x.storeCode] = 1; });
-      var sk = esc(r.key);
-      function numBtn(n, st, color) {
-        if (!n) return '<span style="color:' + (color || 'var(--text3)') + ';font-weight:700">0</span>';
-        return '<button type="button" class="ho-num-link dash-q-num" data-gkey="' + sk + '" data-st="' + st + '" style="color:' + (color || 'var(--blue)') + '">' + n + '</button>';
+    var nStores = {};
+    subs.forEach(function (o) { if (o.storeCode) nStores[o.storeCode] = 1; });
+    var storeN = Object.keys(nStores).length;
+    if (meta) meta.textContent = (subj.name || '') + ' · ' + storeN + ' store submission(s)' + (_dashZfm || _dashAm ? ' · filtered' : '');
+
+    var rows = [], drill = {};
+    qs.forEach(function (q, qi) {
+      var opts = qOptionList(q);
+      var counts = {}, storeByOpt = {};
+      function bump(opt, o) {
+        var key = opt === '' ? '(blank)' : opt;
+        counts[key] = (counts[key] || 0) + 1;
+        if (!storeByOpt[key]) storeByOpt[key] = [];
+        storeByOpt[key].push({ storeCode: o.storeCode, storeName: o._storeName || o.storeName || '', amName: o._am || o.amName || '', zfmName: o._zfm || '', answer: opt });
       }
-      h += '<tr><td><b>' + esc(r.dept) + '</b></td><td>' + esc(r.q) + '</td><td>' + numBtn(Object.keys(nStores).length, 'all') + '</td><td>' + numBtn(r.done, 'done', '#2E7D32') + '</td><td>' + numBtn(r.wip, 'wip', 'var(--amber)') + '</td><td>' + numBtn(r.ni, 'not_initiated') + '</td></tr>';
+      subs.forEach(function (o) {
+        var ansMap = ansMapFromSub(o);
+        var a = ansMap[qi];
+        var vals = answerValuesForQ(a, q);
+        if (!vals.length) { bump('(blank)', o); return; }
+        if (opts) {
+          /* known options: count matches; unknown values go to Other */
+          var seen = {};
+          vals.forEach(function (v) {
+            if (opts.indexOf(v) > -1) { if (!seen[v]) { seen[v] = 1; bump(v, o); } }
+            else { if (!seen['(other)']) { seen['(other)'] = 1; bump('(other)', o); } }
+          });
+        } else {
+          /* free answers: each distinct value (cap display later) */
+          vals.forEach(function (v) { bump(v || '(blank)', o); });
+        }
+      });
+      var order = [];
+      if (opts) {
+        opts.forEach(function (o) { order.push(o); });
+        if (counts['(other)']) order.push('(other)');
+        if (counts['(blank)']) order.push('(blank)');
+      } else {
+        order = Object.keys(counts).sort(function (a, b) {
+          if (a === '(blank)') return 1; if (b === '(blank)') return -1;
+          return (counts[b] || 0) - (counts[a] || 0) || a.localeCompare(b);
+        });
+        /* keep top 12 free-text values + blank */
+        var top = order.filter(function (k) { return k !== '(blank)'; }).slice(0, 12);
+        if (counts['(blank)']) top.push('(blank)');
+        order = top;
+      }
+      order.forEach(function (opt) {
+        var n = counts[opt] || 0;
+        var gkey = qi + '||' + opt;
+        drill[gkey] = { q: q.label || ('Q' + (qi + 1)), qIdx: qi, option: opt, items: storeByOpt[opt] || [] };
+        rows.push({ qIdx: qi, qLabel: q.label || ('Q' + (qi + 1)), qType: q.type || '', option: opt, count: n, pct: storeN ? Math.round((n / storeN) * 100) : 0, gkey: gkey });
+      });
+    });
+    _dashQRows = rows;
+    _dashQDrill = drill;
+    if (!subs.length) {
+      box.innerHTML = '<div class="empty"><div class="empty-i">📭</div><div class="empty-t">No submissions yet for this subject' + (_dashZfm || _dashAm ? ' (filter)' : '') + '</div><div class="small text3" style="margin-top:6px">Questions &amp; options still listed below once data arrives</div></div>';
+      /* still show question/option skeleton with zeros */
+    }
+    var h = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Question</th><th>Type</th><th>Option</th><th>Stores</th><th>%</th></tr></thead><tbody>';
+    var lastQi = -1;
+    rows.forEach(function (r) {
+      var showQ = r.qIdx !== lastQi; lastQi = r.qIdx;
+      var num = r.count
+        ? '<button type="button" class="ho-num-link dash-q-opt" data-gkey="' + esc(r.gkey) + '">' + r.count + '</button>'
+        : '<span style="color:var(--text3);font-weight:700">0</span>';
+      h += '<tr>' +
+        '<td>' + (showQ ? (r.qIdx + 1) : '') + '</td>' +
+        '<td>' + (showQ ? esc(r.qLabel) : '') + '</td>' +
+        '<td class="small text2">' + (showQ ? esc(r.qType) : '') + '</td>' +
+        '<td><b>' + esc(r.option) + '</b></td>' +
+        '<td>' + num + '</td>' +
+        '<td>' + (r.count ? (r.pct + '%') : '—') + '</td></tr>';
     });
     h += '</tbody></table></div>';
     box.innerHTML = h;
-    box.querySelectorAll('.dash-q-num').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        /* Temporarily point HO drill at dashboard groups */
-        var prev = _admHoSumGroups;
-        _admHoSumGroups = _dashQSumGroups;
-        openHoIssueDrill(this.getAttribute('data-gkey'), this.getAttribute('data-st'));
-        _admHoSumGroups = prev;
-      });
+    box.querySelectorAll('.dash-q-opt').forEach(function (btn) {
+      btn.addEventListener('click', function () { openDashQOptionDrill(this.getAttribute('data-gkey')); });
     });
   }
-  function exportDashQSumXls() {
-    var list = _dashQIssues || []; if (!list.length) { toast('Nothing to export'); return; }
-    var map = {};
-    list.forEach(function (x) {
-      var key = (x.subjectName || '') + '||' + (x.qLabel || '') + '||' + (x.dept || '');
-      if (!map[key]) map[key] = { subject: x.subjectName, q: x.qLabel, dept: x.dept, stores: {}, done: 0, wip: 0, ni: 0 };
-      map[key].stores[x.storeCode] = 1;
-      if (x.status === 'done') map[key].done++; else if (x.status === 'wip') map[key].wip++; else map[key].ni++;
+  function openDashQOptionDrill(gkey) {
+    var g = _dashQDrill[gkey]; if (!g) { toast('Group not found — refresh Dashboard'); return; }
+    var items = g.items || [];
+    if ($('ovHoDrillTitle')) $('ovHoDrillTitle').textContent = (g.q || '') + ' · ' + (g.option || '') + ' (' + items.length + ')';
+    var body = $('ovHoDrillBody'); if (!body) return;
+    if (!items.length) { body.innerHTML = '<div class="empty"><div class="empty-t">No stores for this option</div></div>'; $('ovHoDrill').classList.add('show'); return; }
+    var h = '<div class="info-box small" style="margin-bottom:10px">Stores that answered <b>' + esc(g.option) + '</b> for this question.</div>';
+    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Store</th><th>Name</th><th>AM</th><th>ZFM</th><th>Answer</th></tr></thead><tbody>';
+    items.slice().sort(function (a, b) { return (a.storeCode || '').localeCompare(b.storeCode || ''); }).forEach(function (x) {
+      h += '<tr><td class="mono"><b>' + esc(x.storeCode) + '</b></td><td>' + esc(x.storeName || '') + '</td><td>' + esc(x.amName || '—') + '</td><td>' + esc(x.zfmName || '—') + '</td><td>' + esc(x.answer || '') + '</td></tr>';
     });
-    var aoa = [['Dept', 'Issue (question)', 'Stores', 'Done', 'WIP', 'Not Initiated']];
-    Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) { return (a.dept || '').localeCompare(b.dept || '') || (a.q || '').localeCompare(b.q || ''); })
-      .forEach(function (r) { aoa.push([r.dept, r.q, Object.keys(r.stores).length, r.done, r.wip, r.ni]); });
+    h += '</tbody></table></div>';
+    body.innerHTML = h;
+    $('ovHoDrill').classList.add('show');
+  }
+  function exportDashQSumXls() {
+    var rows = _dashQRows || []; if (!rows.length) { toast('Nothing to export'); return; }
+    var aoa = [['Q#', 'Question', 'Type', 'Option', 'Stores', '%']];
+    rows.forEach(function (r) { aoa.push([r.qIdx + 1, r.qLabel, r.qType, r.option, r.count, r.pct]); });
     var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Q_Summary'); XLSX.writeFile(wb, 'Dash_Question_Summary_' + toDateStr(new Date()) + '.xlsx');
   }
   function snapDashQSummary() {
@@ -5343,17 +5472,16 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (!ams.length) { box.innerHTML = '<div class="empty"><div class="empty-i">' + (pendOnly ? '✅' : '📭') + '</div><div class="empty-t">' + (pendOnly ? 'No pending / rejected AMs' : 'No stores in master') + '</div></div>'; return; }
     var byZ = {}, zName = {}; ams.forEach(function (a) { (byZ[a.zfm] = byZ[a.zfm] || []).push(a); zName[a.zfm] = a.zfmName || localPart(a.zfm); });
     var zkeys = Object.keys(byZ).sort(function (x, y) { return (zName[x] || '').localeCompare(zName[y] || ''); });
-    function cell(done, pr, total) { return '<td>' + pct(done, total) + '%</td><td>' + pr + ' (' + pct(pr, total) + '%)</td>'; }
+    function cell(done, pr, total) { return '<td>' + pct(done, total) + '%</td><td class="pend">' + pr + ' (' + pct(pr, total) + '%)</td>'; }
     var picH = showPic ? '<th>Pic Recd St</th><th>Pic Done%</th><th>Pic Pending St (%)</th>' : '';
     var datH = showData ? '<th>Data Recd St</th><th>Data Done%</th><th>Data Pending St (%)</th>' : '';
-    /* AM Valid columns only when selected subject has AM validation required */
-    var valH = showVal ? '<th class="valcol">AM Validated</th><th class="valcol">Val Pending (%)</th>' : '';
+    var valH = showVal ? '<th class="valok">AM Validated</th><th class="valpend">Val Pending (%)</th>' : '';
     var head = '<div class="tbl-wrap"><table class="amsum"><thead><tr><th class="grp">ZFM</th><th class="grp">AM</th><th>Total St</th>' + picH + datH + valH + '</tr></thead><tbody>';
     var body = '', gTot = 0, gPicR = 0, gPicD = 0, gPicP = 0, gDatR = 0, gDatD = 0, gDatP = 0, gVal = 0, gVPend = 0, gVRedo = 0, gVScope = 0;
     function valCells(v, vp, vr, sc) {
       if (!showVal) return '';
-      return '<td class="valcol" style="color:' + (v ? '#2E7D32' : 'var(--text3)') + ';font-weight:700">' + v + '</td>' +
-             '<td class="valcol" style="color:' + (vp ? 'var(--amber-d)' : 'var(--text3)') + '">' + vp + ' (' + pct(vp, sc) + '%)' + (vr ? '<span class="small" style="color:var(--red)"> · ' + vr + ' re-do</span>' : '') + '</td>';
+      return '<td class="valok">' + v + '</td>' +
+             '<td class="valpend">' + vp + ' (' + pct(vp, sc) + '%)' + (vr ? '<span class="small"> · ' + vr + ' re-do</span>' : '') + '</td>';
     }
     zkeys.forEach(function (z) {
       var list = byZ[z].sort(function (a, b) { return (a.amName || '').localeCompare(b.amName || ''); });
@@ -5373,9 +5501,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       gVal += zVal; gVPend += zVPend; gVRedo += zVRedo; gVScope += zVScope;
     });
     var grand = '<tr class="grand"><td class="l">GRAND TOTAL</td><td></td><td>' + gTot + '</td>' +
-      (showPic ? ('<td>' + gPicR + '</td><td>' + pct(gPicD, gTot) + '%</td><td>' + gPicP + ' (' + pct(gPicP, gTot) + '%)</td>') : '') +
-      (showData ? ('<td>' + gDatR + '</td><td>' + pct(gDatD, gTot) + '%</td><td>' + gDatP + ' (' + pct(gDatP, gTot) + '%)</td>') : '') +
-      (showVal ? ('<td class="valcol">' + gVal + '</td><td class="valcol">' + gVPend + ' (' + pct(gVPend, gVScope) + '%)' + (gVRedo ? ' · ' + gVRedo + ' re-do' : '') + '</td>') : '') + '</tr>';
+      (showPic ? ('<td>' + gPicR + '</td><td>' + pct(gPicD, gTot) + '%</td><td class="pend">' + gPicP + ' (' + pct(gPicP, gTot) + '%)</td>') : '') +
+      (showData ? ('<td>' + gDatR + '</td><td>' + pct(gDatD, gTot) + '%</td><td class="pend">' + gDatP + ' (' + pct(gDatP, gTot) + '%)</td>') : '') +
+      (showVal ? ('<td class="valok">' + gVal + '</td><td class="valpend">' + gVPend + ' (' + pct(gVPend, gVScope) + '%)' + (gVRedo ? ' · ' + gVRedo + ' re-do' : '') + '</td>') : '') + '</tr>';
     box.innerHTML = head + grand + body + '</tbody></table></div>';
   }
   function exportAMSummaryXls() {
@@ -5453,14 +5581,15 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         c.style.fontSize = '15px'; c.style.lineHeight = '1.4'; c.style.letterSpacing = '0';
       });
       tbl.querySelectorAll('th').forEach(function (c) {
-        c.style.background = c.classList.contains('grp') ? '#1565C0' : (c.classList.contains('valcol') ? '#33691E' : '#0D47A1');
+        c.style.background = c.classList.contains('grp') ? '#1565C0' : (c.classList.contains('valok') ? '#33691E' : '#0D47A1');
         c.style.color = '#fff'; c.style.fontWeight = '700';
       });
-      tbl.querySelectorAll('td.valcol').forEach(function (c) { c.style.background = '#F1F8E9'; });
-      tbl.querySelectorAll('tr.zfm-sub td').forEach(function (c) { c.style.background = '#E3F2FD'; c.style.fontWeight = '700'; c.style.color = '#0D47A1'; });
-      tbl.querySelectorAll('tr.zfm-sub td.valcol').forEach(function (c) { c.style.background = '#DCEDC8'; });
-      tbl.querySelectorAll('tr.grand td').forEach(function (c) { c.style.background = '#0D47A1'; c.style.color = '#fff'; c.style.fontWeight = '700'; });
-      tbl.querySelectorAll('tr.grand td.valcol').forEach(function (c) { c.style.background = '#33691E'; c.style.color = '#fff'; });
+      tbl.querySelectorAll('td.pend, td.valpend').forEach(function (c) { c.style.color = '#C62828'; c.style.fontWeight = '700'; c.style.background = c.closest('tr.grand') ? '#0D47A1' : (c.closest('tr.zfm-sub') ? '#E3F2FD' : '#ffffff'); });
+      tbl.querySelectorAll('td.valok').forEach(function (c) { c.style.color = '#1B5E20'; c.style.fontWeight = '700'; c.style.background = c.closest('tr.grand') ? '#0D47A1' : (c.closest('tr.zfm-sub') ? '#E3F2FD' : '#ffffff'); });
+      tbl.querySelectorAll('tr.grand td.pend, tr.grand td.valpend').forEach(function (c) { c.style.color = '#FFCDD2'; });
+      tbl.querySelectorAll('tr.grand td.valok').forEach(function (c) { c.style.color = '#C8E6C9'; });
+      tbl.querySelectorAll('tr.zfm-sub td').forEach(function (c) { c.style.background = '#E3F2FD'; c.style.fontWeight = '700'; });
+      tbl.querySelectorAll('tr.grand td').forEach(function (c) { if (!c.classList.contains('pend') && !c.classList.contains('valok') && !c.classList.contains('valpend')) { c.style.background = '#0D47A1'; c.style.color = '#fff'; } c.style.fontWeight = '700'; });
     }
     var W = Math.max(wrap.scrollWidth, 1000), H = wrap.scrollHeight, sc = 3;
     if (W * H * sc * sc > 45000000) sc = 2.5;
@@ -5638,6 +5767,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     on('btnSendRejects', 'click', sendRejectMails);
     on('btnStoreUp', 'change', function () { onStoreUpload(this.files[0]); });
     on('storeSearch', 'input', filterStoreTable);
+    on('storeZfm', 'change', filterStoreTable);
+    on('storeAm', 'change', filterStoreTable);
+    on('storeActive', 'change', filterStoreTable);
     on('btnRetry', 'click', function () { location.reload(); });
     on('btnQCamX', 'click', closeQCam);
     on('btnQCamCancel', 'click', closeQCam);
