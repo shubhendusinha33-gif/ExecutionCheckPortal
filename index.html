@@ -520,6 +520,15 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   <div class="modal-foot"><button class="btn btn-outline" id="btnSelfieCancel">Cancel</button><button class="btn btn-pink" id="btnSelfieCap">📸 Capture &amp; Login</button></div>
 </div></div>
 
+<!-- STORE CODE NOT IN MASTER -->
+<div class="overlay" id="ovStoreMaster"><div class="modal">
+  <div class="modal-head"><span class="modal-title">Store code not in master</span><button class="modal-x" id="btnStoreMasterX">×</button></div>
+  <div class="modal-body">
+    <div class="warn-box" id="ovStoreMasterMsg" style="margin:0">Store code not in master. Contact Shubehndu Sinha on 9871986263.</div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-pink" id="btnStoreMasterOk">OK</button></div>
+</div></div>
+
 <!-- DETAIL MODAL (admin view of a submission) -->
 <div class="overlay" id="ovDetail"><div class="modal modal-lg">
   <div class="modal-head"><span class="modal-title" id="ovDetailTitle">Submission</span><button class="modal-x" id="btnDetailClose">×</button></div>
@@ -858,7 +867,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           <div id="dataFields" style="display:none">
             <div class="form-group"><label class="form-label">Data mode</label><select class="form-control" id="newDataMode"><option value="open">Raw Data (MS-Form style)</option><option value="sysphy">Sys vs Phy (Excel)</option></select></div>
             <div id="openBuilder">
-              <div class="info-box">Per question: <b>Department</b> + <b>🚩 Flag to HO</b>. Tip: Yes/No = Flag <b>ON</b>; branched “open issue” text = Flag <b>OFF</b>. For <b>number</b> Qs like “How many … NOT WORKING?” — answer <b>0</b> is OK (not an HO issue); only &gt;0 counts.</div>
+              <div class="info-box">Per question: <b>Department</b> + <b>🚩 Flag to HO</b> + <b>Camera (Y/N)</b> + <b>Branching</b>. Excel columns: <b>Camera (Y/N)</b>, <b>Branch On</b>, <b>Branch Map</b>, <b>Go To</b>. Tip: Yes/No = Flag <b>ON</b>; branched “open issue” text = Flag <b>OFF</b>. Branch Map e.g. <code>Yes=5,No=4</code> (1-based Q# / next / end). Camera <b>Y</b> = live picture (camera only). For <b>number</b> Qs like “How many … NOT WORKING?” — answer <b>0</b> is OK (not an HO issue); only &gt;0 counts.</div>
               <div class="flex gap wrap" style="margin-bottom:12px">
                 <button class="btn btn-outline btn-sm" id="btnQTemplate">⬇ Excel template</button>
                 <label class="btn btn-purple btn-sm" style="cursor:pointer">⬆ Import questions<input type="file" id="btnQImport" accept=".xlsx,.xls" style="display:none"></label>
@@ -1353,7 +1362,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (s.role === 'store') {
       if (!S.storeCode) { cb(false); return; }
       loader(true, 'Restoring session…');
-      db.collection('stores').doc(S.storeCode).get().then(function (d) { if (d.exists) { S.stores[S.storeCode] = d.data(); if (!S.storeName) S.storeName = d.data().name || S.storeCode; } loader(false); finishStoreLogin(); cb(true); }).catch(function () { loader(false); finishStoreLogin(); cb(true); });
+      db.collection('stores').doc(S.storeCode).get().then(function (d) {
+        if (!d.exists) { loader(false); clearSession(); showStoreNotInMaster(); cb(false); return; }
+        S.stores[S.storeCode] = d.data(); if (!S.storeName) S.storeName = d.data().name || S.storeCode;
+        loader(false); finishStoreLogin(); cb(true);
+      }).catch(function () { loader(false); finishStoreLogin(); cb(true); });
       return;
     }
     cb(false);
@@ -1766,6 +1779,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     $('loginErr').style.display = 'none';
   }
   function lerr(m) { var e = $('loginErr'); e.textContent = m; e.style.display = 'block'; }
+  function showStoreNotInMaster() {
+    if ($('ovStoreMasterMsg')) $('ovStoreMasterMsg').textContent = 'Store code not in master. Contact Shubehndu Sinha on 9871986263.';
+    showOv('ovStoreMaster');
+  }
+  function closeStoreNotInMaster() { closeOv('ovStoreMaster'); }
+  function geoRadiusM() { var r = (S.config && S.config.geoRadius != null) ? Number(S.config.geoRadius) : GEO_RADIUS_M; return (isFinite(r) && r > 0) ? r : GEO_RADIUS_M; }
   function doContinue() {
     var code = ($('loginCode').value || '').trim();
     if (!/^\d{5,}$/.test(code)) { lerr('Emp Code must be at least 5 digits (numbers only).'); return; }
@@ -1802,14 +1821,21 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       S.role = 'hosupport'; S.empcode = code; S.empName = name; S.dept = dept;
       enterHOSupport(); return;
     }
-    // STORE
+    // STORE — must exist in Store Master; geo-fence uses master lat/lng + Settings radius
     var sc = ($('loginStore').value || '').trim().toUpperCase();
     if (!sc) { lerr('Enter your Store Code.'); return; }
     if (!STORE_CODE_RX.test(sc)) { lerr('Store Code must be 2 letters + 2 digits (e.g. HH02).'); return; }
     if (!isMobile() && !testMode()) { lerr('Store login is mobile-only. Please open this portal on your phone.'); return; }
     S.role = 'store'; S.empcode = code; S.empName = name; S.designation = $('loginDesig').value; S.storeCode = sc;
-    if (testMode()) { S.selfie = STORE_PERSON_ICON; S.gps = 'TEST-MODE'; finishStoreLogin(); return; }
-    openSelfie();
+    loader(true, 'Checking store…');
+    db.collection('stores').doc(sc).get().then(function (d) {
+      loader(false);
+      if (!d.exists) { showStoreNotInMaster(); return; }
+      var st = d.data() || {};
+      S.stores[sc] = st; S.storeName = st.name || sc;
+      if (testMode()) { S.selfie = STORE_PERSON_ICON; S.gps = 'TEST-MODE'; finishStoreLogin(); return; }
+      openSelfie();
+    }).catch(function (e) { loader(false); lerr('Could not verify store: ' + (e && e.message ? e.message : 'network error')); });
   }
   function openSelfie() {
     $('ovSelfie').classList.add('show');
@@ -1834,14 +1860,25 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     S.selfie = grabFrame('selfieVid', 480, 64, true);
     stopCam();
     $('ovSelfie').classList.remove('show');
-    // geofence
-    var st = null;
+    // geofence — lat/lng from Store Master, radius from Settings (Geo-fence Radius)
+    var st = S.stores[S.storeCode] || null;
+    var radius = geoRadiusM();
     loader(true, 'Verifying…');
-    db.collection('stores').doc(S.storeCode).get().then(function (d) {
-      if (d.exists) { st = d.data(); S.stores[S.storeCode] = st; S.storeName = st.name || S.storeCode; if (!testMode() && st.lat != null && st.lng != null && S.coords) { var dist = haversine(S.coords.latitude, S.coords.longitude, Number(st.lat), Number(st.lng)); if (dist > GEO_RADIUS_M) { loader(false); toast('Move within ' + GEO_RADIUS_M + ' m of the store to submit — you are ' + dist + ' m away.'); return; } } }
-      else { S.storeName = S.storeCode; }
+    function afterStore(docSt) {
+      if (!docSt) { loader(false); showStoreNotInMaster(); return; }
+      st = docSt; S.stores[S.storeCode] = st; S.storeName = st.name || S.storeCode;
+      if (!testMode() && st.lat != null && st.lng != null) {
+        if (!S.coords) { loader(false); toast('Waiting for GPS — keep Location ON'); return; }
+        var dist = haversine(S.coords.latitude, S.coords.longitude, Number(st.lat), Number(st.lng));
+        if (dist > radius) { loader(false); toast('Move within ' + radius + ' m of the store to log in — you are ' + dist + ' m away.'); return; }
+      }
       loader(false); finishStoreLogin();
-    }).catch(function () { loader(false); S.storeName = S.storeCode; finishStoreLogin(); });
+    }
+    if (st && st.lat != null && st.lng != null) { afterStore(st); return; }
+    db.collection('stores').doc(S.storeCode).get().then(function (d) {
+      if (!d.exists) { afterStore(null); return; }
+      afterStore(d.data());
+    }).catch(function () { loader(false); showStoreNotInMaster(); });
   }
   function cancelSelfie() { stopCam(); $('ovSelfie').classList.remove('show'); }
   function finishStoreLogin() { try { linkConsentIdentity('store', S.empcode, S.empName, S.storeCode); } catch (e) { } saveSession(); $('storeBrandSub').textContent = S.storeCode + ' · ' + S.designation + (testMode() ? ' · TEST' : ''); showScreen('scrStore'); loadStoreActionCounts(); }
@@ -1930,12 +1967,13 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (testMode()) { proceed(); return; }
     var st = S.stores[S.storeCode] || {};
     if (st.lat == null || st.lng == null) { proceed(); return; }   // store not geo-mapped → allow (login already verified)
+    var radius = geoRadiusM();
     loader(true, 'Verifying location…');
     getGPS(function (gps, err, coords) {
       if (!coords) { loader(false); toast('Location needed for execution photos — keep GPS ON.'); return; }
       S.gps = gps; S.coords = coords;
       var dist = haversine(coords.latitude, coords.longitude, Number(st.lat), Number(st.lng));
-      if (dist > GEO_RADIUS_M) { loader(false); toast('You are ' + dist + ' m from store — capture from inside (≤' + GEO_RADIUS_M + ' m).'); return; }
+      if (dist > radius) { loader(false); toast('You are ' + dist + ' m from store — capture from inside (≤' + radius + ' m).'); return; }
       proceed();
     });
   }
@@ -4253,15 +4291,77 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function normType(s) { return (s == null ? '' : s).toString().trim().toLowerCase().replace(/[_\-]+/g, ' ').replace(/\s+/g, ' '); }
   function resolveType(raw) { var k = normType(raw); if (TYPE_ALIASES[k]) return TYPE_ALIASES[k]; var k2 = k.replace(/\s+/g, ''); for (var a in TYPE_ALIASES) { if (TYPE_ALIASES.hasOwnProperty(a) && TYPE_ALIASES[a] && a.replace(/\s+/g, '') === k2) return TYPE_ALIASES[a]; } return null; }
   function dlOpenTemplate() {
-    var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department', 'Flag to HO (Y/N)'],
-      ['Short answer', 'Store Manager name', '', 'Y', 'N', '', '', '', 'N', '', 'N'],
-      ['Single choice', 'Is the display set as per planogram?', 'Yes,No,Partially', 'Y', 'N', '', '', '', 'Y', 'Ops', 'Y'],
-      ['Single choice', 'All Cash Counters are working', 'Yes,No', 'Y', 'N', '', '', '', 'Y', 'IT Infra / POS', 'Y'],
-      ['Long answer', 'Provide all OPEN issue numbers with issue details for Cash Counters', '', 'N', 'N', '', '', '', 'Y', 'IT Infra / POS', 'N'],
-      ['Multiple choice', 'Which sizes are short?', 'S,M,L,XL,XXL', 'N', 'Y', '', '', '', 'N', '', 'N'],
-      ['Number', 'Rate cleanliness (1-5)', '', 'Y', 'N', '1', '5', '', 'N', '', 'N'],
-      ['Long answer', 'Remarks / additional observations', '', 'N', 'N', '', '', '', 'N', '', 'N']];
-    var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Questions'); XLSX.writeFile(wb, 'RawData_Template.xlsx');
+    var headers = ['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Camera (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department', 'Flag to HO (Y/N)', 'Branch On (Y/N)', 'Branch Map', 'Go To'];
+    var aoa = [headers,
+      /* Q1 */ ['Short answer', 'Store Manager name', '', 'Y', 'N', 'N', '', '', '', 'N', '', 'N', 'N', '', ''],
+      /* Q2 */ ['Single choice', 'Is the display set as per planogram?', 'Yes,No,Partially', 'Y', 'N', 'N', '', '', '', 'Y', 'Ops', 'Y', 'N', '', ''],
+      /* Q3 */ ['Single choice', 'All Cash Counters are working', 'Yes,No', 'Y', 'N', 'N', '', '', '', 'Y', 'IT Infra / POS', 'Y', 'Y', 'Yes=5,No=4', ''],
+      /* Q4 */ ['Long answer', 'Provide all OPEN issue numbers with issue details for Cash Counters', '', 'N', 'N', 'N', '', '', '', 'Y', 'IT Infra / POS', 'N', 'N', '', ''],
+      /* Q5 */ ['Live Picture', 'Take a live photo of the cash counter area', '', 'Y', 'N', 'Y', '', '', '', 'Y', 'IT Infra / POS', 'N', 'N', '', ''],
+      /* Q6 */ ['Multiple choice', 'Which sizes are short?', 'S,M,L,XL,XXL', 'N', 'Y', 'N', '', '', '', 'N', '', 'N', 'N', '', ''],
+      /* Q7 */ ['Number', 'Rate cleanliness (1-5)', '', 'Y', 'N', 'N', '1', '5', '', 'N', '', 'N', 'N', '', ''],
+      /* Q8 */ ['Long answer', 'Remarks / additional observations', '', 'N', 'N', 'N', '', '', '', 'N', '', 'N', 'N', '', '']];
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [
+      { wch: 16 }, { wch: 56 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
+      { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 16 },
+      { wch: 16 }, { wch: 22 }, { wch: 10 }
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'Questions');
+    var guide = [
+      ['Column', 'How to fill'],
+      ['Type', 'Short answer / Long answer / Number / Single choice / Multiple choice / Dropdown / Rating / Physical Count Check / Live Picture / Camera'],
+      ['Camera (Y/N)', 'Y = live camera photo question (same as Type = Live Picture). N = no camera.'],
+      ['Branch On (Y/N)', 'Y = this question jumps based on the answer (MS Forms style).'],
+      ['Branch Map', 'For choice / multi / dropdown only. Example: Yes=5,No=4  → Yes goes to Q5, No goes to Q4. Use next or end too.'],
+      ['Go To', 'For non-choice questions when Branch On = Y. Use next, end, or a 1-based question number (e.g. 6).'],
+      ['Flag to HO (Y/N)', 'Y = creates an HO issue. Branched follow-up text (open issue details) should be N.'],
+      ['Q numbers', 'Row 2 in Questions sheet = Q1, row 3 = Q2, … (header is row 1). Branch Map / Go To use these 1-based numbers.'],
+      ['Sample Q3', 'Branch On = Y, Branch Map = Yes=5,No=4 — Yes skips open-issue text and goes to live photo (Q5); No asks Q4 first.']
+    ];
+    var ws2 = XLSX.utils.aoa_to_sheet(guide);
+    ws2['!cols'] = [{ wch: 18 }, { wch: 110 }];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Instructions');
+    XLSX.writeFile(wb, 'RawData_Template.xlsx');
+  }
+  /* Branch Map: Yes=5,No=4,Partially=end — Q# is 1-based in Excel; next/end allowed */
+  function parseBranchTarget(raw, qCount) {
+    var v = (raw == null ? '' : raw).toString().trim();
+    if (!v || /^next$/i.test(v)) return 'next';
+    if (/^end$/i.test(v)) return 'end';
+    var m = v.match(/^q?\s*(\d+)$/i);
+    if (m) { var n = Number(m[1]); if (n >= 1 && n <= qCount) return n - 1; }
+    return 'next';
+  }
+  function fmtBranchTarget(t) {
+    if (t === 'end') return 'end';
+    if (t === 'next' || t == null || t === '') return 'next';
+    if (typeof t === 'number' && isFinite(t)) return String(t + 1);
+    return 'next';
+  }
+  function fmtBranchMap(q) {
+    if (!q || !q.branches) return '';
+    return Object.keys(q.branches).map(function (k) { return k + '=' + fmtBranchTarget(q.branches[k]); }).join(',');
+  }
+  function applyPendingBranches(qs) {
+    var n = qs.length;
+    qs.forEach(function (q) {
+      if (!q || !q._brPending) return;
+      var p = q._brPending; delete q._brPending;
+      if (!p.on) { delete q.branchOn; delete q.branches; delete q.goTo; return; }
+      q.branchOn = true;
+      if (p.map) {
+        var branches = {}, parts = p.map.split(/[,;|]/);
+        for (var i = 0; i < parts.length; i++) {
+          var pair = parts[i].split('='), opt = (pair[0] || '').trim(), tgt = (pair[1] || '').trim();
+          if (!opt) continue;
+          branches[opt] = parseBranchTarget(tgt, n);
+        }
+        if (Object.keys(branches).length) q.branches = branches;
+      }
+      if (p.goTo) q.goTo = parseBranchTarget(p.goTo, n);
+    });
   }
   function importOpenQs(file) {
     if (!file) return; loader(true, 'Reading questions…'); var r = new FileReader();
@@ -4269,18 +4369,26 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       try {
         var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }), rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 }), added = 0, bad = 0, badTypes = {};
         if (!rows.length) { loader(false); toast('Empty file'); return; }
+        // Prefer sheet named Questions if present
+        if (wb.SheetNames.indexOf('Questions') > -1) rows = XLSX.utils.sheet_to_json(wb.Sheets.Questions, { header: 1 });
         var H = rows[0].map(function (x) { return (x == null ? '' : x).toString(); });
         var cType = findCol(H, [/^type$/]), cLbl = findCol(H, [/^label$/, /question/]), cOpt = findCol(H, [/option/]),
-          cReq = findCol(H, [/required/]), cRem = findCol(H, [/remark/]), cMin = findCol(H, [/^min/]), cMax = findCol(H, [/^max/]), cSys = findCol(H, [/sys/]),
+          cReq = findCol(H, [/required/]), cRem = findCol(H, [/remark/]), cCam = findCol(H, [/^camera/, /live\s*pic/, /live\s*photo/]),
+          cMin = findCol(H, [/^min/]), cMax = findCol(H, [/^max/]), cSys = findCol(H, [/sys/]),
           cDeptOn = findCol(H, [/^dept\s*\(y\/n\)$/, /^dept\s*y/, /department\s*\(y/]), cDept = findCol(H, [/^department$/, /^dept$/]),
-          cFlag = findCol(H, [/flag\s*to\s*ho/, /^flag\s*ho/, /flag\s*\(y/]);
+          cFlag = findCol(H, [/flag\s*to\s*ho/, /^flag\s*ho/, /flag\s*\(y/]),
+          cBrOn = findCol(H, [/branch\s*on/, /^branch\s*\(y/, /^branching/]),
+          cBrMap = findCol(H, [/branch\s*map/, /branches/, /branch\s*rules/]),
+          cGoTo = findCol(H, [/^go\s*to$/, /goto/, /go\s*to\s*\(/]);
         if (cType < 0) { cType = 0; cLbl = 1; cOpt = 2; cReq = 3; cSys = 4; }  // legacy positional fallback
         function cell(row, idx) { return idx > -1 && row[idx] != null ? row[idx].toString() : ''; }
         var yes = function (v) { return /^y(es)?$|^true$|^1$/i.test((v || '').trim()); };
+        var batch = [];
         for (var i = 1; i < rows.length; i++) {
           var rawT = cell(rows[i], cType).trim(); if (!rawT) continue;
           var ty = resolveType(rawT), lbl = cell(rows[i], cLbl).trim();
           if (!ty || !lbl) { bad++; if (ty === null && rawT) badTypes[rawT] = 1; continue; }
+          if (cCam > -1 && yes(cell(rows[i], cCam))) ty = 'livepic';
           var opts = cell(rows[i], cOpt).split(',').map(function (s) { return s.trim(); }).filter(Boolean);
           if ((ty === 'choice' || ty === 'multi' || ty === 'dropdown') && opts.length < 2) { bad++; continue; }
           var q = { type: ty, label: lbl, options: opts, sys: cell(rows[i], cSys) || 0, required: yes(cell(rows[i], cReq)), remarks: yes(cell(rows[i], cRem)) };
@@ -4289,8 +4397,13 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           if (q.deptOn && !q.dept && cDept < 0) q.dept = '';
           if (cFlag > -1) q.flagHo = yes(cell(rows[i], cFlag));
           else q.flagHo = !!q.deptOn; // legacy rows without Flag column
-          _openQs.push(q); added++;
+          if (cBrOn > -1 || cBrMap > -1 || cGoTo > -1) {
+            q._brPending = { on: cBrOn > -1 ? yes(cell(rows[i], cBrOn)) : !!(cell(rows[i], cBrMap).trim() || cell(rows[i], cGoTo).trim()), map: cell(rows[i], cBrMap).trim(), goTo: cell(rows[i], cGoTo).trim() };
+          }
+          batch.push(q); added++;
         }
+        applyPendingBranches(batch);
+        batch.forEach(function (q) { _openQs.push(q); });
         var bt = Object.keys(badTypes); loader(false); renderOpenQs(); toast('Imported ' + added + ' question(s)' + (bad ? ', ' + bad + ' skipped' : '') + (bt.length ? ' — unknown type(s): ' + bt.join(', ') : ''));
       } catch (err) { loader(false); toast('Excel error: ' + err.message); }
     };
@@ -4298,12 +4411,23 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   function exportOpenQs() {
     if (!_openQs.length) { toast('No questions to export'); return; }
-    var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department', 'Flag to HO (Y/N)']];
+    var headers = ['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Camera (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department', 'Flag to HO (Y/N)', 'Branch On (Y/N)', 'Branch Map', 'Go To'];
+    var aoa = [headers];
     _openQs.forEach(function (q) {
       var flag = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : !!q.deptOn;
-      aoa.push([q.type, q.label, (q.options || []).join(','), q.required ? 'Y' : 'N', q.remarks ? 'Y' : 'N', (q.min != null ? q.min : ''), (q.max != null ? q.max : ''), q.sys || '', q.deptOn ? 'Y' : 'N', q.dept || '', flag ? 'Y' : 'N']);
+      var hasOpts = (q.type === 'choice' || q.type === 'multi' || q.type === 'dropdown');
+      var typeOut = q.type === 'livepic' ? 'Live Picture' : q.type;
+      aoa.push([typeOut, q.label, (q.options || []).join(','), q.required ? 'Y' : 'N', q.remarks ? 'Y' : 'N', q.type === 'livepic' ? 'Y' : 'N', (q.min != null ? q.min : ''), (q.max != null ? q.max : ''), q.sys || '', q.deptOn ? 'Y' : 'N', q.dept || '', flag ? 'Y' : 'N', q.branchOn ? 'Y' : 'N', hasOpts ? fmtBranchMap(q) : '', (!hasOpts && q.branchOn) ? fmtBranchTarget(q.goTo) : '']);
     });
-    var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Questions'); XLSX.writeFile(wb, 'RawData_Questions.xlsx');
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [
+      { wch: 16 }, { wch: 56 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
+      { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 16 },
+      { wch: 16 }, { wch: 22 }, { wch: 10 }
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'Questions');
+    XLSX.writeFile(wb, 'RawData_Questions.xlsx');
   }
   function dlSysphyTemplate() {
     var aoa = [['St Cd', 'Article', 'Description', 'MRP', 'Sys'],
@@ -5488,6 +5612,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     on('btnContinue', 'click', doContinue);
     on('btnSelfieCap', 'click', captureSelfie);
     on('btnSelfieCancel', 'click', cancelSelfie);
+    on('btnStoreMasterOk', 'click', closeStoreNotInMaster);
+    on('btnStoreMasterX', 'click', closeStoreNotInMaster);
 
     on('actPic', 'click', function () { chooseAction('pic'); });
     on('actData', 'click', function () { chooseAction('data'); });
