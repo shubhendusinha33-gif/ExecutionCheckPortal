@@ -1139,7 +1139,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
             </div>
           </div>
           <div class="card-body coll-body open" id="dashQSumBody">
-            <div id="dashQSummary"><div class="empty"><div class="empty-i">📋</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Choice (options as columns) · Number · Para · Long text — Excel includes store-level details</div></div></div>
+            <div id="dashQSummary"><div class="empty"><div class="empty-i">📋</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Choice questions only — options as columns · Excel includes store-level details</div></div></div>
           </div>
         </div>
 
@@ -5340,17 +5340,16 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     toast('Excel downloaded');
   }
 
-  /* Dashboard question-wise summary — choice / number / para / text only */
+  /* Dashboard question-wise summary — choice questions only (options as columns) */
   function qInDashSummary(q) {
-    var t = q && q.type;
-    return t === 'choice' || t === 'number' || t === 'para' || t === 'text';
+    return !!(q && q.type === 'choice');
   }
   function loadDashQuestionSummary(selSubj, storeMap) {
     var box = $('dashQSummary'), meta = $('dashQSumMeta');
     if (!box) return;
     if (!selSubj) {
       _dashQRows = []; _dashQDrill = {}; _dashQDetails = []; _dashQChoiceCols = [];
-      box.innerHTML = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Choice (options as columns) · Number · Para · Long text</div></div>';
+      box.innerHTML = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Choice questions only — options as columns · Excel includes store details</div></div>';
       if (meta) meta.textContent = '';
       return;
     }
@@ -5402,7 +5401,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var box = $('dashQSummary'), meta = $('dashQSumMeta');
     var qs = (subj.questions || []).map(function (q, qi) { return { q: q, qi: qi }; }).filter(function (x) { return qInDashSummary(x.q); });
     if (!qs.length) {
-      box.innerHTML = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">No choice / number / para / text questions on this subject</div></div>';
+      box.innerHTML = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">No choice questions on this subject</div></div>';
       if (meta) meta.textContent = subj.name || '';
       _dashQRows = []; _dashQDrill = {}; _dashQDetails = []; _dashQChoiceCols = [];
       return;
@@ -5412,16 +5411,14 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var storeN = Object.keys(nStores).length;
     if (meta) meta.textContent = (subj.name || '') + ' · ' + storeN + ' store submission(s)' + (_dashZfm || _dashAm ? ' · filtered' : '');
 
-    var choiceQs = qs.filter(function (x) { return x.q.type === 'choice'; });
-    var openQs = qs.filter(function (x) { return x.q.type !== 'choice'; });
     var optSet = {};
-    choiceQs.forEach(function (x) { (x.q.options || []).forEach(function (o) { optSet[String(o)] = 1; }); });
+    qs.forEach(function (x) { (x.q.options || []).forEach(function (o) { optSet[String(o)] = 1; }); });
     var choiceCols = Object.keys(optSet).sort(function (a, b) { return a.localeCompare(b); });
     _dashQChoiceCols = choiceCols.slice();
 
-    var drill = {}, details = [], choiceRows = [], openRows = [];
+    var drill = {}, details = [], choiceRows = [];
 
-    choiceQs.forEach(function (x) {
+    qs.forEach(function (x) {
       var q = x.q, qi = x.qi;
       var counts = {}, storeByOpt = {};
       choiceCols.forEach(function (c) { counts[c] = 0; storeByOpt[c] = []; });
@@ -5444,26 +5441,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       choiceRows.push(row);
     });
 
-    openQs.forEach(function (x) {
-      var q = x.q, qi = x.qi;
-      var answered = [], blank = [];
-      subs.forEach(function (o) {
-        var a = ansMapFromSub(o)[qi];
-        var vals = answerValuesForQ(a, q);
-        var ans = vals.length ? vals[0] : '';
-        var item = { storeCode: o.storeCode, storeName: o._storeName || o.storeName || '', amName: o._am || o.amName || '', zfmName: o._zfm || '', answer: ans || '(blank)', inMaster: !!o._inMaster };
-        if (ans) answered.push(item); else blank.push(item);
-        details.push({ storeCode: o.storeCode, storeName: item.storeName, amName: item.amName, zfmName: item.zfmName, qIdx: qi + 1, qLabel: q.label || ('Q' + (qi + 1)), qType: q.type, answer: ans || '(blank)', inMaster: o._inMaster ? 'Y' : 'N' });
-      });
-      var gAns = qi + '||answered', gBl = qi + '||(blank)';
-      drill[gAns] = { q: q.label || ('Q' + (qi + 1)), qIdx: qi, option: 'answered', items: answered };
-      drill[gBl] = { q: q.label || ('Q' + (qi + 1)), qIdx: qi, option: '(blank)', items: blank };
-      openRows.push({ qIdx: qi, qLabel: q.label || ('Q' + (qi + 1)), qType: q.type, answered: answered.length, blank: blank.length, gAns: gAns, gBl: gBl });
-    });
-
     _dashQDrill = drill;
     _dashQDetails = details;
-    _dashQRows = { choiceRows: choiceRows, openRows: openRows, choiceCols: choiceCols, storeN: storeN };
+    _dashQRows = { choiceRows: choiceRows, choiceCols: choiceCols, storeN: storeN };
 
     function numBtn(n, gkey) {
       if (!n) return '<span style="color:var(--text3);font-weight:700">0</span>';
@@ -5471,34 +5451,21 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     }
 
     var h = '';
-    if (choiceRows.length) {
-      var showOther = choiceRows.some(function (r) { return (r.counts['(other)'] || 0) > 0; });
-      h += '<div class="small text2" style="margin:0 0 6px;font-weight:700">Choice questions — options as columns</div>';
-      h += '<div class="tbl-wrap" style="margin-bottom:14px"><table class="tbl"><thead><tr><th>#</th><th>Question</th>';
-      choiceCols.forEach(function (c) { h += '<th>' + esc(c) + '</th>'; });
-      if (showOther) h += '<th>(other)</th>';
-      h += '<th>(blank)</th></tr></thead><tbody>';
-      choiceRows.forEach(function (r) {
-        h += '<tr><td>' + (r.qIdx + 1) + '</td><td>' + esc(r.qLabel) + '</td>';
-        choiceCols.forEach(function (c) { h += '<td>' + numBtn(r.counts[c] || 0, r.qIdx + '||' + c) + '</td>'; });
-        if (showOther) h += '<td>' + numBtn(r.counts['(other)'] || 0, r.qIdx + '||(other)') + '</td>';
-        h += '<td>' + numBtn(r.counts['(blank)'] || 0, r.qIdx + '||(blank)') + '</td></tr>';
-      });
-      h += '</tbody></table></div>';
-    }
-    if (openRows.length) {
-      h += '<div class="small text2" style="margin:0 0 6px;font-weight:700">Number / Para / Long text</div>';
-      h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Question</th><th>Type</th><th>Answered</th><th>Blank</th></tr></thead><tbody>';
-      openRows.forEach(function (r) {
-        h += '<tr><td>' + (r.qIdx + 1) + '</td><td>' + esc(r.qLabel) + '</td><td class="small text2">' + esc(r.qType) + '</td>' +
-          '<td>' + numBtn(r.answered, r.gAns) + '</td><td>' + numBtn(r.blank, r.gBl) + '</td></tr>';
-      });
-      h += '</tbody></table></div>';
-    }
+    var showOther = choiceRows.some(function (r) { return (r.counts['(other)'] || 0) > 0; });
+    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Question</th>';
+    choiceCols.forEach(function (c) { h += '<th>' + esc(c) + '</th>'; });
+    if (showOther) h += '<th>(other)</th>';
+    h += '<th>(blank)</th></tr></thead><tbody>';
+    choiceRows.forEach(function (r) {
+      h += '<tr><td>' + (r.qIdx + 1) + '</td><td>' + esc(r.qLabel) + '</td>';
+      choiceCols.forEach(function (c) { h += '<td>' + numBtn(r.counts[c] || 0, r.qIdx + '||' + c) + '</td>'; });
+      if (showOther) h += '<td>' + numBtn(r.counts['(other)'] || 0, r.qIdx + '||(other)') + '</td>';
+      h += '<td>' + numBtn(r.counts['(blank)'] || 0, r.qIdx + '||(blank)') + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
     if (!subs.length) {
       h = '<div class="empty" style="margin-bottom:10px"><div class="empty-i">📭</div><div class="empty-t">No submissions yet for this subject' + (_dashZfm || _dashAm ? ' (filter)' : '') + '</div></div>' + h;
     }
-    if (!h) h = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">Nothing to show</div></div>';
     box.innerHTML = h;
     box.querySelectorAll('.dash-q-opt').forEach(function (btn) {
       btn.addEventListener('click', function () { openDashQOptionDrill(this.getAttribute('data-gkey')); });
@@ -5522,9 +5489,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   function exportDashQSumXls() {
     var pack = _dashQRows || {};
-    var choiceRows = pack.choiceRows || [], openRows = pack.openRows || [], cols = pack.choiceCols || [];
+    var choiceRows = pack.choiceRows || [], cols = pack.choiceCols || [];
     var details = _dashQDetails || [];
-    if (!choiceRows.length && !openRows.length && !details.length) { toast('Nothing to export'); return; }
+    if (!choiceRows.length && !details.length) { toast('Nothing to export'); return; }
     var wb = XLSX.utils.book_new();
     if (choiceRows.length) {
       var showOther = choiceRows.some(function (r) { return (r.counts['(other)'] || 0) > 0; });
@@ -5540,11 +5507,6 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         aoa.push(row);
       });
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Choice_Summary');
-    }
-    if (openRows.length) {
-      var aoa2 = [['Q#', 'Question', 'Type', 'Answered', 'Blank']];
-      openRows.forEach(function (r) { aoa2.push([r.qIdx + 1, r.qLabel, r.qType, r.answered, r.blank]); });
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa2), 'Open_Summary');
     }
     var aoa3 = [['Store', 'Store Name', 'AM', 'ZFM', 'Q#', 'Question', 'Type', 'Answer', 'In Master']];
     details.slice().sort(function (a, b) { return (a.storeCode || '').localeCompare(b.storeCode || '') || (a.qIdx - b.qIdx); })
@@ -5717,12 +5679,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         c.style.background = c.classList.contains('grp') ? '#1565C0' : (c.classList.contains('valok') ? '#33691E' : '#0D47A1');
         c.style.color = '#fff'; c.style.fontWeight = '700';
       });
-      tbl.querySelectorAll('td.pend, td.valpend').forEach(function (c) { c.style.color = '#C62828'; c.style.fontWeight = '700'; c.style.background = c.closest('tr.grand') ? '#0D47A1' : (c.closest('tr.zfm-sub') ? '#E3F2FD' : '#ffffff'); });
+      tbl.querySelectorAll('td.pend, td.valpend, td.valwarn').forEach(function (c) { c.style.color = '#C62828'; c.style.fontWeight = '700'; c.style.background = c.closest('tr.grand') ? '#0D47A1' : (c.closest('tr.zfm-sub') ? '#E3F2FD' : '#ffffff'); });
       tbl.querySelectorAll('td.valok').forEach(function (c) { c.style.color = '#1B5E20'; c.style.fontWeight = '700'; c.style.background = c.closest('tr.grand') ? '#0D47A1' : (c.closest('tr.zfm-sub') ? '#E3F2FD' : '#ffffff'); });
-      tbl.querySelectorAll('tr.grand td.pend, tr.grand td.valpend').forEach(function (c) { c.style.color = '#FFCDD2'; });
+      tbl.querySelectorAll('tr.grand td.pend, tr.grand td.valpend, tr.grand td.valwarn').forEach(function (c) { c.style.color = '#FFCDD2'; });
       tbl.querySelectorAll('tr.grand td.valok').forEach(function (c) { c.style.color = '#C8E6C9'; });
       tbl.querySelectorAll('tr.zfm-sub td').forEach(function (c) { c.style.background = '#E3F2FD'; c.style.fontWeight = '700'; });
-      tbl.querySelectorAll('tr.grand td').forEach(function (c) { if (!c.classList.contains('pend') && !c.classList.contains('valok') && !c.classList.contains('valpend')) { c.style.background = '#0D47A1'; c.style.color = '#fff'; } c.style.fontWeight = '700'; });
+      tbl.querySelectorAll('tr.grand td').forEach(function (c) { if (!c.classList.contains('pend') && !c.classList.contains('valok') && !c.classList.contains('valpend') && !c.classList.contains('valwarn')) { c.style.background = '#0D47A1'; c.style.color = '#fff'; } c.style.fontWeight = '700'; });
     }
     var W = Math.max(wrap.scrollWidth, 1000), H = wrap.scrollHeight, sc = 3;
     if (W * H * sc * sc > 45000000) sc = 2.5;
