@@ -174,14 +174,17 @@ select.form-control{cursor:pointer}
 .amsum td.l{text-align:left}
 .amsum td.pend{color:var(--red)!important;font-weight:700}
 .amsum td.valok{color:#1B5E20!important;font-weight:700}
+.amsum td.valwarn{color:var(--red)!important;font-weight:700;background:#fff!important}
 .amsum td.valpend{color:var(--red)!important;font-weight:700;background:#fff!important}
 .amsum tr.zfm-sub td{background:var(--blue-ll);font-weight:700;color:var(--blue-d)}
 .amsum tr.zfm-sub td.pend{color:var(--red)!important}
 .amsum tr.zfm-sub td.valok{color:#1B5E20!important;background:var(--blue-ll)!important}
+.amsum tr.zfm-sub td.valwarn{color:var(--red)!important;background:var(--blue-ll)!important}
 .amsum tr.zfm-sub td.valpend{color:var(--red)!important;background:var(--blue-ll)!important}
 .amsum tr.grand td{background:#0D47A1;color:#fff;font-weight:700}
 .amsum tr.grand td.pend{color:#FFCDD2!important}
 .amsum tr.grand td.valok{color:#C8E6C9!important;background:#0D47A1!important}
+.amsum tr.grand td.valwarn{color:#FFCDD2!important;background:#0D47A1!important}
 .amsum tr.grand td.valpend{color:#FFCDD2!important;background:#0D47A1!important}
 .amsum tr:hover td{background:#FAFFFE}
 .amsum tr.zfm-sub:hover td{background:var(--blue-lll)}
@@ -1136,7 +1139,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
             </div>
           </div>
           <div class="card-body coll-body open" id="dashQSumBody">
-            <div id="dashQSummary"><div class="empty"><div class="empty-i">📋</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Shows each question and option counts from submissions for the filtered subject</div></div></div>
+            <div id="dashQSummary"><div class="empty"><div class="empty-i">📋</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Choice questions only — options as columns · Excel includes store-level details</div></div></div>
           </div>
         </div>
 
@@ -1381,7 +1384,24 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (s.role === 'store') {
       if (!S.storeCode) { cb(false); return; }
       loader(true, 'Restoring session…');
-      db.collection('stores').doc(S.storeCode).get().then(function (d) { if (d.exists) { S.stores[S.storeCode] = d.data(); if (!S.storeName) S.storeName = d.data().name || S.storeCode; } loader(false); finishStoreLogin(); cb(true); }).catch(function () { loader(false); finishStoreLogin(); cb(true); });
+      db.collection('stores').doc(S.storeCode).get().then(function (d) {
+        if (!d.exists) {
+          loader(false);
+          clearSession();
+          alert('Store ' + S.storeCode + ' is not in the Store Master.\n\nLogin blocked — contact Admin to add this store.');
+          cb(false); return;
+        }
+        var st = d.data() || {};
+        if (st.active === false) {
+          loader(false);
+          clearSession();
+          alert('Store ' + S.storeCode + ' is inactive in the Store Master.\n\nLogin blocked.');
+          cb(false); return;
+        }
+        S.stores[S.storeCode] = st;
+        if (!S.storeName) S.storeName = st.name || S.storeCode;
+        loader(false); finishStoreLogin(); cb(true);
+      }).catch(function () { loader(false); clearSession(); cb(false); });
       return;
     }
     cb(false);
@@ -1830,14 +1850,35 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       S.role = 'hosupport'; S.empcode = code; S.empName = name; S.dept = dept;
       enterHOSupport(); return;
     }
-    // STORE
+    // STORE — must exist in Store Master before selfie / geofence
     var sc = ($('loginStore').value || '').trim().toUpperCase();
     if (!sc) { lerr('Enter your Store Code.'); return; }
     if (!STORE_CODE_RX.test(sc)) { lerr('Store Code must be 2 letters + 2 digits (e.g. HH02).'); return; }
     if (!isMobile() && !testMode()) { lerr('Store login is mobile-only. Please open this portal on your phone.'); return; }
     S.role = 'store'; S.empcode = code; S.empName = name; S.designation = $('loginDesig').value; S.storeCode = sc;
-    if (testMode()) { S.selfie = STORE_PERSON_ICON; S.gps = 'TEST-MODE'; finishStoreLogin(); return; }
-    openSelfie();
+    loader(true, 'Checking Store Master…');
+    db.collection('stores').doc(sc).get().then(function (d) {
+      loader(false);
+      if (!d.exists) {
+        lerr('Store ' + sc + ' is not in the Store Master. Contact Admin.');
+        alert('Store ' + sc + ' is not in the Store Master.\n\nYou cannot login or submit until Admin adds this store.');
+        return;
+      }
+      var st = d.data() || {};
+      if (st.active === false) {
+        lerr('Store ' + sc + ' is inactive in the Store Master.');
+        alert('Store ' + sc + ' is marked inactive.\n\nLogin blocked — contact Admin.');
+        return;
+      }
+      if (!testMode() && (st.lat == null || st.lng == null || st.lat === '' || st.lng === '')) {
+        lerr('Store ' + sc + ' has no GPS in Store Master — geofence cannot run.');
+        alert('Store ' + sc + ' has no Latitude/Longitude in the Store Master.\n\nGeofence cannot be verified. Contact Admin to update the store master.');
+        return;
+      }
+      S.stores[sc] = st; S.storeName = st.name || sc;
+      if (testMode()) { S.selfie = STORE_PERSON_ICON; S.gps = 'TEST-MODE'; finishStoreLogin(); return; }
+      openSelfie();
+    }).catch(function (e) { loader(false); lerr('Could not verify store: ' + e.message); });
   }
   function openSelfie() {
     $('ovSelfie').classList.add('show');
@@ -1862,14 +1903,38 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     S.selfie = grabFrame('selfieVid', 480, 64, true);
     stopCam();
     $('ovSelfie').classList.remove('show');
-    // geofence
-    var st = null;
-    loader(true, 'Verifying…');
+    // geofence — Store Master is required (checked at login; re-verify here)
+    loader(true, 'Verifying location…');
     db.collection('stores').doc(S.storeCode).get().then(function (d) {
-      if (d.exists) { st = d.data(); S.stores[S.storeCode] = st; S.storeName = st.name || S.storeCode; if (!testMode() && st.lat != null && st.lng != null && S.coords) { var dist = haversine(S.coords.latitude, S.coords.longitude, Number(st.lat), Number(st.lng)); if (dist > GEO_RADIUS_M) { loader(false); toast('Move within ' + GEO_RADIUS_M + ' m of the store to submit — you are ' + dist + ' m away.'); return; } } }
-      else { S.storeName = S.storeCode; }
+      if (!d.exists) {
+        loader(false);
+        alert('Store ' + S.storeCode + ' is not in the Store Master.\n\nLogin blocked.');
+        return;
+      }
+      var st = d.data() || {};
+      if (st.active === false) {
+        loader(false);
+        alert('Store ' + S.storeCode + ' is inactive in the Store Master.\n\nLogin blocked.');
+        return;
+      }
+      S.stores[S.storeCode] = st; S.storeName = st.name || S.storeCode;
+      if (!testMode()) {
+        if (st.lat == null || st.lng == null || st.lat === '' || st.lng === '') {
+          loader(false);
+          alert('Store ' + S.storeCode + ' has no GPS coordinates in Store Master.\n\nGeofence cannot be verified.');
+          return;
+        }
+        if (!S.coords) { loader(false); toast('Waiting for GPS — keep Location ON'); return; }
+        var dist = haversine(S.coords.latitude, S.coords.longitude, Number(st.lat), Number(st.lng));
+        if (dist > GEO_RADIUS_M) {
+          loader(false);
+          alert('You are ' + dist + ' m from the store.\n\nMove within ' + GEO_RADIUS_M + ' m to login and submit.');
+          toast('Move within ' + GEO_RADIUS_M + ' m of the store — you are ' + dist + ' m away.');
+          return;
+        }
+      }
       loader(false); finishStoreLogin();
-    }).catch(function () { loader(false); S.storeName = S.storeCode; finishStoreLogin(); });
+    }).catch(function (e) { loader(false); alert('Could not verify store: ' + e.message); });
   }
   function cancelSelfie() { stopCam(); $('ovSelfie').classList.remove('show'); }
   function finishStoreLogin() { try { linkConsentIdentity('store', S.empcode, S.empName, S.storeCode); } catch (e) { } saveSession(); $('storeBrandSub').textContent = S.storeCode + ' · ' + S.designation + (testMode() ? ' · TEST' : ''); showScreen('scrStore'); loadStoreActionCounts(); }
@@ -1956,16 +2021,36 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   // Re-verifies the live GPS is inside the store geo-fence right before capture (bypassed in Test Mode).
   function geoGateForPic(subj, proceed) {
     if (testMode()) { proceed(); return; }
-    var st = S.stores[S.storeCode] || {};
-    if (st.lat == null || st.lng == null) { proceed(); return; }   // store not geo-mapped → allow (login already verified)
+    var st = S.stores[S.storeCode];
+    if (!st || !S.storeCode) {
+      alert('Store ' + (S.storeCode || '') + ' is not loaded from Store Master.\n\nPlease logout and login again.');
+      return;
+    }
+    if (st.lat == null || st.lng == null || st.lat === '' || st.lng === '') {
+      alert('Store ' + S.storeCode + ' has no GPS in Store Master.\n\nCapture blocked.');
+      return;
+    }
     loader(true, 'Verifying location…');
     getGPS(function (gps, err, coords) {
       if (!coords) { loader(false); toast('Location needed for execution photos — keep GPS ON.'); return; }
       S.gps = gps; S.coords = coords;
       var dist = haversine(coords.latitude, coords.longitude, Number(st.lat), Number(st.lng));
-      if (dist > GEO_RADIUS_M) { loader(false); toast('You are ' + dist + ' m from store — capture from inside (≤' + GEO_RADIUS_M + ' m).'); return; }
+      if (dist > GEO_RADIUS_M) { loader(false); alert('You are ' + dist + ' m from store.\n\nCapture from inside (≤' + GEO_RADIUS_M + ' m).'); return; }
       proceed();
     });
+  }
+  function requireMasterStore(actionLabel) {
+    if (!S.storeCode) { alert('No store code on session. Please login again.'); return null; }
+    var st = S.stores[S.storeCode];
+    if (!st) {
+      alert('Store ' + S.storeCode + ' is not in the Store Master.\n\n' + (actionLabel || 'Action') + ' blocked. Logout and login again after Admin adds the store.');
+      return null;
+    }
+    if (st.active === false) {
+      alert('Store ' + S.storeCode + ' is inactive.\n\n' + (actionLabel || 'Action') + ' blocked.');
+      return null;
+    }
+    return st;
   }
   function noteBullets(note) {
     var lines = String(note || '').split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean);
@@ -2070,7 +2155,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function submitPic() {
     var need = (S.views || []).length, have = (S.viewShots || []).filter(function (x) { return !!x; }).length;
     if (have < need) { toast('Capture all ' + need + ' shot(s) first'); return; }
-    var subj = S.currentSubject, st = S.stores[S.storeCode] || {};
+    var subj = S.currentSubject, st = requireMasterStore('Photo submit');
+    if (!st) return;
     loader(true, 'Submitting…');
     var pics = S.viewShots.map(function (p) { return p.dataURL; });
     var matches = S.viewShots.map(function (p) { return p.match; });
@@ -2242,7 +2328,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     applyBranchVisibility(subj, host);
   }
   function submitData() {
-    var subj = S.currentSubject, st = S.stores[S.storeCode] || {}, payload, host = $('dataFormHost');
+    var subj = S.currentSubject, st = requireMasterStore('Data submit'), payload, host = $('dataFormHost');
+    if (!st) return;
     if (subj.dataMode === 'sysphy') {
       var rows = (subj.hoData && subj.hoData[S.storeCode]) || [], labels = subj.descLabels || [], out = [], miss = false, phys = host.querySelectorAll('.phy');
       for (var i = 0; i < phys.length; i++) { var v = phys[i].value; if (v === '') { miss = true; break; } var r = rows[i], descArr = r.descs || (r.desc != null ? [r.desc] : []); var sys = Number(r.sys), phy = Number(v), diff = sys - phy, shr = sys === 0 ? 0 : (diff / sys) * 100; out.push({ desc: descArr.join(' · '), descs: descArr, sys: sys, phy: phy, diff: diff, diffPct: Number(shr.toFixed(2)), shrinkPct: Number(shr.toFixed(2)) }); }
@@ -5151,7 +5238,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   var _lastAM = null, _dashView = { mode: 'data', pendingOnly: false }, _dashDate = null, _dashSubject = '', _dashShowAmVal = false;
   var _dashSubjectUserSet = false, _dashZfm = '', _dashAm = '', _dashLoadGen = 0, _dashStoreMap = {};
-  var _dashQLoadGen = 0, _dashQRows = [], _dashQDrill = {};
+  var _dashQLoadGen = 0, _dashQRows = [], _dashQDrill = {}, _dashQDetails = [], _dashQChoiceCols = [];
   function setDashAmValVisible(show) {
     _dashShowAmVal = !!show;
     ['kpiAmVal', 'kpiAmPend'].forEach(function (id) {
@@ -5253,13 +5340,16 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     toast('Excel downloaded');
   }
 
-  /* Dashboard question-wise summary — questions + option counts for filtered subject */
+  /* Dashboard question-wise summary — choice questions only (options as columns) */
+  function qInDashSummary(q) {
+    return !!(q && q.type === 'choice');
+  }
   function loadDashQuestionSummary(selSubj, storeMap) {
     var box = $('dashQSummary'), meta = $('dashQSumMeta');
     if (!box) return;
     if (!selSubj) {
-      _dashQRows = []; _dashQDrill = {};
-      box.innerHTML = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Shows each question and option counts from submissions</div></div>';
+      _dashQRows = []; _dashQDrill = {}; _dashQDetails = []; _dashQChoiceCols = [];
+      box.innerHTML = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Choice questions only — options as columns · Excel includes store details</div></div>';
       if (meta) meta.textContent = '';
       return;
     }
@@ -5293,6 +5383,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         if (zfmF && zLab !== zfmF) return;
         if (amF && aLab !== amF) return;
         o._zfm = zLab; o._am = aLab; o._storeName = st.name || o.storeName || '';
+        o._inMaster = !!stores[o.storeCode];
         subs.push(o);
       });
       paintDashQuestionSummary(subj, subs);
@@ -5301,28 +5392,18 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       if (!box.querySelector('table')) box.innerHTML = '<div class="warn-box">Could not load question summary: ' + esc(e.message) + '</div>';
     });
   }
-  function qOptionList(q) {
-    if (!q) return [];
-    if (q.type === 'choice' || q.type === 'dropdown' || q.type === 'multi') return (q.options || []).map(function (o) { return String(o); });
-    if (q.type === 'rating') return ['1', '2', '3', '4', '5'];
-    return null; /* free-text / number / photo — tally answered vs blank + distinct values */
-  }
   function answerValuesForQ(a, q) {
     if (!a) return [];
-    if (q && q.type === 'multi') {
-      if (Array.isArray(a.values) && a.values.length) return a.values.map(function (x) { return String(x).trim(); }).filter(Boolean);
-      return String(a.value || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
-    }
-    if (q && q.type === 'livepic') return (a.photo || a.value) ? ['photo'] : [];
     var v = a.value; if (v == null || v === '') return [];
     return [String(v).trim()];
   }
   function paintDashQuestionSummary(subj, subs) {
     var box = $('dashQSummary'), meta = $('dashQSumMeta');
-    var qs = subj.questions || [];
+    var qs = (subj.questions || []).map(function (q, qi) { return { q: q, qi: qi }; }).filter(function (x) { return qInDashSummary(x.q); });
     if (!qs.length) {
-      box.innerHTML = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">This subject has no questions</div></div>';
+      box.innerHTML = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">No choice questions on this subject</div></div>';
       if (meta) meta.textContent = subj.name || '';
+      _dashQRows = []; _dashQDrill = {}; _dashQDetails = []; _dashQChoiceCols = [];
       return;
     }
     var nStores = {};
@@ -5330,77 +5411,61 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var storeN = Object.keys(nStores).length;
     if (meta) meta.textContent = (subj.name || '') + ' · ' + storeN + ' store submission(s)' + (_dashZfm || _dashAm ? ' · filtered' : '');
 
-    var rows = [], drill = {};
-    qs.forEach(function (q, qi) {
-      var opts = qOptionList(q);
+    var optSet = {};
+    qs.forEach(function (x) { (x.q.options || []).forEach(function (o) { optSet[String(o)] = 1; }); });
+    var choiceCols = Object.keys(optSet).sort(function (a, b) { return a.localeCompare(b); });
+    _dashQChoiceCols = choiceCols.slice();
+
+    var drill = {}, details = [], choiceRows = [];
+
+    qs.forEach(function (x) {
+      var q = x.q, qi = x.qi;
       var counts = {}, storeByOpt = {};
-      function bump(opt, o) {
-        var key = opt === '' ? '(blank)' : opt;
-        counts[key] = (counts[key] || 0) + 1;
-        if (!storeByOpt[key]) storeByOpt[key] = [];
-        storeByOpt[key].push({ storeCode: o.storeCode, storeName: o._storeName || o.storeName || '', amName: o._am || o.amName || '', zfmName: o._zfm || '', answer: opt });
-      }
+      choiceCols.forEach(function (c) { counts[c] = 0; storeByOpt[c] = []; });
+      counts['(blank)'] = 0; storeByOpt['(blank)'] = [];
+      counts['(other)'] = 0; storeByOpt['(other)'] = [];
       subs.forEach(function (o) {
-        var ansMap = ansMapFromSub(o);
-        var a = ansMap[qi];
+        var a = ansMapFromSub(o)[qi];
         var vals = answerValuesForQ(a, q);
-        if (!vals.length) { bump('(blank)', o); return; }
-        if (opts) {
-          /* known options: count matches; unknown values go to Other */
-          var seen = {};
-          vals.forEach(function (v) {
-            if (opts.indexOf(v) > -1) { if (!seen[v]) { seen[v] = 1; bump(v, o); } }
-            else { if (!seen['(other)']) { seen['(other)'] = 1; bump('(other)', o); } }
-          });
-        } else {
-          /* free answers: each distinct value (cap display later) */
-          vals.forEach(function (v) { bump(v || '(blank)', o); });
-        }
+        var ans = vals.length ? vals[0] : '';
+        var key = !ans ? '(blank)' : (optSet[ans] ? ans : '(other)');
+        counts[key] = (counts[key] || 0) + 1;
+        storeByOpt[key].push({ storeCode: o.storeCode, storeName: o._storeName || o.storeName || '', amName: o._am || o.amName || '', zfmName: o._zfm || '', answer: ans || '(blank)', inMaster: !!o._inMaster });
+        details.push({ storeCode: o.storeCode, storeName: o._storeName || o.storeName || '', amName: o._am || '', zfmName: o._zfm || '', qIdx: qi + 1, qLabel: q.label || ('Q' + (qi + 1)), qType: 'choice', answer: ans || '(blank)', inMaster: o._inMaster ? 'Y' : 'N' });
       });
-      var order = [];
-      if (opts) {
-        opts.forEach(function (o) { order.push(o); });
-        if (counts['(other)']) order.push('(other)');
-        if (counts['(blank)']) order.push('(blank)');
-      } else {
-        order = Object.keys(counts).sort(function (a, b) {
-          if (a === '(blank)') return 1; if (b === '(blank)') return -1;
-          return (counts[b] || 0) - (counts[a] || 0) || a.localeCompare(b);
-        });
-        /* keep top 12 free-text values + blank */
-        var top = order.filter(function (k) { return k !== '(blank)'; }).slice(0, 12);
-        if (counts['(blank)']) top.push('(blank)');
-        order = top;
-      }
-      order.forEach(function (opt) {
-        var n = counts[opt] || 0;
+      var row = { qIdx: qi, qLabel: q.label || ('Q' + (qi + 1)), qType: 'choice', counts: counts };
+      choiceCols.concat(['(other)', '(blank)']).forEach(function (opt) {
         var gkey = qi + '||' + opt;
-        drill[gkey] = { q: q.label || ('Q' + (qi + 1)), qIdx: qi, option: opt, items: storeByOpt[opt] || [] };
-        rows.push({ qIdx: qi, qLabel: q.label || ('Q' + (qi + 1)), qType: q.type || '', option: opt, count: n, pct: storeN ? Math.round((n / storeN) * 100) : 0, gkey: gkey });
+        drill[gkey] = { q: row.qLabel, qIdx: qi, option: opt, items: storeByOpt[opt] || [] };
       });
+      choiceRows.push(row);
     });
-    _dashQRows = rows;
+
     _dashQDrill = drill;
-    if (!subs.length) {
-      box.innerHTML = '<div class="empty"><div class="empty-i">📭</div><div class="empty-t">No submissions yet for this subject' + (_dashZfm || _dashAm ? ' (filter)' : '') + '</div><div class="small text3" style="margin-top:6px">Questions &amp; options still listed below once data arrives</div></div>';
-      /* still show question/option skeleton with zeros */
+    _dashQDetails = details;
+    _dashQRows = { choiceRows: choiceRows, choiceCols: choiceCols, storeN: storeN };
+
+    function numBtn(n, gkey) {
+      if (!n) return '<span style="color:var(--text3);font-weight:700">0</span>';
+      return '<button type="button" class="ho-num-link dash-q-opt" data-gkey="' + esc(gkey) + '">' + n + '</button>';
     }
-    var h = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Question</th><th>Type</th><th>Option</th><th>Stores</th><th>%</th></tr></thead><tbody>';
-    var lastQi = -1;
-    rows.forEach(function (r) {
-      var showQ = r.qIdx !== lastQi; lastQi = r.qIdx;
-      var num = r.count
-        ? '<button type="button" class="ho-num-link dash-q-opt" data-gkey="' + esc(r.gkey) + '">' + r.count + '</button>'
-        : '<span style="color:var(--text3);font-weight:700">0</span>';
-      h += '<tr>' +
-        '<td>' + (showQ ? (r.qIdx + 1) : '') + '</td>' +
-        '<td>' + (showQ ? esc(r.qLabel) : '') + '</td>' +
-        '<td class="small text2">' + (showQ ? esc(r.qType) : '') + '</td>' +
-        '<td><b>' + esc(r.option) + '</b></td>' +
-        '<td>' + num + '</td>' +
-        '<td>' + (r.count ? (r.pct + '%') : '—') + '</td></tr>';
+
+    var h = '';
+    var showOther = choiceRows.some(function (r) { return (r.counts['(other)'] || 0) > 0; });
+    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Question</th>';
+    choiceCols.forEach(function (c) { h += '<th>' + esc(c) + '</th>'; });
+    if (showOther) h += '<th>(other)</th>';
+    h += '<th>(blank)</th></tr></thead><tbody>';
+    choiceRows.forEach(function (r) {
+      h += '<tr><td>' + (r.qIdx + 1) + '</td><td>' + esc(r.qLabel) + '</td>';
+      choiceCols.forEach(function (c) { h += '<td>' + numBtn(r.counts[c] || 0, r.qIdx + '||' + c) + '</td>'; });
+      if (showOther) h += '<td>' + numBtn(r.counts['(other)'] || 0, r.qIdx + '||(other)') + '</td>';
+      h += '<td>' + numBtn(r.counts['(blank)'] || 0, r.qIdx + '||(blank)') + '</td></tr>';
     });
     h += '</tbody></table></div>';
+    if (!subs.length) {
+      h = '<div class="empty" style="margin-bottom:10px"><div class="empty-i">📭</div><div class="empty-t">No submissions yet for this subject' + (_dashZfm || _dashAm ? ' (filter)' : '') + '</div></div>' + h;
+    }
     box.innerHTML = h;
     box.querySelectorAll('.dash-q-opt').forEach(function (btn) {
       btn.addEventListener('click', function () { openDashQOptionDrill(this.getAttribute('data-gkey')); });
@@ -5412,20 +5477,43 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ($('ovHoDrillTitle')) $('ovHoDrillTitle').textContent = (g.q || '') + ' · ' + (g.option || '') + ' (' + items.length + ')';
     var body = $('ovHoDrillBody'); if (!body) return;
     if (!items.length) { body.innerHTML = '<div class="empty"><div class="empty-t">No stores for this option</div></div>'; $('ovHoDrill').classList.add('show'); return; }
-    var h = '<div class="info-box small" style="margin-bottom:10px">Stores that answered <b>' + esc(g.option) + '</b> for this question.</div>';
-    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Store</th><th>Name</th><th>AM</th><th>ZFM</th><th>Answer</th></tr></thead><tbody>';
+    var h = '<div class="info-box small" style="margin-bottom:10px">Stores for <b>' + esc(g.option) + '</b>. Red “not in master” means the store code was not in Store Master at load time.</div>';
+    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Store</th><th>Name</th><th>AM</th><th>ZFM</th><th>Answer</th><th>In Master</th></tr></thead><tbody>';
     items.slice().sort(function (a, b) { return (a.storeCode || '').localeCompare(b.storeCode || ''); }).forEach(function (x) {
-      h += '<tr><td class="mono"><b>' + esc(x.storeCode) + '</b></td><td>' + esc(x.storeName || '') + '</td><td>' + esc(x.amName || '—') + '</td><td>' + esc(x.zfmName || '—') + '</td><td>' + esc(x.answer || '') + '</td></tr>';
+      var master = x.inMaster !== false;
+      h += '<tr><td class="mono"><b>' + esc(x.storeCode) + '</b></td><td>' + esc(x.storeName || '') + '</td><td>' + esc(x.amName || '—') + '</td><td>' + esc(x.zfmName || '—') + '</td><td>' + esc(x.answer || '') + '</td><td>' + (master ? '<span class="badge badge-green">Y</span>' : '<span class="badge badge-red">N</span>') + '</td></tr>';
     });
     h += '</tbody></table></div>';
     body.innerHTML = h;
     $('ovHoDrill').classList.add('show');
   }
   function exportDashQSumXls() {
-    var rows = _dashQRows || []; if (!rows.length) { toast('Nothing to export'); return; }
-    var aoa = [['Q#', 'Question', 'Type', 'Option', 'Stores', '%']];
-    rows.forEach(function (r) { aoa.push([r.qIdx + 1, r.qLabel, r.qType, r.option, r.count, r.pct]); });
-    var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Q_Summary'); XLSX.writeFile(wb, 'Dash_Question_Summary_' + toDateStr(new Date()) + '.xlsx');
+    var pack = _dashQRows || {};
+    var choiceRows = pack.choiceRows || [], cols = pack.choiceCols || [];
+    var details = _dashQDetails || [];
+    if (!choiceRows.length && !details.length) { toast('Nothing to export'); return; }
+    var wb = XLSX.utils.book_new();
+    if (choiceRows.length) {
+      var showOther = choiceRows.some(function (r) { return (r.counts['(other)'] || 0) > 0; });
+      var head = ['Q#', 'Question'].concat(cols);
+      if (showOther) head.push('(other)');
+      head.push('(blank)');
+      var aoa = [head];
+      choiceRows.forEach(function (r) {
+        var row = [r.qIdx + 1, r.qLabel];
+        cols.forEach(function (c) { row.push(r.counts[c] || 0); });
+        if (showOther) row.push(r.counts['(other)'] || 0);
+        row.push(r.counts['(blank)'] || 0);
+        aoa.push(row);
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Choice_Summary');
+    }
+    var aoa3 = [['Store', 'Store Name', 'AM', 'ZFM', 'Q#', 'Question', 'Type', 'Answer', 'In Master']];
+    details.slice().sort(function (a, b) { return (a.storeCode || '').localeCompare(b.storeCode || '') || (a.qIdx - b.qIdx); })
+      .forEach(function (d) { aoa3.push([d.storeCode, d.storeName, d.amName, d.zfmName, d.qIdx, d.qLabel, d.qType, d.answer, d.inMaster]); });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa3), 'Details');
+    XLSX.writeFile(wb, 'Dash_Question_Summary_' + toDateStr(new Date()) + '.xlsx');
+    toast('Excel downloaded (summary + details)');
   }
   function snapDashQSummary() {
     var src = $('dashQSummary'); if (!src || !src.querySelector('table')) { toast('Load question summary first'); return; }
@@ -5444,12 +5532,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       b.parentNode.replaceChild(sp, b);
     });
     var tw = host.querySelector('.tbl-wrap'); if (tw) { tw.style.overflow = 'visible'; tw.style.maxWidth = 'none'; tw.style.width = 'auto'; }
-    var tbl = host.querySelector('table');
-    if (tbl) {
+    host.querySelectorAll('table').forEach(function (tbl) {
       tbl.style.fontSize = '15px'; tbl.style.borderCollapse = 'collapse';
       tbl.querySelectorAll('th,td').forEach(function (c) { c.style.padding = '11px 14px'; c.style.border = '1px solid #cfd8dc'; c.style.whiteSpace = 'nowrap'; c.style.fontSize = '15px'; });
       tbl.querySelectorAll('th').forEach(function (c) { c.style.background = '#1565C0'; c.style.color = '#fff'; c.style.fontWeight = '700'; });
-    }
+    });
     var W = Math.max(wrap.scrollWidth, 900), H = wrap.scrollHeight, sc = 3;
     if (W * H * sc * sc > 40000000) sc = 2.5;
     html2canvas(wrap, { backgroundColor: '#ffffff', scale: sc, useCORS: true, allowTaint: true, logging: false, width: W, height: H, windowWidth: W, imageTimeout: 0 }).then(function (canvas) {
@@ -5472,16 +5559,22 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (!ams.length) { box.innerHTML = '<div class="empty"><div class="empty-i">' + (pendOnly ? '✅' : '📭') + '</div><div class="empty-t">' + (pendOnly ? 'No pending / rejected AMs' : 'No stores in master') + '</div></div>'; return; }
     var byZ = {}, zName = {}; ams.forEach(function (a) { (byZ[a.zfm] = byZ[a.zfm] || []).push(a); zName[a.zfm] = a.zfmName || localPart(a.zfm); });
     var zkeys = Object.keys(byZ).sort(function (x, y) { return (zName[x] || '').localeCompare(zName[y] || ''); });
-    function cell(done, pr, total) { return '<td>' + pct(done, total) + '%</td><td class="pend">' + pr + ' (' + pct(pr, total) + '%)</td>'; }
+    function pendTd(pr, total) {
+      var cls = pr > 0 ? ' class="pend"' : '';
+      return '<td' + cls + '>' + pr + ' (' + pct(pr, total) + '%)</td>';
+    }
+    function cell(done, pr, total) { return '<td>' + pct(done, total) + '%</td>' + pendTd(pr, total); }
     var picH = showPic ? '<th>Pic Recd St</th><th>Pic Done%</th><th>Pic Pending St (%)</th>' : '';
     var datH = showData ? '<th>Data Recd St</th><th>Data Done%</th><th>Data Pending St (%)</th>' : '';
     var valH = showVal ? '<th class="valok">AM Validated</th><th class="valpend">Val Pending (%)</th>' : '';
     var head = '<div class="tbl-wrap"><table class="amsum"><thead><tr><th class="grp">ZFM</th><th class="grp">AM</th><th>Total St</th>' + picH + datH + valH + '</tr></thead><tbody>';
     var body = '', gTot = 0, gPicR = 0, gPicD = 0, gPicP = 0, gDatR = 0, gDatD = 0, gDatP = 0, gVal = 0, gVPend = 0, gVRedo = 0, gVScope = 0;
-    function valCells(v, vp, vr, sc) {
+    function valCells(v, vp, vr, sc, totalSt) {
       if (!showVal) return '';
-      return '<td class="valok">' + v + '</td>' +
-             '<td class="valpend">' + vp + ' (' + pct(vp, sc) + '%)' + (vr ? '<span class="small"> · ' + vr + ' re-do</span>' : '') + '</td>';
+      var vCls = (totalSt > 0 && v < totalSt) ? 'valwarn' : 'valok';
+      var pCls = vp > 0 ? 'valpend' : '';
+      return '<td class="' + vCls + '">' + v + '</td>' +
+             '<td' + (pCls ? ' class="' + pCls + '"' : '') + '>' + vp + ' (' + pct(vp, sc) + '%)' + (vr ? '<span class="small"> · ' + vr + ' re-do</span>' : '') + '</td>';
     }
     zkeys.forEach(function (z) {
       var list = byZ[z].sort(function (a, b) { return (a.amName || '').localeCompare(b.amName || ''); });
@@ -5494,16 +5587,18 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         body += '<tr><td class="l" title="' + esc(z) + '">' + esc(zName[z]) + '</td><td class="l" title="' + esc(a.am) + '">' + esc(a.amName || localPart(a.am)) + '</td><td>' + a.total + '</td>' +
           (showPic ? ('<td>' + picR + '</td>' + cell(picD, picP, a.total)) : '') +
           (showData ? ('<td>' + datR + '</td>' + cell(datD, datP, a.total)) : '') +
-          valCells(a.amVal || 0, a.amValPend || 0, a.amRedo || 0, a.amScope || 0) + '</tr>';
+          valCells(a.amVal || 0, a.amValPend || 0, a.amRedo || 0, a.amScope || 0, a.total) + '</tr>';
       });
-      body += '<tr class="zfm-sub"><td class="l">' + esc(zName[z]) + ' — subtotal</td><td></td><td>' + zTot + '</td>' + (showPic ? ('<td>' + zPicR + '</td>' + cell(zPicD, zPicP, zTot)) : '') + (showData ? ('<td>' + zDatR + '</td>' + cell(zDatD, zDatP, zTot)) : '') + valCells(zVal, zVPend, zVRedo, zVScope) + '</tr>';
+      body += '<tr class="zfm-sub"><td class="l">' + esc(zName[z]) + ' — subtotal</td><td></td><td>' + zTot + '</td>' + (showPic ? ('<td>' + zPicR + '</td>' + cell(zPicD, zPicP, zTot)) : '') + (showData ? ('<td>' + zDatR + '</td>' + cell(zDatD, zDatP, zTot)) : '') + valCells(zVal, zVPend, zVRedo, zVScope, zTot) + '</tr>';
       gTot += zTot; gPicR += zPicR; gPicD += zPicD; gPicP += zPicP; gDatR += zDatR; gDatD += zDatD; gDatP += zDatP;
       gVal += zVal; gVPend += zVPend; gVRedo += zVRedo; gVScope += zVScope;
     });
+    var gValCls = (gTot > 0 && gVal < gTot) ? 'valwarn' : 'valok';
+    var gPendCls = gVPend > 0 ? ' class="valpend"' : '';
     var grand = '<tr class="grand"><td class="l">GRAND TOTAL</td><td></td><td>' + gTot + '</td>' +
-      (showPic ? ('<td>' + gPicR + '</td><td>' + pct(gPicD, gTot) + '%</td><td class="pend">' + gPicP + ' (' + pct(gPicP, gTot) + '%)</td>') : '') +
-      (showData ? ('<td>' + gDatR + '</td><td>' + pct(gDatD, gTot) + '%</td><td class="pend">' + gDatP + ' (' + pct(gDatP, gTot) + '%)</td>') : '') +
-      (showVal ? ('<td class="valok">' + gVal + '</td><td class="valpend">' + gVPend + ' (' + pct(gVPend, gVScope) + '%)' + (gVRedo ? ' · ' + gVRedo + ' re-do' : '') + '</td>') : '') + '</tr>';
+      (showPic ? ('<td>' + gPicR + '</td><td>' + pct(gPicD, gTot) + '%</td>' + pendTd(gPicP, gTot)) : '') +
+      (showData ? ('<td>' + gDatR + '</td><td>' + pct(gDatD, gTot) + '%</td>' + pendTd(gDatP, gTot)) : '') +
+      (showVal ? ('<td class="' + gValCls + '">' + gVal + '</td><td' + gPendCls + '>' + gVPend + ' (' + pct(gVPend, gVScope) + '%)' + (gVRedo ? ' · ' + gVRedo + ' re-do' : '') + '</td>') : '') + '</tr>';
     box.innerHTML = head + grand + body + '</tbody></table></div>';
   }
   function exportAMSummaryXls() {
@@ -5584,12 +5679,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         c.style.background = c.classList.contains('grp') ? '#1565C0' : (c.classList.contains('valok') ? '#33691E' : '#0D47A1');
         c.style.color = '#fff'; c.style.fontWeight = '700';
       });
-      tbl.querySelectorAll('td.pend, td.valpend').forEach(function (c) { c.style.color = '#C62828'; c.style.fontWeight = '700'; c.style.background = c.closest('tr.grand') ? '#0D47A1' : (c.closest('tr.zfm-sub') ? '#E3F2FD' : '#ffffff'); });
+      tbl.querySelectorAll('td.pend, td.valpend, td.valwarn').forEach(function (c) { c.style.color = '#C62828'; c.style.fontWeight = '700'; c.style.background = c.closest('tr.grand') ? '#0D47A1' : (c.closest('tr.zfm-sub') ? '#E3F2FD' : '#ffffff'); });
       tbl.querySelectorAll('td.valok').forEach(function (c) { c.style.color = '#1B5E20'; c.style.fontWeight = '700'; c.style.background = c.closest('tr.grand') ? '#0D47A1' : (c.closest('tr.zfm-sub') ? '#E3F2FD' : '#ffffff'); });
-      tbl.querySelectorAll('tr.grand td.pend, tr.grand td.valpend').forEach(function (c) { c.style.color = '#FFCDD2'; });
+      tbl.querySelectorAll('tr.grand td.pend, tr.grand td.valpend, tr.grand td.valwarn').forEach(function (c) { c.style.color = '#FFCDD2'; });
       tbl.querySelectorAll('tr.grand td.valok').forEach(function (c) { c.style.color = '#C8E6C9'; });
       tbl.querySelectorAll('tr.zfm-sub td').forEach(function (c) { c.style.background = '#E3F2FD'; c.style.fontWeight = '700'; });
-      tbl.querySelectorAll('tr.grand td').forEach(function (c) { if (!c.classList.contains('pend') && !c.classList.contains('valok') && !c.classList.contains('valpend')) { c.style.background = '#0D47A1'; c.style.color = '#fff'; } c.style.fontWeight = '700'; });
+      tbl.querySelectorAll('tr.grand td').forEach(function (c) { if (!c.classList.contains('pend') && !c.classList.contains('valok') && !c.classList.contains('valpend') && !c.classList.contains('valwarn')) { c.style.background = '#0D47A1'; c.style.color = '#fff'; } c.style.fontWeight = '700'; });
     }
     var W = Math.max(wrap.scrollWidth, 1000), H = wrap.scrollHeight, sc = 3;
     if (W * H * sc * sc > 45000000) sc = 2.5;
