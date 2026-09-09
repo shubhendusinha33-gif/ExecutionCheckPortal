@@ -174,15 +174,21 @@ select.form-control{cursor:pointer}
 .amsum td.l{text-align:left}
 .amsum td.pend{color:var(--red)!important;font-weight:700}
 .amsum td.valok{color:#1B5E20!important;font-weight:700}
-.amsum td.valpend{color:var(--red)!important;font-weight:700;background:#fff!important}
+.amsum td.valok.low{color:var(--red)!important}
+.amsum td.valpend{color:var(--text)!important;font-weight:700;background:#fff!important}
+.amsum td.valpend.hot{color:var(--red)!important}
 .amsum tr.zfm-sub td{background:var(--blue-ll);font-weight:700;color:var(--blue-d)}
 .amsum tr.zfm-sub td.pend{color:var(--red)!important}
 .amsum tr.zfm-sub td.valok{color:#1B5E20!important;background:var(--blue-ll)!important}
-.amsum tr.zfm-sub td.valpend{color:var(--red)!important;background:var(--blue-ll)!important}
+.amsum tr.zfm-sub td.valok.low{color:var(--red)!important}
+.amsum tr.zfm-sub td.valpend{color:var(--blue-d)!important;background:var(--blue-ll)!important}
+.amsum tr.zfm-sub td.valpend.hot{color:var(--red)!important}
 .amsum tr.grand td{background:#0D47A1;color:#fff;font-weight:700}
 .amsum tr.grand td.pend{color:#FFCDD2!important}
 .amsum tr.grand td.valok{color:#C8E6C9!important;background:#0D47A1!important}
-.amsum tr.grand td.valpend{color:#FFCDD2!important;background:#0D47A1!important}
+.amsum tr.grand td.valok.low{color:#FFCDD2!important}
+.amsum tr.grand td.valpend{color:#BBDEFB!important;background:#0D47A1!important}
+.amsum tr.grand td.valpend.hot{color:#FFCDD2!important}
 .amsum tr:hover td{background:#FAFFFE}
 .amsum tr.zfm-sub:hover td{background:var(--blue-lll)}
 .amsum tr.grand:hover td{background:#0D47A1}
@@ -1136,7 +1142,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
             </div>
           </div>
           <div class="card-body coll-body open" id="dashQSumBody">
-            <div id="dashQSummary"><div class="empty"><div class="empty-i">📋</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Shows each question and option counts from submissions for the filtered subject</div></div></div>
+            <div id="dashQSummary"><div class="empty"><div class="empty-i">📋</div><div class="empty-t">Select a subject to load question summary</div><div class="small text3" style="margin-top:6px">Choice questions as columns · number / text / paragraph · Excel includes store-level details</div></div></div>
           </div>
         </div>
 
@@ -5151,7 +5157,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   var _lastAM = null, _dashView = { mode: 'data', pendingOnly: false }, _dashDate = null, _dashSubject = '', _dashShowAmVal = false;
   var _dashSubjectUserSet = false, _dashZfm = '', _dashAm = '', _dashLoadGen = 0, _dashStoreMap = {};
-  var _dashQLoadGen = 0, _dashQRows = [], _dashQDrill = {};
+  var _dashQLoadGen = 0, _dashQRows = [], _dashQDrill = {}, _dashQDetails = [], _dashQChoiceCols = [];
   function setDashAmValVisible(show) {
     _dashShowAmVal = !!show;
     ['kpiAmVal', 'kpiAmPend'].forEach(function (id) {
@@ -5303,104 +5309,158 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   function qOptionList(q) {
     if (!q) return [];
-    if (q.type === 'choice' || q.type === 'dropdown' || q.type === 'multi') return (q.options || []).map(function (o) { return String(o); });
-    if (q.type === 'rating') return ['1', '2', '3', '4', '5'];
-    return null; /* free-text / number / photo — tally answered vs blank + distinct values */
+    if (q.type === 'choice') return (q.options || []).map(function (o) { return String(o); });
+    return null;
+  }
+  function qInDashSummary(q) {
+    if (!q) return false;
+    var t = q.type || '';
+    return t === 'choice' || t === 'number' || t === 'para' || t === 'text';
   }
   function answerValuesForQ(a, q) {
     if (!a) return [];
-    if (q && q.type === 'multi') {
-      if (Array.isArray(a.values) && a.values.length) return a.values.map(function (x) { return String(x).trim(); }).filter(Boolean);
-      return String(a.value || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
-    }
-    if (q && q.type === 'livepic') return (a.photo || a.value) ? ['photo'] : [];
     var v = a.value; if (v == null || v === '') return [];
     return [String(v).trim()];
   }
   function paintDashQuestionSummary(subj, subs) {
     var box = $('dashQSummary'), meta = $('dashQSumMeta');
     var qs = subj.questions || [];
-    if (!qs.length) {
-      box.innerHTML = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">This subject has no questions</div></div>';
+    var keep = [];
+    qs.forEach(function (q, qi) { if (qInDashSummary(q)) keep.push({ q: q, qi: qi }); });
+    if (!keep.length) {
+      box.innerHTML = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">No choice / number / text questions in this subject</div></div>';
       if (meta) meta.textContent = subj.name || '';
+      _dashQRows = []; _dashQDrill = {}; _dashQDetails = []; _dashQChoiceCols = [];
       return;
     }
     var nStores = {};
     subs.forEach(function (o) { if (o.storeCode) nStores[o.storeCode] = 1; });
     var storeN = Object.keys(nStores).length;
-    if (meta) meta.textContent = (subj.name || '') + ' · ' + storeN + ' store submission(s)' + (_dashZfm || _dashAm ? ' · filtered' : '');
+    if (meta) meta.textContent = (subj.name || '') + ' · ' + storeN + ' store submission(s) · choice / number / text only' + (_dashZfm || _dashAm ? ' · filtered' : '');
 
-    var rows = [], drill = {};
-    qs.forEach(function (q, qi) {
+    var choiceCols = [], colSeen = {};
+    keep.forEach(function (item) {
+      if (item.q.type !== 'choice') return;
+      (item.q.options || []).forEach(function (o) {
+        var s = String(o);
+        if (!colSeen[s]) { colSeen[s] = 1; choiceCols.push(s); }
+      });
+    });
+    choiceCols.push('(blank)');
+    _dashQChoiceCols = choiceCols;
+
+    var choiceRows = [], freeRows = [], drill = {}, details = [];
+    keep.forEach(function (item) {
+      var q = item.q, qi = item.qi;
       var opts = qOptionList(q);
       var counts = {}, storeByOpt = {};
-      function bump(opt, o) {
+      function bump(opt, o, rawAns) {
         var key = opt === '' ? '(blank)' : opt;
         counts[key] = (counts[key] || 0) + 1;
         if (!storeByOpt[key]) storeByOpt[key] = [];
-        storeByOpt[key].push({ storeCode: o.storeCode, storeName: o._storeName || o.storeName || '', amName: o._am || o.amName || '', zfmName: o._zfm || '', answer: opt });
+        storeByOpt[key].push({ storeCode: o.storeCode, storeName: o._storeName || o.storeName || '', amName: o._am || o.amName || '', zfmName: o._zfm || '', answer: rawAns != null ? rawAns : opt });
       }
       subs.forEach(function (o) {
         var ansMap = ansMapFromSub(o);
         var a = ansMap[qi];
         var vals = answerValuesForQ(a, q);
-        if (!vals.length) { bump('(blank)', o); return; }
+        var raw = vals.length ? vals[0] : '';
+        details.push({
+          qIdx: qi, qLabel: q.label || ('Q' + (qi + 1)), qType: q.type || '',
+          storeCode: o.storeCode || '', storeName: o._storeName || o.storeName || '',
+          amName: o._am || o.amName || '', zfmName: o._zfm || '',
+          answer: raw
+        });
+        if (!vals.length) { bump('(blank)', o, ''); return; }
         if (opts) {
-          /* known options: count matches; unknown values go to Other */
-          var seen = {};
-          vals.forEach(function (v) {
-            if (opts.indexOf(v) > -1) { if (!seen[v]) { seen[v] = 1; bump(v, o); } }
-            else { if (!seen['(other)']) { seen['(other)'] = 1; bump('(other)', o); } }
-          });
+          if (opts.indexOf(raw) > -1) bump(raw, o, raw);
+          else bump('(other)', o, raw);
         } else {
-          /* free answers: each distinct value (cap display later) */
-          vals.forEach(function (v) { bump(v || '(blank)', o); });
+          bump(raw || '(blank)', o, raw);
         }
       });
-      var order = [];
-      if (opts) {
-        opts.forEach(function (o) { order.push(o); });
-        if (counts['(other)']) order.push('(other)');
-        if (counts['(blank)']) order.push('(blank)');
-      } else {
-        order = Object.keys(counts).sort(function (a, b) {
-          if (a === '(blank)') return 1; if (b === '(blank)') return -1;
-          return (counts[b] || 0) - (counts[a] || 0) || a.localeCompare(b);
+      if (q.type === 'choice') {
+        if (counts['(other)'] && choiceCols.indexOf('(other)') < 0) choiceCols.push('(other)');
+        var gkeys = {};
+        choiceCols.forEach(function (opt) {
+          var gkey = qi + '||' + opt;
+          gkeys[opt] = gkey;
+          drill[gkey] = { q: q.label || ('Q' + (qi + 1)), qIdx: qi, option: opt, items: storeByOpt[opt] || [] };
         });
-        /* keep top 12 free-text values + blank */
-        var top = order.filter(function (k) { return k !== '(blank)'; }).slice(0, 12);
-        if (counts['(blank)']) top.push('(blank)');
-        order = top;
+        if (counts['(other)']) {
+          var og = qi + '||(other)';
+          gkeys['(other)'] = og;
+          drill[og] = { q: q.label || ('Q' + (qi + 1)), qIdx: qi, option: '(other)', items: storeByOpt['(other)'] || [] };
+        }
+        choiceRows.push({ qIdx: qi, qLabel: q.label || ('Q' + (qi + 1)), counts: counts, gkeys: gkeys, optSet: opts || [] });
+      } else {
+        var answered = 0, blank = counts['(blank)'] || 0;
+        Object.keys(counts).forEach(function (k) { if (k !== '(blank)') answered += counts[k]; });
+        /* top distinct values for preview */
+        var valsSorted = Object.keys(counts).filter(function (k) { return k !== '(blank)'; })
+          .sort(function (a, b) { return (counts[b] || 0) - (counts[a] || 0) || a.localeCompare(b); })
+          .slice(0, 8);
+        valsSorted.forEach(function (opt) {
+          var gkey = qi + '||' + opt;
+          drill[gkey] = { q: q.label || ('Q' + (qi + 1)), qIdx: qi, option: opt, items: storeByOpt[opt] || [] };
+        });
+        var blankKey = qi + '||(blank)';
+        drill[blankKey] = { q: q.label || ('Q' + (qi + 1)), qIdx: qi, option: '(blank)', items: storeByOpt['(blank)'] || [] };
+        freeRows.push({
+          qIdx: qi, qLabel: q.label || ('Q' + (qi + 1)), qType: q.type || '',
+          answered: answered, blank: blank, blankKey: blankKey,
+          top: valsSorted.map(function (v) { return { v: v, n: counts[v] || 0, gkey: qi + '||' + v }; })
+        });
       }
-      order.forEach(function (opt) {
-        var n = counts[opt] || 0;
-        var gkey = qi + '||' + opt;
-        drill[gkey] = { q: q.label || ('Q' + (qi + 1)), qIdx: qi, option: opt, items: storeByOpt[opt] || [] };
-        rows.push({ qIdx: qi, qLabel: q.label || ('Q' + (qi + 1)), qType: q.type || '', option: opt, count: n, pct: storeN ? Math.round((n / storeN) * 100) : 0, gkey: gkey });
-      });
     });
-    _dashQRows = rows;
+    _dashQChoiceCols = choiceCols;
+    _dashQRows = { choice: choiceRows, free: freeRows };
     _dashQDrill = drill;
+    _dashQDetails = details;
+
     if (!subs.length) {
-      box.innerHTML = '<div class="empty"><div class="empty-i">📭</div><div class="empty-t">No submissions yet for this subject' + (_dashZfm || _dashAm ? ' (filter)' : '') + '</div><div class="small text3" style="margin-top:6px">Questions &amp; options still listed below once data arrives</div></div>';
-      /* still show question/option skeleton with zeros */
+      box.innerHTML = '<div class="empty"><div class="empty-i">📭</div><div class="empty-t">No submissions yet for this subject' + (_dashZfm || _dashAm ? ' (filter)' : '') + '</div></div>';
     }
-    var h = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Question</th><th>Type</th><th>Option</th><th>Stores</th><th>%</th></tr></thead><tbody>';
-    var lastQi = -1;
-    rows.forEach(function (r) {
-      var showQ = r.qIdx !== lastQi; lastQi = r.qIdx;
-      var num = r.count
-        ? '<button type="button" class="ho-num-link dash-q-opt" data-gkey="' + esc(r.gkey) + '">' + r.count + '</button>'
-        : '<span style="color:var(--text3);font-weight:700">0</span>';
-      h += '<tr>' +
-        '<td>' + (showQ ? (r.qIdx + 1) : '') + '</td>' +
-        '<td>' + (showQ ? esc(r.qLabel) : '') + '</td>' +
-        '<td class="small text2">' + (showQ ? esc(r.qType) : '') + '</td>' +
-        '<td><b>' + esc(r.option) + '</b></td>' +
-        '<td>' + num + '</td>' +
-        '<td>' + (r.count ? (r.pct + '%') : '—') + '</td></tr>';
-    });
-    h += '</tbody></table></div>';
+    var h = '';
+    if (choiceRows.length) {
+      h += '<div class="small text2" style="margin:0 0 6px;font-weight:700">Choice questions (options as columns)</div>';
+      h += '<div class="tbl-wrap" style="margin-bottom:14px"><table class="tbl"><thead><tr><th>#</th><th>Question</th>';
+      choiceCols.forEach(function (c) { h += '<th>' + esc(c) + '</th>'; });
+      h += '</tr></thead><tbody>';
+      choiceRows.forEach(function (r) {
+        h += '<tr><td>' + (r.qIdx + 1) + '</td><td>' + esc(r.qLabel) + '</td>';
+        choiceCols.forEach(function (c) {
+          var inQ = c === '(blank)' || c === '(other)' || (r.optSet && r.optSet.indexOf(c) > -1);
+          if (!inQ && !(r.counts[c])) { h += '<td class="text3">—</td>'; return; }
+          var n = r.counts[c] || 0;
+          var gkey = r.gkeys[c];
+          if (n && gkey) h += '<td><button type="button" class="ho-num-link dash-q-opt" data-gkey="' + esc(gkey) + '">' + n + '</button></td>';
+          else h += '<td style="color:var(--text3);font-weight:700">0</td>';
+        });
+        h += '</tr>';
+      });
+      h += '</tbody></table></div>';
+    }
+    if (freeRows.length) {
+      h += '<div class="small text2" style="margin:0 0 6px;font-weight:700">Number / text / paragraph</div>';
+      h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Question</th><th>Type</th><th>Answered</th><th>Blank</th><th>Top answers</th></tr></thead><tbody>';
+      freeRows.forEach(function (r) {
+        var topHtml = r.top.length
+          ? r.top.map(function (t) {
+              return '<button type="button" class="ho-num-link dash-q-opt" data-gkey="' + esc(t.gkey) + '" title="' + esc(t.v) + '">' + esc(t.v.length > 28 ? t.v.slice(0, 28) + '…' : t.v) + '</button> <span class="small text2">(' + t.n + ')</span>';
+            }).join(' · ')
+          : '<span class="text3">—</span>';
+        var ansBtn = r.answered
+          ? '<span style="font-weight:700;color:var(--blue)">' + r.answered + '</span>'
+          : '<span style="color:var(--text3);font-weight:700">0</span>';
+        var blankBtn = r.blank
+          ? '<button type="button" class="ho-num-link dash-q-opt" data-gkey="' + esc(r.blankKey) + '" style="color:var(--amber)">' + r.blank + '</button>'
+          : '<span style="color:var(--text3);font-weight:700">0</span>';
+        h += '<tr><td>' + (r.qIdx + 1) + '</td><td>' + esc(r.qLabel) + '</td><td class="small text2">' + esc(r.qType) + '</td><td>' + ansBtn + '</td><td>' + blankBtn + '</td><td class="small">' + topHtml + '</td></tr>';
+      });
+      h += '</tbody></table></div>';
+    }
+    if (!h) h = '<div class="empty"><div class="empty-i">📋</div><div class="empty-t">Nothing to summarize</div></div>';
     box.innerHTML = h;
     box.querySelectorAll('.dash-q-opt').forEach(function (btn) {
       btn.addEventListener('click', function () { openDashQOptionDrill(this.getAttribute('data-gkey')); });
@@ -5422,10 +5482,38 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     $('ovHoDrill').classList.add('show');
   }
   function exportDashQSumXls() {
-    var rows = _dashQRows || []; if (!rows.length) { toast('Nothing to export'); return; }
-    var aoa = [['Q#', 'Question', 'Type', 'Option', 'Stores', '%']];
-    rows.forEach(function (r) { aoa.push([r.qIdx + 1, r.qLabel, r.qType, r.option, r.count, r.pct]); });
-    var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Q_Summary'); XLSX.writeFile(wb, 'Dash_Question_Summary_' + toDateStr(new Date()) + '.xlsx');
+    var pack = _dashQRows || {};
+    var choice = pack.choice || [], free = pack.free || [];
+    var details = _dashQDetails || [];
+    if (!choice.length && !free.length && !details.length) { toast('Nothing to export'); return; }
+    var wb = XLSX.utils.book_new();
+    /* Sheet 1: Choice — options as columns */
+    if (choice.length) {
+      var cols = _dashQChoiceCols || [];
+      var aoa = [['Q#', 'Question'].concat(cols)];
+      choice.forEach(function (r) {
+        var row = [r.qIdx + 1, r.qLabel];
+        cols.forEach(function (c) {
+          var inQ = c === '(blank)' || c === '(other)' || (r.optSet && r.optSet.indexOf(c) > -1);
+          row.push((!inQ && !(r.counts[c])) ? '' : (r.counts[c] || 0));
+        });
+        aoa.push(row);
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Choice_Summary');
+    }
+    /* Sheet 2: Number / text / para summary */
+    if (free.length) {
+      var aoa2 = [['Q#', 'Question', 'Type', 'Answered', 'Blank']];
+      free.forEach(function (r) { aoa2.push([r.qIdx + 1, r.qLabel, r.qType, r.answered, r.blank]); });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa2), 'Text_Number_Summary');
+    }
+    /* Sheet 3: store-level details */
+    var aoa3 = [['Q#', 'Question', 'Type', 'Store Code', 'Store Name', 'AM', 'ZFM', 'Answer']];
+    details.slice().sort(function (a, b) { return (a.qIdx - b.qIdx) || (a.storeCode || '').localeCompare(b.storeCode || ''); })
+      .forEach(function (d) { aoa3.push([d.qIdx + 1, d.qLabel, d.qType, d.storeCode, d.storeName, d.amName, d.zfmName, d.answer]); });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa3), 'Details');
+    XLSX.writeFile(wb, 'Dash_Question_Summary_' + toDateStr(new Date()) + '.xlsx');
+    toast('Excel downloaded (summary + details)');
   }
   function snapDashQSummary() {
     var src = $('dashQSummary'); if (!src || !src.querySelector('table')) { toast('Load question summary first'); return; }
@@ -5472,16 +5560,22 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (!ams.length) { box.innerHTML = '<div class="empty"><div class="empty-i">' + (pendOnly ? '✅' : '📭') + '</div><div class="empty-t">' + (pendOnly ? 'No pending / rejected AMs' : 'No stores in master') + '</div></div>'; return; }
     var byZ = {}, zName = {}; ams.forEach(function (a) { (byZ[a.zfm] = byZ[a.zfm] || []).push(a); zName[a.zfm] = a.zfmName || localPart(a.zfm); });
     var zkeys = Object.keys(byZ).sort(function (x, y) { return (zName[x] || '').localeCompare(zName[y] || ''); });
-    function cell(done, pr, total) { return '<td>' + pct(done, total) + '%</td><td class="pend">' + pr + ' (' + pct(pr, total) + '%)</td>'; }
+    /* Pending red only when > 0 */
+    function cell(done, pr, total) {
+      return '<td>' + pct(done, total) + '%</td><td' + (pr > 0 ? ' class="pend"' : '') + '>' + pr + ' (' + pct(pr, total) + '%)</td>';
+    }
     var picH = showPic ? '<th>Pic Recd St</th><th>Pic Done%</th><th>Pic Pending St (%)</th>' : '';
     var datH = showData ? '<th>Data Recd St</th><th>Data Done%</th><th>Data Pending St (%)</th>' : '';
     var valH = showVal ? '<th class="valok">AM Validated</th><th class="valpend">Val Pending (%)</th>' : '';
     var head = '<div class="tbl-wrap"><table class="amsum"><thead><tr><th class="grp">ZFM</th><th class="grp">AM</th><th>Total St</th>' + picH + datH + valH + '</tr></thead><tbody>';
     var body = '', gTot = 0, gPicR = 0, gPicD = 0, gPicP = 0, gDatR = 0, gDatD = 0, gDatP = 0, gVal = 0, gVPend = 0, gVRedo = 0, gVScope = 0;
-    function valCells(v, vp, vr, sc) {
+    /* AM Validated red when < total stores; Val Pending red when > 0 */
+    function valCells(v, vp, vr, sc, totalSt) {
       if (!showVal) return '';
-      return '<td class="valok">' + v + '</td>' +
-             '<td class="valpend">' + vp + ' (' + pct(vp, sc) + '%)' + (vr ? '<span class="small"> · ' + vr + ' re-do</span>' : '') + '</td>';
+      var low = v < totalSt;
+      var hot = vp > 0;
+      return '<td class="valok' + (low ? ' low' : '') + '">' + v + '</td>' +
+             '<td class="valpend' + (hot ? ' hot' : '') + '">' + vp + ' (' + pct(vp, sc) + '%)' + (vr ? '<span class="small"> · ' + vr + ' re-do</span>' : '') + '</td>';
     }
     zkeys.forEach(function (z) {
       var list = byZ[z].sort(function (a, b) { return (a.amName || '').localeCompare(b.amName || ''); });
@@ -5494,16 +5588,16 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         body += '<tr><td class="l" title="' + esc(z) + '">' + esc(zName[z]) + '</td><td class="l" title="' + esc(a.am) + '">' + esc(a.amName || localPart(a.am)) + '</td><td>' + a.total + '</td>' +
           (showPic ? ('<td>' + picR + '</td>' + cell(picD, picP, a.total)) : '') +
           (showData ? ('<td>' + datR + '</td>' + cell(datD, datP, a.total)) : '') +
-          valCells(a.amVal || 0, a.amValPend || 0, a.amRedo || 0, a.amScope || 0) + '</tr>';
+          valCells(a.amVal || 0, a.amValPend || 0, a.amRedo || 0, a.amScope || 0, a.total) + '</tr>';
       });
-      body += '<tr class="zfm-sub"><td class="l">' + esc(zName[z]) + ' — subtotal</td><td></td><td>' + zTot + '</td>' + (showPic ? ('<td>' + zPicR + '</td>' + cell(zPicD, zPicP, zTot)) : '') + (showData ? ('<td>' + zDatR + '</td>' + cell(zDatD, zDatP, zTot)) : '') + valCells(zVal, zVPend, zVRedo, zVScope) + '</tr>';
+      body += '<tr class="zfm-sub"><td class="l">' + esc(zName[z]) + ' — subtotal</td><td></td><td>' + zTot + '</td>' + (showPic ? ('<td>' + zPicR + '</td>' + cell(zPicD, zPicP, zTot)) : '') + (showData ? ('<td>' + zDatR + '</td>' + cell(zDatD, zDatP, zTot)) : '') + valCells(zVal, zVPend, zVRedo, zVScope, zTot) + '</tr>';
       gTot += zTot; gPicR += zPicR; gPicD += zPicD; gPicP += zPicP; gDatR += zDatR; gDatD += zDatD; gDatP += zDatP;
       gVal += zVal; gVPend += zVPend; gVRedo += zVRedo; gVScope += zVScope;
     });
     var grand = '<tr class="grand"><td class="l">GRAND TOTAL</td><td></td><td>' + gTot + '</td>' +
-      (showPic ? ('<td>' + gPicR + '</td><td>' + pct(gPicD, gTot) + '%</td><td class="pend">' + gPicP + ' (' + pct(gPicP, gTot) + '%)</td>') : '') +
-      (showData ? ('<td>' + gDatR + '</td><td>' + pct(gDatD, gTot) + '%</td><td class="pend">' + gDatP + ' (' + pct(gDatP, gTot) + '%)</td>') : '') +
-      (showVal ? ('<td class="valok">' + gVal + '</td><td class="valpend">' + gVPend + ' (' + pct(gVPend, gVScope) + '%)' + (gVRedo ? ' · ' + gVRedo + ' re-do' : '') + '</td>') : '') + '</tr>';
+      (showPic ? ('<td>' + gPicR + '</td><td>' + pct(gPicD, gTot) + '%</td><td' + (gPicP > 0 ? ' class="pend"' : '') + '>' + gPicP + ' (' + pct(gPicP, gTot) + '%)</td>') : '') +
+      (showData ? ('<td>' + gDatR + '</td><td>' + pct(gDatD, gTot) + '%</td><td' + (gDatP > 0 ? ' class="pend"' : '') + '>' + gDatP + ' (' + pct(gDatP, gTot) + '%)</td>') : '') +
+      (showVal ? ('<td class="valok' + (gVal < gTot ? ' low' : '') + '">' + gVal + '</td><td class="valpend' + (gVPend > 0 ? ' hot' : '') + '">' + gVPend + ' (' + pct(gVPend, gVScope) + '%)' + (gVRedo ? ' · ' + gVRedo + ' re-do' : '') + '</td>') : '') + '</tr>';
     box.innerHTML = head + grand + body + '</tbody></table></div>';
   }
   function exportAMSummaryXls() {
@@ -5584,12 +5678,18 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         c.style.background = c.classList.contains('grp') ? '#1565C0' : (c.classList.contains('valok') ? '#33691E' : '#0D47A1');
         c.style.color = '#fff'; c.style.fontWeight = '700';
       });
-      tbl.querySelectorAll('td.pend, td.valpend').forEach(function (c) { c.style.color = '#C62828'; c.style.fontWeight = '700'; c.style.background = c.closest('tr.grand') ? '#0D47A1' : (c.closest('tr.zfm-sub') ? '#E3F2FD' : '#ffffff'); });
-      tbl.querySelectorAll('td.valok').forEach(function (c) { c.style.color = '#1B5E20'; c.style.fontWeight = '700'; c.style.background = c.closest('tr.grand') ? '#0D47A1' : (c.closest('tr.zfm-sub') ? '#E3F2FD' : '#ffffff'); });
-      tbl.querySelectorAll('tr.grand td.pend, tr.grand td.valpend').forEach(function (c) { c.style.color = '#FFCDD2'; });
-      tbl.querySelectorAll('tr.grand td.valok').forEach(function (c) { c.style.color = '#C8E6C9'; });
+      tbl.querySelectorAll('td.pend').forEach(function (c) { c.style.color = '#C62828'; c.style.fontWeight = '700'; });
+      tbl.querySelectorAll('td.valpend.hot').forEach(function (c) { c.style.color = '#C62828'; c.style.fontWeight = '700'; c.style.background = '#ffffff'; });
+      tbl.querySelectorAll('td.valok').forEach(function (c) {
+        c.style.fontWeight = '700';
+        c.style.color = c.classList.contains('low') ? '#C62828' : '#1B5E20';
+        c.style.background = '#ffffff';
+      });
       tbl.querySelectorAll('tr.zfm-sub td').forEach(function (c) { c.style.background = '#E3F2FD'; c.style.fontWeight = '700'; });
-      tbl.querySelectorAll('tr.grand td').forEach(function (c) { if (!c.classList.contains('pend') && !c.classList.contains('valok') && !c.classList.contains('valpend')) { c.style.background = '#0D47A1'; c.style.color = '#fff'; } c.style.fontWeight = '700'; });
+      tbl.querySelectorAll('tr.zfm-sub td.valok, tr.zfm-sub td.valpend').forEach(function (c) { c.style.background = '#E3F2FD'; });
+      tbl.querySelectorAll('tr.grand td').forEach(function (c) { c.style.background = '#0D47A1'; c.style.fontWeight = '700'; if (!c.classList.contains('pend') && !c.classList.contains('valok') && !c.classList.contains('valpend')) c.style.color = '#fff'; });
+      tbl.querySelectorAll('tr.grand td.pend, tr.grand td.valpend.hot, tr.grand td.valok.low').forEach(function (c) { c.style.color = '#FFCDD2'; });
+      tbl.querySelectorAll('tr.grand td.valok:not(.low)').forEach(function (c) { c.style.color = '#C8E6C9'; });
     }
     var W = Math.max(wrap.scrollWidth, 1000), H = wrap.scrollHeight, sc = 3;
     if (W * H * sc * sc > 45000000) sc = 2.5;
