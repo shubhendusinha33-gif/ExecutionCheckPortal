@@ -5518,34 +5518,34 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function snapDashQSummary() {
     var src = $('dashQSummary'); if (!src || !src.querySelector('table')) { toast('Load question summary first'); return; }
     if (typeof html2canvas !== 'function') { toast('Snapshot tool still loading…'); return; }
-    loader(true, 'Capturing…');
+    loader(true, 'Capturing HD…');
     var meta = ($('dashQSumMeta') && $('dashQSumMeta').textContent) || '';
     var wrap = document.createElement('div');
-    wrap.style.cssText = 'position:fixed;left:-99999px;top:0;background:#ffffff;padding:28px 32px;display:inline-block;font-family:Roboto,Arial,sans-serif;color:#222';
-    wrap.innerHTML = '<div style="font-weight:800;font-size:20px;color:#1565C0;letter-spacing:.2px">VMM Exec Check — Question-wise Summary</div>' +
-      '<div style="font-size:13px;color:#555;margin:6px 0 16px">' + esc(meta) + ' · ' + esc(new Date().toLocaleString('en-IN')) + '</div>' +
+    // Full opacity required (html2canvas copies opacity → washout). Park under loader overlay.
+    wrap.style.cssText = 'position:fixed;left:0;top:0;z-index:1;pointer-events:none;background:#ffffff;padding:36px 40px;display:inline-block;font-family:Roboto,Arial,sans-serif;color:#222;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision';
+    wrap.innerHTML = '<div style="font-weight:800;font-size:26px;color:#1565C0;letter-spacing:.2px">VMM Exec Check — Question-wise Summary</div>' +
+      '<div style="font-size:15px;color:#555;margin:8px 0 18px">' + esc(meta) + ' · ' + esc(new Date().toLocaleString('en-IN')) + '</div>' +
       '<div id="dashQSnapHost"></div>';
     document.body.appendChild(wrap);
     var host = wrap.querySelector('#dashQSnapHost'); host.innerHTML = src.innerHTML;
     host.querySelectorAll('button.ho-num-link').forEach(function (b) {
-      var sp = document.createElement('span'); sp.textContent = b.textContent; sp.style.cssText = 'font-weight:800;color:#1565C0';
+      var sp = document.createElement('span'); sp.textContent = b.textContent; sp.style.cssText = 'font-weight:800;color:#1565C0;font-size:18px';
       b.parentNode.replaceChild(sp, b);
     });
     var tw = host.querySelector('.tbl-wrap'); if (tw) { tw.style.overflow = 'visible'; tw.style.maxWidth = 'none'; tw.style.width = 'auto'; }
     host.querySelectorAll('table').forEach(function (tbl) {
-      tbl.style.fontSize = '15px'; tbl.style.borderCollapse = 'collapse';
-      tbl.querySelectorAll('th,td').forEach(function (c) { c.style.padding = '11px 14px'; c.style.border = '1px solid #cfd8dc'; c.style.whiteSpace = 'nowrap'; c.style.fontSize = '15px'; });
-      tbl.querySelectorAll('th').forEach(function (c) { c.style.background = '#1565C0'; c.style.color = '#fff'; c.style.fontWeight = '700'; });
+      tbl.style.fontSize = '18px'; tbl.style.borderCollapse = 'collapse';
+      tbl.querySelectorAll('th,td').forEach(function (c) { c.style.padding = '13px 16px'; c.style.border = '1px solid #cfd8dc'; c.style.whiteSpace = 'nowrap'; c.style.fontSize = '18px'; c.style.lineHeight = '1.45'; });
+      tbl.querySelectorAll('th').forEach(function (c) { c.style.background = '#1565C0'; c.style.color = '#fff'; c.style.fontWeight = '700'; c.style.fontSize = '17px'; });
     });
-    var W = Math.max(wrap.scrollWidth, 900), H = wrap.scrollHeight, sc = 3;
-    if (W * H * sc * sc > 40000000) sc = 2.5;
-    html2canvas(wrap, { backgroundColor: '#ffffff', scale: sc, useCORS: true, allowTaint: true, logging: false, width: W, height: H, windowWidth: W, imageTimeout: 0 }).then(function (canvas) {
-      document.body.removeChild(wrap); loader(false);
+    void wrap.offsetHeight;
+    var W = Math.max(wrap.scrollWidth, wrap.offsetWidth, 900), H = Math.max(wrap.scrollHeight, wrap.offsetHeight, 300);
+    var sc = typeof snapBestScale === 'function' ? snapBestScale(W, H, 4) : 3;
+    html2canvas(wrap, { backgroundColor: '#ffffff', scale: sc, useCORS: true, allowTaint: true, logging: false, width: W, height: H, windowWidth: W, windowHeight: H, scrollX: 0, scrollY: 0, imageTimeout: 0 }).then(function (canvas) {
+      try { document.body.removeChild(wrap); } catch (x) { } loader(false);
       canvas.toBlob(function (blob) {
-        if (!blob) { toast('Snapshot failed'); return; }
-        var fname = 'VMM_Dash_Q_Summary_' + toDateStr(new Date()) + '.png';
-        try { if (navigator.clipboard && window.ClipboardItem) { navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(function () { toast('📸 Copied — paste into WhatsApp/Mail'); }).catch(function () { dlBlob(blob, fname); }); return; } } catch (e) { }
-        dlBlob(blob, fname);
+        if (typeof deliverHdPng === 'function') deliverHdPng(blob, 'VMM_Dash_Q_Summary_HD_' + toDateStr(new Date()) + '.png', true);
+        else dlBlob(blob, 'VMM_Dash_Q_Summary_HD_' + toDateStr(new Date()) + '.png');
       }, 'image/png');
     }).catch(function (e) { try { document.body.removeChild(wrap); } catch (x) { } loader(false); toast('Capture failed: ' + e.message); });
   }
@@ -5654,49 +5654,111 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     setTimeout(function () { if (!done) { done = true; go(); } }, 2500);   // safety
   }
   function dlBlob(blob, fname) { var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(a.href); }, 6000); toast('📥 Image downloaded'); }
+  /* HD PNG deliver: always download full-res (clipboard/WhatsApp compresses and blurs). */
+  function deliverHdPng(blob, fname, alsoCopy) {
+    if (!blob) { toast('Snapshot failed'); return; }
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 6000);
+    if (!alsoCopy) { toast('📥 HD PNG downloaded'); return; }
+    try {
+      if (navigator.clipboard && window.ClipboardItem) {
+        navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(function () {
+          toast('📥 HD PNG downloaded (+ copied). Share the file for sharp text.');
+        }).catch(function () { toast('📥 HD PNG downloaded'); });
+        return;
+      }
+    } catch (e) { }
+    toast('📥 HD PNG downloaded');
+  }
+  /* Pick highest scale that stays under browser canvas limits (avoids soft/downscaled captures). */
+  function snapBestScale(W, H, prefer) {
+    var maxSide = 8192, maxArea = 68000000, sc = prefer || 4;
+    while (sc > 1.5) {
+      if (W * sc <= maxSide && H * sc <= maxSide && W * H * sc * sc <= maxArea) return Math.round(sc * 100) / 100;
+      sc -= 0.25;
+    }
+    return 1.5;
+  }
   function snapSummary() {
     var src = $('amSummary'); if (!src || !src.querySelector('table')) { toast('Open Dashboard first to build the summary'); return; }
     if (typeof html2canvas !== 'function') { toast('Snapshot tool still loading…'); return; }
-    loader(true, 'Capturing…');
+    loader(true, 'Capturing HD…');
     var meta = ($('amSumMeta') && $('amSumMeta').textContent) || '';
     var wrap = document.createElement('div');
-    // Sharp snapshot: larger type + padding + high scale (avoid browser downscale blur)
-    wrap.style.cssText = 'position:fixed;left:-99999px;top:0;background:#ffffff;padding:32px 36px;display:inline-block;font-family:Roboto,Arial,sans-serif;color:#222;-webkit-font-smoothing:antialiased';
-    wrap.innerHTML = '<div style="font-weight:800;font-size:22px;color:#1565C0;letter-spacing:.2px">VMM Execution — ZFM → AM Compliance</div>' +
-      '<div style="font-size:14px;color:#555;margin:8px 0 18px">' + esc(meta) + ' · ' + esc(new Date().toLocaleString('en-IN')) + '</div>' +
+    // Full opacity required (html2canvas copies opacity → washout/blank). Park under loader overlay.
+    wrap.style.cssText = 'position:fixed;left:0;top:0;z-index:1;pointer-events:none;background:#ffffff;padding:40px 44px;display:inline-block;font-family:Roboto,Arial,sans-serif;color:#222;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision';
+    wrap.innerHTML = '<div style="font-weight:800;font-size:28px;color:#1565C0;letter-spacing:.2px;line-height:1.25">VMM Execution — ZFM → AM Compliance</div>' +
+      '<div style="font-size:16px;color:#555;margin:10px 0 22px;line-height:1.4">' + esc(meta) + ' · ' + esc(new Date().toLocaleString('en-IN')) + '</div>' +
       '<div id="snapTblHost"></div>';
     document.body.appendChild(wrap);
     var host = wrap.querySelector('#snapTblHost'); host.innerHTML = src.innerHTML;
     var tw = host.querySelector('.tbl-wrap'); if (tw) { tw.style.overflow = 'visible'; tw.style.maxWidth = 'none'; tw.style.width = 'auto'; }
     var tbl = host.querySelector('table');
     if (tbl) {
-      tbl.style.fontSize = '15px'; tbl.style.borderCollapse = 'collapse'; tbl.style.width = 'auto';
+      tbl.classList.remove('amsum'); // avoid page CSS (13–14px) fighting capture styles
+      tbl.style.cssText = 'border-collapse:collapse;width:auto;font-size:18px;font-family:Roboto,Arial,sans-serif';
       tbl.querySelectorAll('th,td').forEach(function (c) {
-        c.style.padding = '11px 14px'; c.style.border = '1px solid #cfd8dc'; c.style.whiteSpace = 'nowrap';
-        c.style.fontSize = '15px'; c.style.lineHeight = '1.4'; c.style.letterSpacing = '0';
+        c.style.padding = '14px 18px';
+        c.style.border = '1px solid #cfd8dc';
+        c.style.whiteSpace = 'nowrap';
+        c.style.fontSize = '18px';
+        c.style.lineHeight = '1.45';
+        c.style.letterSpacing = '0';
+        c.style.fontFamily = 'Roboto,Arial,sans-serif';
+        c.style.webkitFontSmoothing = 'antialiased';
       });
       tbl.querySelectorAll('th').forEach(function (c) {
         c.style.background = c.classList.contains('grp') ? '#1565C0' : (c.classList.contains('valok') ? '#33691E' : '#0D47A1');
-        c.style.color = '#fff'; c.style.fontWeight = '700';
+        c.style.color = '#fff'; c.style.fontWeight = '700'; c.style.fontSize = '17px';
       });
       tbl.querySelectorAll('td.pend, td.valpend, td.valwarn').forEach(function (c) { c.style.color = '#C62828'; c.style.fontWeight = '700'; c.style.background = c.closest('tr.grand') ? '#0D47A1' : (c.closest('tr.zfm-sub') ? '#E3F2FD' : '#ffffff'); });
       tbl.querySelectorAll('td.valok').forEach(function (c) { c.style.color = '#1B5E20'; c.style.fontWeight = '700'; c.style.background = c.closest('tr.grand') ? '#0D47A1' : (c.closest('tr.zfm-sub') ? '#E3F2FD' : '#ffffff'); });
       tbl.querySelectorAll('tr.grand td.pend, tr.grand td.valpend, tr.grand td.valwarn').forEach(function (c) { c.style.color = '#FFCDD2'; });
       tbl.querySelectorAll('tr.grand td.valok').forEach(function (c) { c.style.color = '#C8E6C9'; });
-      tbl.querySelectorAll('tr.zfm-sub td').forEach(function (c) { c.style.background = '#E3F2FD'; c.style.fontWeight = '700'; });
+      tbl.querySelectorAll('tr.zfm-sub td').forEach(function (c) { c.style.background = '#E3F2FD'; c.style.fontWeight = '700'; c.style.color = '#0D47A1'; });
       tbl.querySelectorAll('tr.grand td').forEach(function (c) { if (!c.classList.contains('pend') && !c.classList.contains('valok') && !c.classList.contains('valpend') && !c.classList.contains('valwarn')) { c.style.background = '#0D47A1'; c.style.color = '#fff'; } c.style.fontWeight = '700'; });
     }
-    var W = Math.max(wrap.scrollWidth, 1000), H = wrap.scrollHeight, sc = 3;
-    if (W * H * sc * sc > 45000000) sc = 2.5;
-    if (W * H * sc * sc > 55000000) sc = 2;
-    html2canvas(wrap, { backgroundColor: '#ffffff', scale: sc, useCORS: true, allowTaint: true, logging: false, width: W, height: H, windowWidth: W, imageTimeout: 0 }).then(function (canvas) {
-      document.body.removeChild(wrap); loader(false);
-      canvas.toBlob(function (blob) {
-        if (!blob) { toast('Snapshot failed'); return; }
-        var fname = 'VMM_Exec_AM_Summary_' + toDateStr(new Date()) + '.png';
-        try { if (navigator.clipboard && window.ClipboardItem) { navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(function () { toast('📸 Copied — paste into WhatsApp/Mail'); }).catch(function () { dlBlob(blob, fname); }); return; } } catch (e) { }
-        dlBlob(blob, fname);
-      }, 'image/png');
+    // Force layout before measure
+    void wrap.offsetHeight;
+    var W = Math.max(wrap.scrollWidth, wrap.offsetWidth, 1100);
+    var H = Math.max(wrap.scrollHeight, wrap.offsetHeight, 400);
+    var sc = snapBestScale(W, H, 4);
+    html2canvas(wrap, {
+      backgroundColor: '#ffffff',
+      scale: sc,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      width: W,
+      height: H,
+      windowWidth: W,
+      windowHeight: H,
+      scrollX: 0,
+      scrollY: 0,
+      imageTimeout: 0,
+      onclone: function (doc) {
+        var el = doc.getElementById('snapTblHost');
+        if (!el) return;
+        el.querySelectorAll('th,td').forEach(function (c) {
+          c.style.fontSize = c.tagName === 'TH' ? '17px' : '18px';
+          c.style.webkitFontSmoothing = 'antialiased';
+        });
+      }
+    }).then(function (canvas) {
+      try { document.body.removeChild(wrap); } catch (x) { }
+      loader(false);
+      // Prefer lossless PNG; never JPEG (WhatsApp paste path already softens clipboard images)
+      if (canvas.toBlob) {
+        canvas.toBlob(function (blob) {
+          deliverHdPng(blob, 'VMM_Exec_AM_Summary_HD_' + toDateStr(new Date()) + '.png', true);
+        }, 'image/png');
+      } else {
+        var data = canvas.toDataURL('image/png');
+        var a = document.createElement('a'); a.href = data; a.download = 'VMM_Exec_AM_Summary_HD_' + toDateStr(new Date()) + '.png';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        toast('📥 HD PNG downloaded');
+      }
     }).catch(function (e) { try { document.body.removeChild(wrap); } catch (x) { } loader(false); toast('Capture failed: ' + e.message); });
   }
   function drawBar(id, label, labels, data, color) { var c = $(id); if (!c || typeof Chart === 'undefined') return; if (_charts[id]) _charts[id].destroy(); if (!labels.length) { c.getContext('2d').clearRect(0, 0, c.width, c.height); return; } _charts[id] = new Chart(c.getContext('2d'), { type: 'bar', data: { labels: labels, datasets: [{ label: label, data: data, backgroundColor: color }] }, options: { responsive: true, plugins: { legend: { display: false }, title: { display: true, text: label } }, scales: { y: { beginAtZero: true } } } }); }
