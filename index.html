@@ -3013,22 +3013,48 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       subTs: o.ts || ''
     };
   }
-  function extractHOIssuesFromSub(subj, o, stores, solMap, deptFilter, subDocId) {
+    function extractHOIssuesFromSub(subj, o, stores, solMap, deptFilter, subDocId) {
     var qs = subj.questions || [], issues = [];
     var ansMap = ansMapFromSub(o);
     var path = visiblePathForSub(qs, ansMap);
-    path.forEach(function (qIdx) {
-      var q = qs[qIdx] || {}, a = ansMap[qIdx];
-      if (!a) return;
-      if (!qFlagHo(q, a)) return;
+    var i = 0;
+    while (i < path.length) {
+      var qIdx = path[i], q = qs[qIdx] || {}, a = ansMap[qIdx];
+      if (!a || !qFlagHo(q, a)) { i++; continue; }
       var deptOn = !!(a.deptOn || q.deptOn);
       var dept = a.dept || q.dept || '';
-      if (!deptOn || !dept) return;
-      if (deptFilter && normDept(dept) !== normDept(deptFilter)) return;
-      if (!isHoIssueAnswer(q, a.value)) return;
-      var details = collectHoFollowUps(qs, ansMap, path, qIdx);
-      issues.push(buildHoIssueFromAnswer(subj, o, stores, solMap, qIdx, q, a, details, subDocId));
-    });
+      if (!deptOn || !dept) { i++; continue; }
+      /* Cluster: merge immediately-following Flag-to-HO questions that share this
+         same department into ONE combined issue (e.g. "how many NOT working" +
+         "provide open issue nos", both flagged, same dept -> one row for the
+         store, not two). Only the first (primary) member decides whether it's
+         an issue; the rest become follow-up detail lines, same as unflagged
+         follow-ups always have been. */
+      var clusterEnd = i;
+      for (var j = i + 1; j < path.length; j++) {
+        var nq = qs[path[j]] || {}, na = ansMap[path[j]];
+        if (!na) break;
+        var nDeptOn = !!(na.deptOn || nq.deptOn);
+        var nDept = na.dept || nq.dept || '';
+        if (qFlagHo(nq, na) && nDeptOn && normDept(nDept) === normDept(dept)) clusterEnd = j;
+        else break;
+      }
+      if (deptFilter && normDept(dept) !== normDept(deptFilter)) { i = clusterEnd + 1; continue; }
+      if (isHoIssueAnswer(q, a.value)) {
+        var details = [];
+        for (var k = i + 1; k <= clusterEnd; k++) {
+          var sqIdx = path[k], sq = qs[sqIdx] || {}, sa = ansMap[sqIdx];
+          if (!sa) continue;
+          var sv = String(sa.value == null ? '' : sa.value).trim();
+          var sr = String(sa.remark || '').trim();
+          if (!sv && !sr) continue;
+          details.push({ qIdx: sqIdx, qLabel: sa.label || sq.label || ('Q' + (sqIdx + 1)), answer: sa.value || '', remark: sa.remark || '' });
+        }
+        details = details.concat(collectHoFollowUps(qs, ansMap, path, path[clusterEnd]));
+        issues.push(buildHoIssueFromAnswer(subj, o, stores, solMap, qIdx, q, a, details, subDocId));
+      }
+      i = clusterEnd + 1;
+    }
     return issues;
   }
   function hoSolId(subjectId, storeCode, qIdx) { return String(subjectId || '') + '__' + String(storeCode || '') + '__q' + String(qIdx); }
