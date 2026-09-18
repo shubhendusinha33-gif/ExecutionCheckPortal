@@ -522,7 +522,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     </div>
     <div id="loginErr" class="small" style="color:var(--red);margin-bottom:8px;display:none"></div>
     <button class="btn btn-pink btn-lg btn-full" id="btnContinue">Continue →</button>
-    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v28 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v29 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
   </div>
 </div>
 
@@ -1649,7 +1649,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
      Identity is unknown at consent time by design, so it is back-filled on the
      first login from this device (e.g. HH01_SUMIT_6115513).
      ========================================================================== */
-  var APP_VERSION = 'v28';
+  var APP_VERSION = 'v29';
   var CONSENT_KEY = 'vmm_exec_consent_v22';
   var POLICY_KEY = 'vmm_exec_policy_v22';
   var DEVICE_KEY = 'vmm_exec_device_id';
@@ -2946,7 +2946,10 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (pos < 0) return details;
     for (var i = pos + 1; i < path.length; i++) {
       var qi = path[i], q = qs[qi] || {}, a = ansMap[qi];
-      if (qFlagHo(q, a)) break;
+      /* v29: only a flagged status-type question (choice/dropdown/multi) ends the
+         run — a flagged detail-type question (number/text/para/…) is folded in
+         as another detail line here, same as an unflagged one. */
+      if (qFlagHo(q, a) && !qIsTextish(q.type)) break;
       if (!a) continue;
       var v = String(a.value == null ? '' : a.value).trim();
       var r = String(a.remark || '').trim();
@@ -3025,14 +3028,25 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       var dept = a.dept || q.dept || '';
       if (!deptOn || !dept) { i++; continue; }
       if (deptFilter && normDept(dept) !== normDept(deptFilter)) { i++; continue; }
-      /* v28 fix: each Flag-to-HO question is evaluated and reported INDEPENDENTLY.
-         A "Working" (non-issue) answer next to a "Not Working" one on the same
-         department must never be merged into that issue's follow-up detail —
-         only genuinely negative answers become issues, and only true unflagged
-         narrative follow-ups (open issue numbers / remarks) attach to them. */
+      /* v29 fix: a flagged CHOICE/DROPDOWN/MULTI question is a genuine status check
+         (DG Working?, Pinelabs working? …) and always stands as its OWN issue —
+         these never merge with each other even in the same department (that was
+         the v27 bug). A flagged NUMBER/TEXT/PARA/EMAIL/PHONE/DATE/TIME question is
+         detail, not a new status check (how many NOT working, provide issue nos…),
+         so it always folds into the issue right before it — collectHoFollowUps
+         below only stops at the next non-textish (status-type) flagged question.
+         It becomes its own row only when nothing precedes it (first in the run). */
       if (isHoIssueAnswer(q, a.value)) {
+        var runEnd = i;
+        for (var j = i + 1; j < path.length; j++) {
+          var nq = qs[path[j]] || {}, na = ansMap[path[j]];
+          if (qFlagHo(nq, na) && !qIsTextish(nq.type)) break;
+          runEnd = j;
+        }
         var details = collectHoFollowUps(qs, ansMap, path, qIdx);
         issues.push(buildHoIssueFromAnswer(subj, o, stores, solMap, qIdx, q, a, details, subDocId));
+        i = runEnd + 1;
+        continue;
       }
       i++;
     }
