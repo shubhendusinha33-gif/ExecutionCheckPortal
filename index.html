@@ -522,7 +522,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     </div>
     <div id="loginErr" class="small" style="color:var(--red);margin-bottom:8px;display:none"></div>
     <button class="btn btn-pink btn-lg btn-full" id="btnContinue">Continue →</button>
-    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v27 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v28 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
   </div>
 </div>
 
@@ -1649,7 +1649,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
      Identity is unknown at consent time by design, so it is back-filled on the
      first login from this device (e.g. HH01_SUMIT_6115513).
      ========================================================================== */
-  var APP_VERSION = 'v27';
+  var APP_VERSION = 'v28';
   var CONSENT_KEY = 'vmm_exec_consent_v22';
   var POLICY_KEY = 'vmm_exec_policy_v22';
   var DEVICE_KEY = 'vmm_exec_device_id';
@@ -3024,36 +3024,17 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       var deptOn = !!(a.deptOn || q.deptOn);
       var dept = a.dept || q.dept || '';
       if (!deptOn || !dept) { i++; continue; }
-      /* Cluster: merge immediately-following Flag-to-HO questions that share this
-         same department into ONE combined issue (e.g. "how many NOT working" +
-         "provide open issue nos", both flagged, same dept -> one row for the
-         store, not two). Only the first (primary) member decides whether it's
-         an issue; the rest become follow-up detail lines, same as unflagged
-         follow-ups always have been. */
-      var clusterEnd = i;
-      for (var j = i + 1; j < path.length; j++) {
-        var nq = qs[path[j]] || {}, na = ansMap[path[j]];
-        if (!na) break;
-        var nDeptOn = !!(na.deptOn || nq.deptOn);
-        var nDept = na.dept || nq.dept || '';
-        if (qFlagHo(nq, na) && nDeptOn && normDept(nDept) === normDept(dept)) clusterEnd = j;
-        else break;
-      }
-      if (deptFilter && normDept(dept) !== normDept(deptFilter)) { i = clusterEnd + 1; continue; }
+      if (deptFilter && normDept(dept) !== normDept(deptFilter)) { i++; continue; }
+      /* v28 fix: each Flag-to-HO question is evaluated and reported INDEPENDENTLY.
+         A "Working" (non-issue) answer next to a "Not Working" one on the same
+         department must never be merged into that issue's follow-up detail —
+         only genuinely negative answers become issues, and only true unflagged
+         narrative follow-ups (open issue numbers / remarks) attach to them. */
       if (isHoIssueAnswer(q, a.value)) {
-        var details = [];
-        for (var k = i + 1; k <= clusterEnd; k++) {
-          var sqIdx = path[k], sq = qs[sqIdx] || {}, sa = ansMap[sqIdx];
-          if (!sa) continue;
-          var sv = String(sa.value == null ? '' : sa.value).trim();
-          var sr = String(sa.remark || '').trim();
-          if (!sv && !sr) continue;
-          details.push({ qIdx: sqIdx, qLabel: sa.label || sq.label || ('Q' + (sqIdx + 1)), answer: sa.value || '', remark: sa.remark || '' });
-        }
-        details = details.concat(collectHoFollowUps(qs, ansMap, path, path[clusterEnd]));
+        var details = collectHoFollowUps(qs, ansMap, path, qIdx);
         issues.push(buildHoIssueFromAnswer(subj, o, stores, solMap, qIdx, q, a, details, subDocId));
       }
-      i = clusterEnd + 1;
+      i++;
     }
     return issues;
   }
