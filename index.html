@@ -522,7 +522,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     </div>
     <div id="loginErr" class="small" style="color:var(--red);margin-bottom:8px;display:none"></div>
     <button class="btn btn-pink btn-lg btn-full" id="btnContinue">Continue →</button>
-    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v30 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v31 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
   </div>
 </div>
 
@@ -882,6 +882,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
                 <button class="btn btn-outline btn-sm" id="btnQExport">⬇ Export current</button>
                 <button class="btn btn-sm btn-blue" id="btnSmartFlags" title="choice/dropdown = Flag ON; text follow-ups = Flag OFF">⚡ Apply smart Flag defaults</button>
               </div>
+              <div class="form-group" style="margin-bottom:12px;padding:8px 10px;background:#F3E5F5;border:1px solid #CE93D8;border-radius:8px">
+                <div class="small" style="margin-bottom:6px"><b>📎 Store Reference Data (optional)</b> — one upload for this whole subject. Excel: <b>Col A = St Cd</b> (row 1 = header), each column after that is a reference field (e.g. Registered Capacity, License No). A question below can show one of these fields inline for the store's own code via <b>🔎 Reference Check</b>.</div>
+                <label class="btn btn-purple btn-sm" style="cursor:pointer">⬆ Upload reference data<input type="file" id="btnRefUp" accept=".xlsx,.xls" style="display:none"></label>
+                <button class="btn btn-outline btn-sm" id="btnRefClear" type="button" style="margin-left:6px">✕ Clear</button>
+                <div class="small text2" id="refStatus" style="margin-top:6px"></div>
+              </div>
               <div class="grid-2">
                 <div class="form-group"><label class="form-label">Question type</label><select class="form-control" id="qType">
                   <option value="text">Short answer</option><option value="para">Paragraph</option><option value="number">Number</option><option value="email">Email</option><option value="phone">Phone</option><option value="date">Date</option><option value="time">Time</option><option value="choice">Single choice (radio)</option><option value="multi">Multiple choice (checkbox)</option><option value="dropdown">Dropdown</option><option value="rating">Rating (1–5 stars)</option><option value="physcount">Physical Count Check</option><option value="livepic">Live Picture (camera only)</option>
@@ -895,6 +901,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
               <label class="flex center gap" style="margin-bottom:8px"><span class="tgl"><input type="checkbox" id="qRemarks"><span class="tgl-sl"></span></span><span class="small"><b>Remarks box</b> — adds a free-text remarks box under this question</span></label>
               <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qDeptOn"><span class="tgl-sl"></span></span><span class="small"><b>Department</b> — Y/N · tag this question to an HO dept</span></label>
               <div class="form-group" id="qDeptWrap" style="display:none;margin-bottom:8px"><select class="form-control" id="qDept"><option value="">— Select department —</option></select><div class="small text3" style="margin-top:4px">Manage list under <b>Departments</b> in the sidebar.</div></div>
+              <label class="flex center gap" style="margin-bottom:6px;padding:8px 10px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:8px"><span class="tgl"><input type="checkbox" id="qRefOn"><span class="tgl-sl"></span></span><span class="small"><b style="color:#2E7D32">🔎 Reference Check</b> — show this store's reference value inline above this question (needs Store Reference Data uploaded above). Pair with type <b>Single choice</b> options like <b>Correct,Not Correct</b>, then use Branching so "Not Correct" jumps to a follow-up "What should it be?" question.</span></label>
+              <div class="form-group" id="qRefWrap" style="display:none;margin-bottom:8px"><select class="form-control" id="qRefField"><option value="">— Select reference field —</option></select></div>
               <label class="flex center gap" style="margin-bottom:6px;padding:8px 10px;background:#FFF3E0;border:1px solid #FFB74D;border-radius:8px"><span class="tgl"><input type="checkbox" id="qFlagHo"><span class="tgl-sl"></span></span><span class="small"><b style="color:#E65100">🚩 Flag to HO</b> — Y = this question creates an HO issue. For branched “open issue details” text → leave <b>OFF</b> (attaches under parent as 1 issue).</span></label>
               <div class="form-group" id="qMergeWrap" style="display:none;margin-bottom:8px;padding:8px 10px;background:#E3F2FD;border:1px solid #90CAF9;border-radius:8px">
                 <div class="small" style="margin-bottom:6px"><b>🔗 Merge with questions</b> — pick later questions whose answers show as columns under THIS issue instead of their own row.</div>
@@ -1654,7 +1662,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
      Identity is unknown at consent time by design, so it is back-filled on the
      first login from this device (e.g. HH01_SUMIT_6115513).
      ========================================================================== */
-  var APP_VERSION = 'v30';
+  var APP_VERSION = 'v31';
   var CONSENT_KEY = 'vmm_exec_consent_v22';
   var POLICY_KEY = 'vmm_exec_policy_v22';
   var DEVICE_KEY = 'vmm_exec_device_id';
@@ -2320,7 +2328,15 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       else if (q.type === 'multi') body = (q.options || []).map(function (o) { return '<label class="ms-opt"><input type="checkbox" class="q-inp" data-i="' + i + '" value="' + esc(o) + '"> ' + esc(o) + '</label>'; }).join('');
       else if (q.type === 'rating') { body = '<div class="ms-stars" data-i="' + i + '"><input type="hidden" class="q-inp" data-i="' + i + '" value="">'; for (var s = 1; s <= 5; s++) body += '<span class="ms-star" data-v="' + s + '">★</span>'; body += '</div>'; }
       else if (q.type === 'physcount') body = '<div class="fd-box" style="margin:0"><div class="fd-g"><div><div class="fd-l">System</div><div class="fd-ro">' + esc(q.sys) + '</div></div><div><div class="fd-l">Physical</div><input class="fd-i q-inp" inputmode="numeric" data-i="' + i + '" data-sys="' + esc(q.sys) + '"></div></div><div class="fd-l" style="margin-top:7px" id="pcres' + i + '">Diff – · Diff% –</div></div>';
-      card.innerHTML = title + body; host.appendChild(card);
+      // v31 — Reference Check: show this store's uploaded reference value inline.
+      // Reads only from subj.refData already held in memory — no extra Firestore call, never blocks the form.
+      var refBox = '';
+      if (q.refOn && q.refField && subj.refData && subj.refData.byStore) {
+        var refRec = subj.refData.byStore[(S.storeCode || '').toString().trim().toUpperCase()];
+        var refVal = (refRec && refRec[q.refField] != null) ? refRec[q.refField] : '';
+        if (refVal !== '') refBox = '<div class="small" style="margin:4px 0 8px;padding:6px 10px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:8px"><b>Reference — ' + esc(q.refField) + ':</b> ' + esc(refVal) + '</div>';
+      }
+      card.innerHTML = title + refBox + body; host.appendChild(card);
       if (q.remarks) { var rc = document.createElement('div'); rc.className = 'ms-q'; rc.setAttribute('data-qi', i); rc.innerHTML = '<div class="ms-q-t small text2"><span class="qn-chip rem">Q' + qNo + '</span><span class="qn-txt">📝 Remarks — ' + esc(q.label) + '</span></div><textarea class="ms-in q-rem" data-i="' + i + '" placeholder="Add remarks (optional)"></textarea>'; host.appendChild(rc); }
       if (q.type === 'livepic') { var pb = card.querySelector('.q-picbtn'); if (pb) pb.addEventListener('click', function () { openQCam(Number(this.getAttribute('data-i')), host, q.label); }); }
       if (q.type === 'number') { var ninp = card.querySelector('.q-inp'), nerr = card.querySelector('.ms-rangeerr'); if (ninp) ninp.addEventListener('input', function () { var mn = this.getAttribute('data-min'), mx = this.getAttribute('data-max'), v = this.value, num = Number(v); var bad = v !== '' && (isNaN(num) || (mn != null && num < Number(mn)) || (mx != null && num > Number(mx))); if (nerr) { nerr.style.display = bad ? 'block' : 'none'; nerr.textContent = bad ? ('Enter a number' + (mn != null && mx != null ? ' between ' + mn + ' and ' + mx : (mn != null ? ' ≥ ' + mn : ' ≤ ' + mx))) : ''; } this.style.borderColor = bad ? 'var(--red)' : ''; }); }
@@ -2348,6 +2364,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         if (!visSet[k]) continue;   // skipped by branching — do not require / do not save
         var q = qs[k], entry = { label: q.label, type: q.type, required: !!q.required, qIdx: k }, val = '';
         if (q.deptOn) { entry.deptOn = true; entry.dept = q.dept || ''; }
+        if (q.refOn && q.refField) { entry.refOn = true; entry.refField = q.refField; var rrec = (subj.refData && subj.refData.byStore && subj.refData.byStore[(S.storeCode || '').toString().trim().toUpperCase()]) || null; entry.refValue = (rrec && rrec[q.refField] != null) ? rrec[q.refField] : ''; }
         entry.flagHo = qFlagHo(q);
         if (q.type === 'choice') { var rsel = host.querySelector('input[name="q' + k + '"]:checked'); val = rsel ? rsel.value : ''; entry.value = val; }
         else if (q.type === 'multi') { var cks = host.querySelectorAll('input[type="checkbox"][data-i="' + k + '"]:checked'), vals = []; for (var m = 0; m < cks.length; m++) vals.push(cks[m].value); entry.values = vals; entry.value = vals.join(', '); val = vals.length ? 'x' : ''; }
@@ -2391,7 +2408,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         var val = a.value;
         if (a.type === 'physcount') val = 'Phy ' + a.value + ' · Diff ' + a.diff + ' · ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%';
         var vHtml = (a.type === 'livepic' && a.photo) ? '<img src="' + a.photo + '" style="width:100%;max-width:260px;border-radius:8px;margin-top:6px">' : esc(val || '—');
-        return '<div class="ms-q" style="margin-bottom:8px"><div class="ms-q-t">' + esc(a.label) + '</div><div>' + vHtml + '</div>' + (a.remark ? '<div class="small" style="color:#1565C0;margin-top:4px">📝 ' + esc(a.remark) + '</div>' : '') + '</div>';
+        return '<div class="ms-q" style="margin-bottom:8px"><div class="ms-q-t">' + esc(a.label) + '</div>' + (a.refOn ? '<div class="small" style="color:#2E7D32;margin-bottom:4px">🔎 Reference (' + esc(a.refField || '') + '): ' + esc(a.refValue || '—') + '</div>' : '') + '<div>' + vHtml + '</div>' + (a.remark ? '<div class="small" style="color:#1565C0;margin-top:4px">📝 ' + esc(a.remark) + '</div>' : '') + '</div>';
       }).join('');
     }
     $('ovDetailBody').innerHTML = h;
@@ -2632,7 +2649,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         if (a.type === 'physcount') val = 'Phy ' + a.value + ' · Diff ' + a.diff + ' · ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%';
         var vHtml = (a.type === 'livepic' && a.photo) ? '<img src="' + a.photo + '" style="width:100%;max-width:260px;border-radius:8px;margin-top:6px">' : esc(val || '—');
         var c = document.createElement('div'); c.className = 'ms-q';
-        c.innerHTML = '<div class="ms-q-t"><span class="qn-chip">Q' + (i + 1) + '</span><span class="qn-txt">' + esc(a.label) + '</span></div><div>' + vHtml + '</div>' + (a.remark ? '<div class="small" style="color:#1565C0;margin-top:4px">📝 ' + esc(a.remark) + '</div>' : '');
+        c.innerHTML = '<div class="ms-q-t"><span class="qn-chip">Q' + (i + 1) + '</span><span class="qn-txt">' + esc(a.label) + '</span></div>' + (a.refOn ? '<div class="small" style="color:#2E7D32;margin-bottom:4px">🔎 Reference (' + esc(a.refField || '') + '): ' + esc(a.refValue || '—') + '</div>' : '') + '<div>' + vHtml + '</div>' + (a.remark ? '<div class="small" style="color:#1565C0;margin-top:4px">📝 ' + esc(a.remark) + '</div>' : '');
         host.appendChild(c);
       });
       return;
@@ -4174,7 +4191,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     $('newSubjType').value = o.type || 'pic'; toggleSubjType();
     if (o.scope === 'select' && (o.storeList || []).length) { $('scopeToggle').checked = true; _scopeStores = o.storeList.slice(); } else { $('scopeToggle').checked = false; _scopeStores = null; }
     toggleScope(); if (_scopeStores) $('scopeStatus').textContent = 'Editing: ' + _scopeStores.length + ' store code(s).';
-    _picShots = [{ label: '', sample: '', note: '' }]; _openQs = []; _hoData = null; _hoDescLabels = null; _activeShot = 0;
+    _picShots = [{ label: '', sample: '', note: '' }]; _openQs = []; _hoData = null; _hoDescLabels = null; _refData = null; _activeShot = 0;
+    if ($('refStatus')) $('refStatus').textContent = '';
     if (o.type === 'pic') {
       var vws = (o.views && o.views.length) ? o.views : null;
       if (vws) { _picShots = vws.map(function (v, i) { return { label: v.label || ('Photo ' + (i + 1)), sample: v.sample || ((o.samples || [])[i]) || '', note: v.note || '' }; }); }
@@ -4187,7 +4205,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     } else {
       $('newDataMode').value = o.dataMode || 'open'; toggleDataMode();
       if (o.dataMode === 'sysphy') { _hoData = o.hoData || null; _hoDescLabels = o.descLabels || []; if (_hoData) $('hoStatus').textContent = 'Editing: ' + Object.keys(_hoData).length + ' store(s) loaded (re-upload to replace).'; }
-      else { _openQs = ensureQuestionFlagDefaults(o.questions || []); clearQForm(); renderOpenQs(); }
+      else {
+        _refData = o.refData || null;
+        if (_refData && $('refStatus')) $('refStatus').textContent = 'Editing: ' + Object.keys(_refData.byStore || {}).length + ' store(s) · fields: ' + (_refData.fields || []).join(', ') + ' (re-upload to replace).';
+        _openQs = ensureQuestionFlagDefaults(o.questions || []); clearQForm(); renderOpenQs();
+      }
     }
     fillStartFields(o);
     if ($('amValToggle')) { $('amValToggle').checked = (o.amValidation !== false); try { $('amValToggle').dispatchEvent(new Event('change')); } catch (e) { } }
@@ -4205,11 +4227,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     toast('Copied “' + (o.name || '') + '” — edit and Save as a new subject.');
   }
   function resetSubjectForm() {
-    _editId = null; _picShots = [{ label: '', sample: '', note: '' }]; _activeShot = 0; _openQs = []; _hoData = null; _hoDescLabels = null; _scopeStores = null;
+    _editId = null; _picShots = [{ label: '', sample: '', note: '' }]; _activeShot = 0; _openQs = []; _hoData = null; _hoDescLabels = null; _refData = null; _scopeStores = null;
     $('newSubjName').value = ''; $('newGuidelines').value = '';
     if ($('newStartDate')) $('newStartDate').value = ''; if ($('newStartTime')) $('newStartTime').value = '';
     if ($('picDeptOn')) $('picDeptOn').checked = false; if ($('picDept')) { $('picDept').value = ''; $('picDept').style.display = 'none'; }
-    $('scopeToggle').checked = false; toggleScope(); renderShotRows(); clearQForm(); renderOpenQs(); $('hoStatus').textContent = '';
+    $('scopeToggle').checked = false; toggleScope(); renderShotRows(); clearQForm(); renderOpenQs(); $('hoStatus').textContent = ''; if ($('refStatus')) $('refStatus').textContent = '';
     if ($('amValToggle')) { $('amValToggle').checked = true; try { $('amValToggle').dispatchEvent(new Event('change')); } catch (e) { } }
     var sv = $('btnSaveSubject'); if (sv) sv.textContent = 'Save Subject';
   }
@@ -4285,6 +4307,24 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var on = $('qDeptOn') && $('qDeptOn').checked;
     if ($('qDeptWrap')) $('qDeptWrap').style.display = on ? 'block' : 'none';
     if (on) fillDeptSelect($('qDept'), ($('qDept') && $('qDept').value) || '', false);
+  }
+  /* v31 — Store Reference-Fact Check. One Excel (St Cd + N field columns) uploaded
+     once per subject (_refData); a question ticks "Reference Check" + picks which
+     field, and the live form shows that store's value inline above the question.
+     No extra Firestore reads at runtime — refData rides along with the subject
+     doc it already fetches, so this can never add latency/hang for stores. */
+  function toggleQRefUI() {
+    var on = $('qRefOn') && $('qRefOn').checked;
+    if ($('qRefWrap')) $('qRefWrap').style.display = on ? 'block' : 'none';
+    if (on) renderQRefFieldSelect();
+  }
+  function renderQRefFieldSelect() {
+    var sel = $('qRefField'); if (!sel) return;
+    var cur = sel.value;
+    var fields = (_refData && _refData.fields) || [];
+    sel.innerHTML = '<option value="">— Select reference field —</option>' + fields.map(function (f) { return '<option value="' + esc(f) + '">' + esc(f) + '</option>'; }).join('');
+    if (fields.indexOf(cur) > -1) sel.value = cur;
+    if (!fields.length) sel.innerHTML = '<option value="">— Upload Store Reference Data above first —</option>';
   }
   /* v30 — manual Merge-with picker (replaces auto department/type merge guessing).
      A question ticked into another question's Merge-with list is "consumed": it
@@ -4388,9 +4428,10 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     $('qLabel').value = ''; $('qOptions').value = ''; $('qSys').value = ''; $('qRequired').checked = false;
     if ($('qMin')) $('qMin').value = ''; if ($('qMax')) $('qMax').value = ''; if ($('qRemarks')) $('qRemarks').checked = false;
     if ($('qDeptOn')) $('qDeptOn').checked = false; if ($('qDept')) $('qDept').value = '';
+    if ($('qRefOn')) $('qRefOn').checked = false; if ($('qRefField')) $('qRefField').value = '';
     if ($('qFlagHo')) $('qFlagHo').checked = false;
     if ($('qBranchOn')) $('qBranchOn').checked = false;
-    toggleQDeptUI(); toggleQBranchUI(); toggleQMergeUI();
+    toggleQDeptUI(); toggleQRefUI(); toggleQBranchUI(); toggleQMergeUI();
     _editQIdx = -1; if ($('btnAddQ')) $('btnAddQ').textContent = '+ Add question'; if ($('btnCancelQEdit')) $('btnCancelQEdit').style.display = 'none';
   }
   function readNum(id) { var el = $(id); if (!el) return null; var v = (el.value || '').trim(); if (v === '' || isNaN(Number(v))) return null; return Number(v); }
@@ -4402,6 +4443,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (ty === 'number') { var mn = readNum('qMin'), mx = readNum('qMax'); if (mn != null && mx != null && mn > mx) { toast('Min cannot be greater than Max'); return; } if (mn != null) q.min = mn; if (mx != null) q.max = mx; }
     q.deptOn = !!( $('qDeptOn') && $('qDeptOn').checked );
     q.dept = q.deptOn ? (($('qDept') && $('qDept').value) || '').trim() : '';
+    q.refOn = !!( $('qRefOn') && $('qRefOn').checked );
+    q.refField = q.refOn ? (($('qRefField') && $('qRefField').value) || '').trim() : '';
+    if (q.refOn && !q.refField) { toast('Reference Check needs a reference field selected'); return; }
     q.flagHo = !!( $('qFlagHo') && $('qFlagHo').checked );
     if (q.flagHo && (!q.deptOn || !q.dept)) { toast('Flag to HO needs a Department — turn Department ON and pick one'); return; }
     if (q.deptOn && !q.dept) { toast('Enter department name (or turn Department off)'); return; }
@@ -4433,10 +4477,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     $('qRequired').checked = !!q.required; if ($('qRemarks')) $('qRemarks').checked = !!q.remarks;
     if ($('qMin')) $('qMin').value = (q.min != null ? q.min : ''); if ($('qMax')) $('qMax').value = (q.max != null ? q.max : '');
     if ($('qDeptOn')) $('qDeptOn').checked = !!q.deptOn;
+    if ($('qRefOn')) $('qRefOn').checked = !!q.refOn;
     if ($('qFlagHo')) $('qFlagHo').checked = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : qFlagHoDefault(q);
     if ($('qBranchOn')) $('qBranchOn').checked = !!q.branchOn;
-    toggleQDeptUI(); toggleQBranchUI(); toggleQMergeUI();
+    toggleQDeptUI(); toggleQRefUI(); toggleQBranchUI(); toggleQMergeUI();
     if ($('qDept')) { fillDeptSelect($('qDept'), q.dept || '', false); $('qDept').value = q.dept || ''; }
+    if ($('qRefField') && q.refField) $('qRefField').value = q.refField;
     if ($('btnAddQ')) $('btnAddQ').textContent = '✓ Update question'; if ($('btnCancelQEdit')) $('btnCancelQEdit').style.display = 'inline-block';
     var lb = $('qLabel'); if (lb && lb.scrollIntoView) lb.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -4459,7 +4505,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       var flagOn = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : qFlagHoDefault(q);
       var mergeTag = (q.mergeWith && q.mergeWith.length) ? ' · <span style="color:#1565C0;font-weight:700">🔗 merges ' + q.mergeWith.map(function (mi) { return 'Q' + (mi + 1); }).join(',') + '</span>' : '';
       if (mergedInto.hasOwnProperty(i)) mergeTag += ' · <span class="text3">(merged into Q' + (mergedInto[i] + 1) + ')</span>';
-      var sub = esc(q.type) + (hasOpts ? ' · ' + esc((q.options || []).join(', ')) : '') + (q.type === 'physcount' ? ' · Sys ' + esc(q.sys) : '') + (q.type === 'number' ? esc(rangeTxt(q)) : '') + (q.remarks ? ' · 📝 remarks' : '') + (q.deptOn ? ' · 🏢 ' + esc(q.dept || '') : '') + (flagOn ? ' · <span style="color:#E65100;font-weight:800">🚩 Flag HO</span>' : ' · <span class="text3">no HO flag</span>') + (q.branchOn ? ' · ⑂ branch' : '') + mergeTag;
+      var sub = esc(q.type) + (hasOpts ? ' · ' + esc((q.options || []).join(', ')) : '') + (q.type === 'physcount' ? ' · Sys ' + esc(q.sys) : '') + (q.type === 'number' ? esc(rangeTxt(q)) : '') + (q.remarks ? ' · 📝 remarks' : '') + (q.deptOn ? ' · 🏢 ' + esc(q.dept || '') : '') + (q.refOn ? ' · <span style="color:#2E7D32;font-weight:700">🔎 ref: ' + esc(q.refField || '') + '</span>' : '') + (flagOn ? ' · <span style="color:#E65100;font-weight:800">🚩 Flag HO</span>' : ' · <span class="text3">no HO flag</span>') + (q.branchOn ? ' · ⑂ branch' : '') + mergeTag;
       var d = document.createElement('div'); d.className = 'lrow' + (i === _editQIdx ? ' editing' : '');
       var mv = '<div class="qmove"><button type="button" data-up="' + i + '" title="Move up"' + (i === 0 ? ' disabled' : '') + '>▲</button><button type="button" data-dn="' + i + '" title="Move down"' + (i === _openQs.length - 1 ? ' disabled' : '') + '>▼</button></div>';
       d.innerHTML = '<div class="linfo"><div class="lname">Q' + (i + 1) + '. ' + esc(q.label) + (q.required ? ' <span style="color:var(--red)">*</span>' : '') + '</div><div class="lsub">' + sub + '</div></div><div class="lactions">' + mv + '<button class="btn btn-xs btn-blue" data-ed="' + i + '">Edit</button><button class="btn btn-xs btn-red" data-i="' + i + '">×</button></div>';
@@ -4535,6 +4581,30 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'SysPhy'); XLSX.writeFile(wb, 'SysVsPhy_Template.xlsx');
   }
   var _hoData = null, _hoDescLabels = null;
+  var _refData = null;   // v31 — { byStore: {STCODE: {Field: value}}, fields: [Field,...] }
+  function onRefUpload(file) {
+    if (!file) return; loader(true, 'Reading reference data…'); var r = new FileReader();
+    r.onload = function (e) {
+      try {
+        var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }), rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+        if (!rows.length) { loader(false); toast('Empty sheet'); return; }
+        var header = rows[0] || [];
+        var fields = []; for (var h = 1; h < header.length; h++) { var fn = (header[h] || '').toString().trim(); if (fn) fields.push(fn); }
+        if (!fields.length) { loader(false); toast('Add at least one reference column after St Cd'); return; }
+        var byStore = {};
+        for (var i = 1; i < rows.length; i++) {
+          var sc = (rows[i][0] || '').toString().trim().toUpperCase(); if (!sc) continue;
+          var rec = {};
+          for (var c = 1; c < header.length; c++) { var fn2 = (header[c] || '').toString().trim(); if (!fn2) continue; rec[fn2] = (rows[i][c] == null ? '' : rows[i][c]).toString(); }
+          byStore[sc] = rec;
+        }
+        _refData = { byStore: byStore, fields: fields }; loader(false);
+        $('refStatus').textContent = 'Loaded ' + Object.keys(byStore).length + ' store(s) · fields: ' + fields.join(', ');
+        renderQRefFieldSelect();
+      } catch (err) { loader(false); toast('Excel error: ' + err.message); }
+    };
+    r.readAsArrayBuffer(file);
+  }
   function onHOUpload(file) {
     if (!file) return; loader(true, 'Reading Excel…'); var r = new FileReader();
     r.onload = function (e) {
@@ -4582,7 +4652,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       doc.dept = doc.deptOn ? (($('picDept') && $('picDept').value) || '').trim() : '';
       if (doc.deptOn && !doc.dept) { toast('Enter pic subject department (or turn tagging off)'); return; }
     }
-    else { var mode = $('newDataMode').value; doc.dataMode = mode; if (mode === 'open') { if (!_openQs.length) { toast('Add at least one question'); return; } doc.questions = ensureQuestionFlagDefaults(_openQs.slice()); } else { if (!_hoData) { toast('Upload system-data Excel'); return; } doc.hoData = _hoData; doc.descLabels = _hoDescLabels || []; } }
+    else { var mode = $('newDataMode').value; doc.dataMode = mode; if (mode === 'open') { if (!_openQs.length) { toast('Add at least one question'); return; } var refQNeeds = _openQs.some(function (qq) { return qq.refOn; }); if (refQNeeds && !_refData) { toast('A question has Reference Check ON — upload Store Reference Data (or turn it off)'); return; } doc.questions = ensureQuestionFlagDefaults(_openQs.slice()); if (_refData) doc.refData = _refData; else doc.refData = null; } else { if (!_hoData) { toast('Upload system-data Excel'); return; } doc.hoData = _hoData; doc.descLabels = _hoDescLabels || []; } }
     if ($('scopeToggle').checked) { if (!_scopeStores || !_scopeStores.length) { toast('Upload the store list, or switch to All stores'); return; } doc.scope = 'select'; doc.storeList = _scopeStores.slice(); } else { doc.scope = 'all'; }
     doc.startAt = readStartAt();
     doc.amValidation = $('amValToggle') ? !!$('amValToggle').checked : true;   // v24
@@ -5128,13 +5198,16 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         aoa = [['Store Code', 'Store Name', 'Filled By', 'When', 'AM Validated', 'AM Action', 'Descriptor', 'System', 'Physical', 'Diff', 'Diff %']];
         list.forEach(function (o) { (o.rows || []).forEach(function (r) { var ds = r.descs ? r.descs.join(' · ') : (r.desc || ''); aoa.push([o.storeCode, o.storeName || '', (o.designation || '') + ' ' + (o.empName || ''), o.ts ? new Date(o.ts).toLocaleString() : '', amValYesNo(o), o.amAction || '', ds, r.sys, r.phy, r.diff, (r.diffPct != null ? r.diffPct : r.shrinkPct)]); }); });
       } else {
-        // collect union of question labels in order
-        var labels = [], seen = {};
-        list.forEach(function (o) { (o.answers || []).forEach(function (a) { if (!seen[a.label]) { seen[a.label] = 1; labels.push(a.label); } }); });
-        aoa = [['Store Code', 'Store Name', 'Filled By', 'When', 'AM Validated', 'AM Action'].concat(labels)];
+        // collect union of question labels in order (v31: a ref-check question also gets a companion "<label> — Reference" column)
+        var labels = [], seen = {}, refLabelOf = {};
+        list.forEach(function (o) { (o.answers || []).forEach(function (a) { if (!seen[a.label]) { seen[a.label] = 1; labels.push(a.label); } if (a.refOn) refLabelOf[a.label] = true; }); });
+        var headerCols = []; labels.forEach(function (l) { headerCols.push(l); if (refLabelOf[l]) headerCols.push(l + ' — Reference'); });
+        aoa = [['Store Code', 'Store Name', 'Filled By', 'When', 'AM Validated', 'AM Action'].concat(headerCols)];
         list.forEach(function (o) {
-          var m = {}; (o.answers || []).forEach(function (a) { var val = a.value; if (a.type === 'physcount') val = 'Phy ' + a.value + ' (Diff ' + a.diff + ', ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%)'; m[a.label] = val; });
-          aoa.push([o.storeCode, o.storeName || '', (o.designation || '') + ' ' + (o.empName || ''), o.ts ? new Date(o.ts).toLocaleString() : '', amValYesNo(o), o.amAction || ''].concat(labels.map(function (l) { return m[l] != null ? m[l] : ''; })));
+          var m = {}, rm = {}; (o.answers || []).forEach(function (a) { var val = a.value; if (a.type === 'physcount') val = 'Phy ' + a.value + ' (Diff ' + a.diff + ', ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%)'; m[a.label] = val; if (a.refOn) rm[a.label] = a.refValue || ''; });
+          var row = [o.storeCode, o.storeName || '', (o.designation || '') + ' ' + (o.empName || ''), o.ts ? new Date(o.ts).toLocaleString() : '', amValYesNo(o), o.amAction || ''];
+          labels.forEach(function (l) { row.push(m[l] != null ? m[l] : ''); if (refLabelOf[l]) row.push(rm[l] != null ? rm[l] : ''); });
+          aoa.push(row);
         });
       }
       var nm = sn.replace(/[\\\/\?\*\[\]:]/g, ' ').slice(0, 28) || 'Subject'; var base = nm, k = 2; while (used[nm.toLowerCase()]) { nm = (base.slice(0, 25) + ' ' + k); k++; } used[nm.toLowerCase()] = 1;
@@ -5986,6 +6059,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         if (!qIsTextish(ty)) $('qFlagHo').checked = true;
       }
     });
+    on('qRefOn', 'change', toggleQRefUI);
     on('qFlagHo', 'change', function () {
       if (this.checked) {
         if ($('qDeptOn') && !$('qDeptOn').checked) { $('qDeptOn').checked = true; toggleQDeptUI(); }
@@ -6023,6 +6097,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     on('btnQExport', 'click', exportOpenQs);
     on('btnSPTemplate', 'click', dlSysphyTemplate);
     on('btnHOUp', 'change', function () { onHOUpload(this.files[0]); });
+    on('btnRefUp', 'change', function () { onRefUpload(this.files[0]); });
+    on('btnRefClear', 'click', function () { _refData = null; if ($('refStatus')) $('refStatus').textContent = ''; renderQRefFieldSelect(); toast('Reference data cleared — Save/Update Subject to keep'); });
     on('btnSaveSubject', 'click', saveSubject);
     on('btnAddReviewer', 'click', addReviewer);
     on('btnSaveEmail', 'click', saveEmailSettings);
