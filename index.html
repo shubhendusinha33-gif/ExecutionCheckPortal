@@ -522,7 +522,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     </div>
     <div id="loginErr" class="small" style="color:var(--red);margin-bottom:8px;display:none"></div>
     <button class="btn btn-pink btn-lg btn-full" id="btnContinue">Continue →</button>
-    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v29 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v30 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
   </div>
 </div>
 
@@ -896,6 +896,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
               <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qDeptOn"><span class="tgl-sl"></span></span><span class="small"><b>Department</b> — Y/N · tag this question to an HO dept</span></label>
               <div class="form-group" id="qDeptWrap" style="display:none;margin-bottom:8px"><select class="form-control" id="qDept"><option value="">— Select department —</option></select><div class="small text3" style="margin-top:4px">Manage list under <b>Departments</b> in the sidebar.</div></div>
               <label class="flex center gap" style="margin-bottom:6px;padding:8px 10px;background:#FFF3E0;border:1px solid #FFB74D;border-radius:8px"><span class="tgl"><input type="checkbox" id="qFlagHo"><span class="tgl-sl"></span></span><span class="small"><b style="color:#E65100">🚩 Flag to HO</b> — Y = this question creates an HO issue. For branched “open issue details” text → leave <b>OFF</b> (attaches under parent as 1 issue).</span></label>
+              <div class="form-group" id="qMergeWrap" style="display:none;margin-bottom:8px;padding:8px 10px;background:#E3F2FD;border:1px solid #90CAF9;border-radius:8px">
+                <div class="small" style="margin-bottom:6px"><b>🔗 Merge with questions</b> — pick later questions whose answers show as columns under THIS issue instead of their own row.</div>
+                <div id="qMergeList" class="small" style="max-height:160px;overflow:auto"></div>
+                <div class="small text3" id="qMergePreview" style="margin-top:6px"></div>
+              </div>
               <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qBranchOn"><span class="tgl-sl"></span></span><span class="small"><b>Branching</b> — MS Forms style · jump by answer</span></label>
               <div id="qBranchBox" class="branch-box" style="display:none;margin-bottom:10px"></div>
               <button class="btn btn-blue btn-sm" id="btnAddQ">+ Add question</button>
@@ -1649,7 +1654,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
      Identity is unknown at consent time by design, so it is back-filled on the
      first login from this device (e.g. HH01_SUMIT_6115513).
      ========================================================================== */
-  var APP_VERSION = 'v29';
+  var APP_VERSION = 'v30';
   var CONSENT_KEY = 'vmm_exec_consent_v22';
   var POLICY_KEY = 'vmm_exec_policy_v22';
   var DEVICE_KEY = 'vmm_exec_device_id';
@@ -2941,15 +2946,17 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       return a ? (a.value != null ? a.value : '') : '';
     });
   }
-  function collectHoFollowUps(qs, ansMap, path, flagIdx) {
+  function collectHoFollowUps(qs, ansMap, path, flagIdx, mergeSkip) {
     var details = [], pos = path.indexOf(flagIdx);
     if (pos < 0) return details;
     for (var i = pos + 1; i < path.length; i++) {
       var qi = path[i], q = qs[qi] || {}, a = ansMap[qi];
-      /* v29: only a flagged status-type question (choice/dropdown/multi) ends the
-         run — a flagged detail-type question (number/text/para/…) is folded in
-         as another detail line here, same as an unflagged one. */
-      if (qFlagHo(q, a) && !qIsTextish(q.type)) break;
+      /* v30: a question claimed by someone's manual Merge-with list is already
+         captured there — skip past it here (don't stop, don't duplicate it),
+         so genuine narrative sitting after it still gets picked up. Any OTHER
+         flagged question still ends the run, same as always. */
+      if (mergeSkip && mergeSkip[qi]) continue;
+      if (qFlagHo(q, a)) break;
       if (!a) continue;
       var v = String(a.value == null ? '' : a.value).trim();
       var r = String(a.remark || '').trim();
@@ -3020,33 +3027,33 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var qs = subj.questions || [], issues = [];
     var ansMap = ansMapFromSub(o);
     var path = visiblePathForSub(qs, ansMap);
+    /* v30: manual Merge-with picker replaces the v29 auto type-based merge.
+       A question named in ANY question's mergeWith list is "consumed" — it can
+       never start its own issue row; its answer only ever shows as a column
+       under the question that claimed it. */
+    var consumed = {};
+    qs.forEach(function (qq) { (qq.mergeWith || []).forEach(function (mi) { consumed[mi] = true; }); });
     var i = 0;
     while (i < path.length) {
       var qIdx = path[i], q = qs[qIdx] || {}, a = ansMap[qIdx];
+      if (consumed[qIdx]) { i++; continue; }
       if (!a || !qFlagHo(q, a)) { i++; continue; }
       var deptOn = !!(a.deptOn || q.deptOn);
       var dept = a.dept || q.dept || '';
       if (!deptOn || !dept) { i++; continue; }
       if (deptFilter && normDept(dept) !== normDept(deptFilter)) { i++; continue; }
-      /* v29 fix: a flagged CHOICE/DROPDOWN/MULTI question is a genuine status check
-         (DG Working?, Pinelabs working? …) and always stands as its OWN issue —
-         these never merge with each other even in the same department (that was
-         the v27 bug). A flagged NUMBER/TEXT/PARA/EMAIL/PHONE/DATE/TIME question is
-         detail, not a new status check (how many NOT working, provide issue nos…),
-         so it always folds into the issue right before it — collectHoFollowUps
-         below only stops at the next non-textish (status-type) flagged question.
-         It becomes its own row only when nothing precedes it (first in the run). */
       if (isHoIssueAnswer(q, a.value)) {
-        var runEnd = i;
-        for (var j = i + 1; j < path.length; j++) {
-          var nq = qs[path[j]] || {}, na = ansMap[path[j]];
-          if (qFlagHo(nq, na) && !qIsTextish(nq.type)) break;
-          runEnd = j;
-        }
-        var details = collectHoFollowUps(qs, ansMap, path, qIdx);
-        issues.push(buildHoIssueFromAnswer(subj, o, stores, solMap, qIdx, q, a, details, subDocId));
-        i = runEnd + 1;
-        continue;
+        var mergeCols = (q.mergeWith || []).map(function (mi) {
+          var mq = qs[mi] || {}, ma = ansMap[mi] || {};
+          return { qIdx: mi, qLabel: ma.label || mq.label || ('Q' + (mi + 1)), answer: ma.value || '', remark: ma.remark || '' };
+        });
+        var residual = collectHoFollowUps(qs, ansMap, path, qIdx, consumed);
+        var details = mergeCols.concat(residual);
+        var iss = buildHoIssueFromAnswer(subj, o, stores, solMap, qIdx, q, a, details, subDocId);
+        iss.mergeCols = mergeCols;
+        iss.residualFollowUps = residual;
+        iss.residualText = formatHoFollowUps(residual);
+        issues.push(iss);
       }
       i++;
     }
@@ -3350,8 +3357,10 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var recent = lines.length ? lines[lines.length - 1] : null;
     var histOlder = lines.length > 1 ? lines.slice(0, -1) : [];
     var remInline = iss.remark ? '<span class="ho-rem-inline" title="' + esc(iss.remark) + '">📝 ' + esc(iss.remark) + '</span>' : '';
-    var fuInline = iss.detailText
-      ? '<span class="ho-rem-inline" style="color:var(--text2);max-width:320px" title="' + esc(iss.detailText) + '">↳ ' + esc(iss.detailText) + '</span>'
+    /* v30: fuInline/fuBlock now show only the RESIDUAL (unclaimed) narrative —
+       merged questions (iss.mergeCols) get their own column table below instead. */
+    var fuInline = iss.residualText
+      ? '<span class="ho-rem-inline" style="color:var(--text2);max-width:320px" title="' + esc(iss.residualText) + '">↳ ' + esc(iss.residualText) + '</span>'
       : '';
     var latestInline = recent
       ? '<span class="ho-latest-inline' + (recent.extended ? ' ho-ext' : '') + '" title="' + esc((recent.solution || '') + ' · ' + (recent.byName || '') + ' (' + (recent.byEmp || '') + ')') + '">💡 ' + esc(recent.solution || '') + ' · ' + esc(recent.byDate || '') + ' · ' + esc(recent.byName || '') + '</span>'
@@ -3380,19 +3389,28 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       actHtml = '<div class="ho-act-row"><span class="small text3">Closed · ' + esc(recent ? ((recent.byName || '') + ' · ' + (recent.byEmp || '')) : '') + '</span>' + histBtn + '</div>' + histBox;
     }
     var fuBlock = '';
-    if (iss.followUps && iss.followUps.length) {
+    if (iss.residualFollowUps && iss.residualFollowUps.length) {
       fuBlock = '<div class="ho-fu">';
-      iss.followUps.forEach(function (d) {
+      iss.residualFollowUps.forEach(function (d) {
         fuBlock += '<div><b>' + esc(d.qLabel) + ':</b> ' + esc(d.answer || '—') + (d.remark ? ' <span class="text3">· 📝 ' + esc(d.remark) + '</span>' : '') + '</div>';
       });
       fuBlock += '</div>';
+    }
+    /* v30: manually-merged questions render as their own column table (auto-fit),
+       separate from the residual free-text follow-ups above. */
+    var mergeBlock = '';
+    if (iss.mergeCols && iss.mergeCols.length) {
+      mergeBlock = '<div style="overflow-x:auto;margin:6px 0"><table style="border-collapse:collapse;width:100%;font-size:12px">' +
+        '<thead><tr>' + iss.mergeCols.map(function (m) { return '<th style="text-align:left;padding:3px 8px;border:1px solid var(--border,#d0d7de);background:var(--blue-ll,#E3F2FD);white-space:nowrap">' + esc(m.qLabel) + '</th>'; }).join('') + '</tr></thead>' +
+        '<tbody><tr>' + iss.mergeCols.map(function (m) { return '<td style="padding:3px 8px;border:1px solid var(--border,#d0d7de)">' + esc(m.answer || '—') + (m.remark ? ' <span class="text3">(📝 ' + esc(m.remark) + ')</span>' : '') + '</td>'; }).join('') + '</tr></tbody>' +
+        '</table></div>';
     }
     card.innerHTML =
       '<div class="ho-line1">' +
         '<span class="ho-q">Q' + (iss.qIdx + 1) + '. ' + esc(iss.qLabel) + '</span>' +
         '<span class="ho-ans">Ans: ' + esc(iss.answer) + '</span>' +
         remInline + fuInline + latestInline + badge +
-      '</div>' + fuBlock + actHtml;
+      '</div>' + mergeBlock + fuBlock + actHtml;
     var tog = card.querySelector('.ho-hist-tog');
     if (tog) tog.addEventListener('click', function () {
       var el = $('hist_' + this.getAttribute('data-hid'));
@@ -3797,9 +3815,26 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       if (!to) return;
       var th = 'padding:4px 6px;border:1px solid #cfd8dc;background:#2c3e50;color:#fff;font-family:Calibri,Candara,Segoe UI,sans-serif;font-size:10pt;font-weight:700;text-align:left';
       var td = 'padding:3px 6px;border:1px solid #d0d7de;font-family:Calibri,Candara,Segoe UI,sans-serif;font-size:10pt;line-height:1.25;vertical-align:top';
+      /* v30: one column per distinct manually-merged question used anywhere in
+         this Dept×Subject group (union across rows), ordered by qIdx. Rows
+         without a value for a given column just show a dash. */
+      var mergeColDefs = [], seenMergeQ = {};
+      rows.forEach(function (x) {
+        (x.mergeCols || []).forEach(function (mc) {
+          if (!seenMergeQ[mc.qIdx]) { seenMergeQ[mc.qIdx] = true; mergeColDefs.push(mc); }
+        });
+      });
+      mergeColDefs.sort(function (a, b) { return a.qIdx - b.qIdx; });
+      var mergeTh = mergeColDefs.map(function (m) { return '<th style="' + th + '">' + esc(m.qLabel) + '</th>'; }).join('');
       var bodyRows = rows.map(function (x, i) {
         var last = (x.sol && x.sol.lines && x.sol.lines.length) ? x.sol.lines[x.sol.lines.length - 1] : null;
         var bg = i % 2 ? '#f7f9fc' : '#fff';
+        var mergeTds = mergeColDefs.map(function (m) {
+          var found = null;
+          (x.mergeCols || []).forEach(function (mc) { if (mc.qIdx === m.qIdx) found = mc; });
+          var val = found ? (found.answer || '—') + (found.remark ? ' (📝 ' + found.remark + ')' : '') : '—';
+          return '<td style="' + td + '">' + esc(val) + '</td>';
+        }).join('');
         return '<tr style="background:' + bg + '">' +
           '<td style="' + td + '">' + (i + 1) + '</td>' +
           '<td style="' + td + ';font-weight:700">' + esc(x.storeCode) + '</td>' +
@@ -3807,7 +3842,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           '<td style="' + td + '">' + esc(x.amName || '') + '</td>' +
           '<td style="' + td + '">' + esc(x.qLabel) + '</td>' +
           '<td style="' + td + ';color:#c0392b">' + esc(x.answer) + '</td>' +
-          '<td style="' + td + '">' + esc(x.detailText || '—') + '</td>' +
+          mergeTds +
+          '<td style="' + td + '">' + esc(x.residualText || '—') + '</td>' +
           '<td style="' + td + '">' + esc(x.remark || '—') + '</td>' +
           '<td style="' + td + '">' + esc(x.status === 'wip' ? 'WIP' : 'Not initiated') + '</td>' +
           '<td style="' + td + '">' + esc(last ? last.solution : '—') + '</td>' +
@@ -3827,7 +3863,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         '<p style="margin:0 0 8px;font-size:11pt"><b>' + esc(dept) + '</b> · ' + esc(taskSubj) + ' · ' + rows.length + ' pending (WIP / Not initiated)</p>' +
         '<table style="border-collapse:collapse;width:100%;font-family:Calibri,Candara,Segoe UI,sans-serif;font-size:10pt">' +
         '<thead><tr>' +
-        '<th style="' + th + '">#</th><th style="' + th + '">Store</th><th style="' + th + '">Name</th><th style="' + th + '">AM</th><th style="' + th + '">Question</th><th style="' + th + '">Answer</th><th style="' + th + '">Follow-up detail</th><th style="' + th + '">Store remark</th><th style="' + th + '">Status</th><th style="' + th + '">Solution</th><th style="' + th + '">By date</th>' +
+        '<th style="' + th + '">#</th><th style="' + th + '">Store</th><th style="' + th + '">Name</th><th style="' + th + '">AM</th><th style="' + th + '">Question</th><th style="' + th + '">Answer</th>' + mergeTh + '<th style="' + th + '">Follow-up detail</th><th style="' + th + '">Store remark</th><th style="' + th + '">Status</th><th style="' + th + '">Solution</th><th style="' + th + '">By date</th>' +
         '</tr></thead><tbody>' + bodyRows + '</tbody></table>' +
         '</div>';
       var mailSubj = dept + ' Issue - ' + taskSubj + ' - ' + rows.length;
@@ -4250,6 +4286,51 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ($('qDeptWrap')) $('qDeptWrap').style.display = on ? 'block' : 'none';
     if (on) fillDeptSelect($('qDept'), ($('qDept') && $('qDept').value) || '', false);
   }
+  /* v30 — manual Merge-with picker (replaces auto department/type merge guessing).
+     A question ticked into another question's Merge-with list is "consumed": it
+     never becomes its own HO issue row, its answer only ever shows as a column
+     under the question that claimed it. */
+  function claimedMergeSet(excludeIdx) {
+    var set = {};
+    _openQs.forEach(function (qq, qi) {
+      if (qi === excludeIdx) return;
+      (qq.mergeWith || []).forEach(function (mi) { set[mi] = true; });
+    });
+    return set;
+  }
+  function readQMergeFromUI() {
+    var box = $('qMergeList'); if (!box) return [];
+    var chks = box.querySelectorAll('.qmerge-chk:checked'), out = [];
+    for (var i = 0; i < chks.length; i++) out.push(Number(chks[i].value));
+    return out;
+  }
+  function updateQMergePreview() {
+    var pv = $('qMergePreview'); if (!pv) return;
+    var picked = readQMergeFromUI();
+    pv.textContent = picked.length ? ('This issue will show columns: ' + picked.map(function (i) { return 'Q' + (i + 1); }).join(', ')) : '';
+  }
+  function renderQMergeList() {
+    var box = $('qMergeList'); if (!box) return;
+    var base = _editQIdx > -1 ? _editQIdx : _openQs.length;
+    var claimed = claimedMergeSet(_editQIdx);
+    var current = (_editQIdx > -1 && _openQs[_editQIdx] && _openQs[_editQIdx].mergeWith) || [];
+    var h = '';
+    for (var i = base + 1; i < _openQs.length; i++) {
+      if (claimed[i]) continue;
+      var q = _openQs[i];
+      var chk = current.indexOf(i) > -1 ? ' checked' : '';
+      h += '<label class="flex center gap" style="margin-bottom:4px"><input type="checkbox" class="qmerge-chk" value="' + i + '"' + chk + '> Q' + (i + 1) + '. ' + esc((q.label || '').slice(0, 60)) + '</label>';
+    }
+    box.innerHTML = h || '<span class="text3">No later questions available yet — add them first, then come back and pick here.</span>';
+    var chks = box.querySelectorAll('.qmerge-chk');
+    for (var k = 0; k < chks.length; k++) chks[k].addEventListener('change', updateQMergePreview);
+    updateQMergePreview();
+  }
+  function toggleQMergeUI() {
+    var on = $('qFlagHo') && $('qFlagHo').checked;
+    if ($('qMergeWrap')) $('qMergeWrap').style.display = on ? 'block' : 'none';
+    if (on) renderQMergeList();
+  }
   function toggleQBranchUI() {
     var on = $('qBranchOn') && $('qBranchOn').checked;
     if ($('qBranchBox')) $('qBranchBox').style.display = on ? 'block' : 'none';
@@ -4309,7 +4390,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ($('qDeptOn')) $('qDeptOn').checked = false; if ($('qDept')) $('qDept').value = '';
     if ($('qFlagHo')) $('qFlagHo').checked = false;
     if ($('qBranchOn')) $('qBranchOn').checked = false;
-    toggleQDeptUI(); toggleQBranchUI();
+    toggleQDeptUI(); toggleQBranchUI(); toggleQMergeUI();
     _editQIdx = -1; if ($('btnAddQ')) $('btnAddQ').textContent = '+ Add question'; if ($('btnCancelQEdit')) $('btnCancelQEdit').style.display = 'none';
   }
   function readNum(id) { var el = $(id); if (!el) return null; var v = (el.value || '').trim(); if (v === '' || isNaN(Number(v))) return null; return Number(v); }
@@ -4324,6 +4405,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     q.flagHo = !!( $('qFlagHo') && $('qFlagHo').checked );
     if (q.flagHo && (!q.deptOn || !q.dept)) { toast('Flag to HO needs a Department — turn Department ON and pick one'); return; }
     if (q.deptOn && !q.dept) { toast('Enter department name (or turn Department off)'); return; }
+    q.mergeWith = q.flagHo ? readQMergeFromUI() : [];
     var br = readBranchFromUI(ty);
     q.branchOn = !!br.branchOn;
     if (br.branches) q.branches = br.branches; else delete q.branches;
@@ -4353,7 +4435,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ($('qDeptOn')) $('qDeptOn').checked = !!q.deptOn;
     if ($('qFlagHo')) $('qFlagHo').checked = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : qFlagHoDefault(q);
     if ($('qBranchOn')) $('qBranchOn').checked = !!q.branchOn;
-    toggleQDeptUI(); toggleQBranchUI();
+    toggleQDeptUI(); toggleQBranchUI(); toggleQMergeUI();
     if ($('qDept')) { fillDeptSelect($('qDept'), q.dept || '', false); $('qDept').value = q.dept || ''; }
     if ($('btnAddQ')) $('btnAddQ').textContent = '✓ Update question'; if ($('btnCancelQEdit')) $('btnCancelQEdit').style.display = 'inline-block';
     var lb = $('qLabel'); if (lb && lb.scrollIntoView) lb.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -4370,10 +4452,14 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   function renderOpenQs() {
     var box = $('openQList'); box.innerHTML = '';
+    var mergedInto = {};   // qIdx -> base qIdx that claims it (v30 merge picker)
+    _openQs.forEach(function (qq, qi) { (qq.mergeWith || []).forEach(function (mi) { mergedInto[mi] = qi; }); });
     _openQs.forEach(function (q, i) {
       var hasOpts = (q.type === 'choice' || q.type === 'multi' || q.type === 'dropdown');
       var flagOn = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : qFlagHoDefault(q);
-      var sub = esc(q.type) + (hasOpts ? ' · ' + esc((q.options || []).join(', ')) : '') + (q.type === 'physcount' ? ' · Sys ' + esc(q.sys) : '') + (q.type === 'number' ? esc(rangeTxt(q)) : '') + (q.remarks ? ' · 📝 remarks' : '') + (q.deptOn ? ' · 🏢 ' + esc(q.dept || '') : '') + (flagOn ? ' · <span style="color:#E65100;font-weight:800">🚩 Flag HO</span>' : ' · <span class="text3">no HO flag</span>') + (q.branchOn ? ' · ⑂ branch' : '');
+      var mergeTag = (q.mergeWith && q.mergeWith.length) ? ' · <span style="color:#1565C0;font-weight:700">🔗 merges ' + q.mergeWith.map(function (mi) { return 'Q' + (mi + 1); }).join(',') + '</span>' : '';
+      if (mergedInto.hasOwnProperty(i)) mergeTag += ' · <span class="text3">(merged into Q' + (mergedInto[i] + 1) + ')</span>';
+      var sub = esc(q.type) + (hasOpts ? ' · ' + esc((q.options || []).join(', ')) : '') + (q.type === 'physcount' ? ' · Sys ' + esc(q.sys) : '') + (q.type === 'number' ? esc(rangeTxt(q)) : '') + (q.remarks ? ' · 📝 remarks' : '') + (q.deptOn ? ' · 🏢 ' + esc(q.dept || '') : '') + (flagOn ? ' · <span style="color:#E65100;font-weight:800">🚩 Flag HO</span>' : ' · <span class="text3">no HO flag</span>') + (q.branchOn ? ' · ⑂ branch' : '') + mergeTag;
       var d = document.createElement('div'); d.className = 'lrow' + (i === _editQIdx ? ' editing' : '');
       var mv = '<div class="qmove"><button type="button" data-up="' + i + '" title="Move up"' + (i === 0 ? ' disabled' : '') + '>▲</button><button type="button" data-dn="' + i + '" title="Move down"' + (i === _openQs.length - 1 ? ' disabled' : '') + '>▼</button></div>';
       d.innerHTML = '<div class="linfo"><div class="lname">Q' + (i + 1) + '. ' + esc(q.label) + (q.required ? ' <span style="color:var(--red)">*</span>' : '') + '</div><div class="lsub">' + sub + '</div></div><div class="lactions">' + mv + '<button class="btn btn-xs btn-blue" data-ed="' + i + '">Edit</button><button class="btn btn-xs btn-red" data-i="' + i + '">×</button></div>';
@@ -5904,6 +5990,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       if (this.checked) {
         if ($('qDeptOn') && !$('qDeptOn').checked) { $('qDeptOn').checked = true; toggleQDeptUI(); }
       }
+      toggleQMergeUI();
     });
     on('btnSmartFlags', 'click', applySmartFlagDefaults);
     on('qBranchOn', 'change', toggleQBranchUI);
