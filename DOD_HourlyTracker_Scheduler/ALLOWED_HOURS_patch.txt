@@ -1,0 +1,20 @@
+ALLOWED_HOURS patch for DOD_HourlyTracker_v21.vbs
+==================================================
+
+Your scheduler fires every 10 minutes from 11:00 through 22:xx.
+In LIVE mode (TEST_MODE = False) the VBS silently quits unless the
+current hour is in ALLOWED_HOURS. Update this one line:
+
+  BEFORE:
+    ALLOWED_HOURS = Array(13,14,15,16,17,18,19,20,21)
+
+  AFTER:
+    ALLOWED_HOURS = Array(11,12,13,14,15,16,17,18,19,20,21,22)
+
+Also for production emails:
+    Const TEST_MODE = False
+
+NOTE: Every 10-minute run that completes Step 7 will send an email.
+If that is too frequent, either lengthen the Task interval or keep
+ALLOWED_HOURS narrower / rely on smartSkip (portal skip when fresh
+.xls already exist in TARGET_FOLDER).
