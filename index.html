@@ -475,6 +475,26 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
 .amv-cell{white-space:nowrap}
 .amview-wrap{display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:start}
 @media(max-width:860px){.amview-wrap{grid-template-columns:1fr}}
+
+/* ---- v33 — HO Support layout ---- */
+.ho-layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:12px;align-items:start}
+.ho-sum{position:sticky;top:64px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px;box-shadow:var(--shadow)}
+.ho-sum-t{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px}
+.ho-sg{border:1px solid var(--border);border-radius:6px;padding:7px 8px;margin-bottom:6px;cursor:pointer;background:#fff;transition:background .15s,border-color .15s}
+.ho-sg:hover{background:var(--gray-bg2)}
+.ho-sg.on{border-color:var(--blue);background:var(--blue-ll)}
+.ho-sg-t{font-size:12px;font-weight:700;color:var(--text);line-height:1.3}
+.ho-sg-n{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:4px;text-align:center}
+.ho-sg-n b{display:block;font-size:13px;font-weight:700;color:var(--text)}
+.ho-sg-n span{font-size:10px;color:var(--text3)}
+.ho-sum-tot{border-top:1px solid var(--border);padding-top:6px;margin-top:4px}
+.ho-ans-big{font-size:14px;font-weight:800;color:var(--red)}
+.ho-sub{border-left:3px solid var(--blue);background:#F5F8FC;padding:4px 8px;margin:5px 0}
+.ho-sub-l{font-size:11px;color:var(--text2)}
+.ho-sub-v{font-size:13px;font-weight:700;color:var(--text);word-break:break-word}
+.ho-move-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:8px;background:#F3E5F5;color:#6A1B9A;white-space:nowrap}
+.ho-act-row .ho-dept{width:150px;max-width:40%;padding:5px 8px;font-size:12.5px;height:32px}
+@media(max-width:860px){.ho-layout{grid-template-columns:1fr}.ho-sum{position:static}}
 </style>
 </head>
 <body>
@@ -522,7 +542,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     </div>
     <div id="loginErr" class="small" style="color:var(--red);margin-bottom:8px;display:none"></div>
     <button class="btn btn-pink btn-lg btn-full" id="btnContinue">Continue →</button>
-    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v32 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v33 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
   </div>
 </div>
 
@@ -806,9 +826,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         </div>
       </div>
     </div>
-    <div class="card">
-      <div class="card-head"><span class="card-title">Issues by store</span><span class="badge badge-blue" id="hoIssueCount">0</span></div>
-      <div class="card-body" id="hoIssueList"><div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Select a questionnaire to load issues</div></div></div>
+    <div class="ho-layout">
+      <div class="ho-sum" id="hoSumPanel"><div class="ho-sum-t">Issue summary</div><div class="small text3">Select a questionnaire</div></div>
+      <div class="card" style="margin:0">
+        <div class="card-head"><span class="card-title">Issues by store</span><span class="small" id="hoQFilterTag" style="color:var(--blue);font-weight:600;display:none"></span><span class="badge badge-blue" id="hoIssueCount">0</span></div>
+        <div class="card-body" id="hoIssueList"><div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Select a questionnaire to load issues</div></div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1662,7 +1685,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
      Identity is unknown at consent time by design, so it is back-filled on the
      first login from this device (e.g. HH01_SUMIT_6115513).
      ========================================================================== */
-  var APP_VERSION = 'v32';
+  var APP_VERSION = 'v33';
   var CONSENT_KEY = 'vmm_exec_consent_v22';
   var POLICY_KEY = 'vmm_exec_policy_v22';
   var DEVICE_KEY = 'vmm_exec_device_id';
@@ -3024,7 +3047,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var dept = a.dept || q.dept || '';
     var id = hoSolId(sid, o.storeCode, qIdx);
     var sol = (solMap && solMap[id]) || null;
-    var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : 'wip');
+    var origDept = dept;
+    if (sol && sol.deptOverride) dept = sol.deptOverride;   /* v33 — transferred issue */
+    var status = !sol ? 'not_initiated' : (sol.status === 'done' ? 'done' : (sol.status === 'not_initiated' ? 'not_initiated' : 'wip'));
     var st = storeFromCache(stores, o.storeCode);
     var zCode = storeZfmCode(st);
     var zDisp = storeZfmDisplay(st, o.zfmName || '');
@@ -3036,6 +3061,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       zfmName: zDisp, zfmCode: zCode || zDisp,
       qIdx: qIdx, qLabel: a.label || q.label || ('Q' + (qIdx + 1)),
       answer: a.value, remark: a.remark || '', dept: dept, status: status, sol: sol,
+      origDept: origDept, moved: normDept(dept) !== normDept(origDept),
       followUps: details || [], detailText: formatHoFollowUps(details || []),
       subTs: o.ts || ''
     };
@@ -3058,7 +3084,6 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       var deptOn = !!(a.deptOn || q.deptOn);
       var dept = a.dept || q.dept || '';
       if (!deptOn || !dept) { i++; continue; }
-      if (deptFilter && normDept(dept) !== normDept(deptFilter)) { i++; continue; }
       if (isHoIssueAnswer(q, a.value)) {
         var mergeCols = (q.mergeWith || []).map(function (mi) {
           var mq = qs[mi] || {}, ma = ansMap[mi] || {};
@@ -3070,7 +3095,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         iss.mergeCols = mergeCols;
         iss.residualFollowUps = residual;
         iss.residualText = formatHoFollowUps(residual);
-        issues.push(iss);
+        if (!deptFilter || normDept(iss.dept) === normDept(deptFilter)) issues.push(iss);
       }
       i++;
     }
@@ -3253,7 +3278,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         var o = d.data(); o.id = d.id;
         if (o.type !== 'data' || o.dataMode === 'sysphy') return;
         var has = (o.questions || []).some(function (q) {
-          return q && q.deptOn && normDept(q.dept) === normDept(S.dept) && qFlagHo(q);
+          return q && q.deptOn && q.dept && qFlagHo(q);
         });
         if (has) arr.push(o);
       });
@@ -3268,6 +3293,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
 
   function loadHOIssues() {
+    _hoQFilter = '';
     var sid = $('hoSubject') ? $('hoSubject').value : '';
     if (!sid) {
       _hoIssues = []; _hoSubjCache = null;
@@ -3333,12 +3359,75 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var q = (($('hoStoreSearch') && $('hoStoreSearch').value) || '').toLowerCase().trim();
     return _hoIssues.filter(function (x) {
       if (stf !== 'all' && x.status !== stf) return false;
+      if (_hoQFilter && String(x.qIdx) !== _hoQFilter) return false;
       if (am && (x.amName || '') !== am) return false;
       if (q && ((x.storeCode || '') + ' ' + (x.storeName || '')).toLowerCase().indexOf(q) < 0) return false;
       return true;
     });
   }
+  /* ===== v33 — HO summary panel, short labels, dept options ===== */
+  var _hoQFilter = '';
+  function hoShortLabel(s) {
+    var t = String(s || '')
+      .replace(/^\s*how\s+many\s+/i, '')
+      .replace(/\b(machines?|devices?|units?)\s+(are|is)\s+/i, '')
+      .replace(/\bnot\s+working\b/i, 'NW')
+      .replace(/\bat\s+(your|the)\s+store\b/i, '')
+      .replace(/[?.:]+\s*$/, '').replace(/\s+/g, ' ').trim();
+    return t.length > 34 ? t.slice(0, 33) + '…' : t;
+  }
+  function hoQFilterLabel() {
+    for (var i = 0; i < _hoIssues.length; i++) if (String(_hoIssues[i].qIdx) === _hoQFilter) return hoShortLabel(_hoIssues[i].qLabel);
+    return 'Q' + (Number(_hoQFilter) + 1);
+  }
+  function hoDeptOpts(cur) {
+    var list = deptList();
+    if (cur && !list.some(function (d) { return normDept(d) === normDept(cur); })) list = [cur].concat(list);
+    return list.map(function (d) { return '<option value="' + esc(d) + '"' + (normDept(d) === normDept(cur) ? ' selected' : '') + '>' + esc(d) + '</option>'; }).join('');
+  }
+  function hoSummaryBase() {
+    var am = (($('hoAmFilter') && $('hoAmFilter').value) || '');
+    var q = (($('hoStoreSearch') && $('hoStoreSearch').value) || '').toLowerCase().trim();
+    return _hoIssues.filter(function (x) {
+      if (am && (x.amName || '') !== am) return false;
+      if (q && ((x.storeCode || '') + ' ' + (x.storeName || '')).toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    });
+  }
+  function hoSumNums(st, d, w, n, stLbl) {
+    return '<div class="ho-sg-n"><div><b>' + st + '</b><span>' + (stLbl || 'Stores') + '</span></div><div><b style="color:#2E7D32">' + d + '</b><span>Done</span></div><div><b style="color:var(--amber)">' + w + '</b><span>WIP</span></div><div><b>' + n + '</b><span>Not init</span></div></div>';
+  }
+  function paintHOSummary() {
+    var box = $('hoSumPanel'); if (!box) return;
+    if (!_hoIssues.length) { box.innerHTML = '<div class="ho-sum-t">Issue summary</div><div class="small text3">' + ($('hoSubject') && $('hoSubject').value ? 'No issues for your department' : 'Select a questionnaire') + '</div>'; return; }
+    var g = {}, order = [], tS = {}, tD = 0, tW = 0, tN = 0;
+    hoSummaryBase().forEach(function (x) {
+      var k = String(x.qIdx);
+      if (!g[k]) { g[k] = { k: k, qIdx: x.qIdx, label: hoShortLabel(x.qLabel), full: x.qLabel, stores: {}, d: 0, w: 0, n: 0 }; order.push(k); }
+      g[k].stores[x.storeCode] = 1; tS[x.storeCode] = 1;
+      if (x.status === 'done') { g[k].d++; tD++; } else if (x.status === 'wip') { g[k].w++; tW++; } else { g[k].n++; tN++; }
+    });
+    order.sort(function (a, b) { return g[a].qIdx - g[b].qIdx; });
+    var h = '<div class="ho-sum-t">Issue summary</div>';
+    order.forEach(function (k) {
+      var r = g[k];
+      h += '<div class="ho-sg' + (_hoQFilter === k ? ' on' : '') + '" data-qk="' + esc(k) + '" title="' + esc(r.full) + ' — click to filter, click again to clear"><div class="ho-sg-t">' + esc(r.label) + '</div>' + hoSumNums(Object.keys(r.stores).length, r.d, r.w, r.n) + '</div>';
+    });
+    if (!order.length) h += '<div class="small text3" style="margin-bottom:6px">No issues for this AM / store filter</div>';
+    h += '<div class="ho-sum-tot">' + hoSumNums(Object.keys(tS).length, tD, tW, tN, 'Total St') + '</div>';
+    box.innerHTML = h;
+    box.querySelectorAll('.ho-sg[data-qk]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var k = this.getAttribute('data-qk');
+        _hoQFilter = (_hoQFilter === k) ? '' : k;
+        paintHOIssueList();
+      });
+    });
+  }
   function paintHOIssueList() {
+    paintHOSummary();
+    var ft = $('hoQFilterTag');
+    if (ft) { ft.style.display = _hoQFilter ? 'inline' : 'none'; ft.textContent = _hoQFilter ? ('Filtered: ' + hoQFilterLabel() + ' · click card again to clear') : ''; }
     var list = hoFilteredIssues();
     var c = { total: _hoIssues.length, done: 0, wip: 0, ni: 0 };
     _hoIssues.forEach(function (x) { if (x.status === 'done') c.done++; else if (x.status === 'wip') c.wip++; else c.ni++; });
@@ -3376,9 +3465,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var remInline = iss.remark ? '<span class="ho-rem-inline" title="' + esc(iss.remark) + '">📝 ' + esc(iss.remark) + '</span>' : '';
     /* v30: fuInline/fuBlock now show only the RESIDUAL (unclaimed) narrative —
        merged questions (iss.mergeCols) get their own column table below instead. */
-    var fuInline = iss.residualText
-      ? '<span class="ho-rem-inline" style="color:var(--text2);max-width:320px" title="' + esc(iss.residualText) + '">↳ ' + esc(iss.residualText) + '</span>'
-      : '';
+    var fuInline = '';   /* v33 — follow-up questions hidden on HO Support */
     var latestInline = recent
       ? '<span class="ho-latest-inline' + (recent.extended ? ' ho-ext' : '') + '" title="' + esc((recent.solution || '') + ' · ' + (recent.byName || '') + ' (' + (recent.byEmp || '') + ')') + '">💡 ' + esc(recent.solution || '') + ' · ' + esc(recent.byDate || '') + ' · ' + esc(recent.byName || '') + '</span>'
       : '';
@@ -3398,6 +3485,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       actHtml = '<div class="ho-act-row">' +
         '<input class="form-control ho-sol" data-id="' + esc(iss.id) + '" placeholder="Solution">' +
         '<input class="form-control ho-date" type="date" data-id="' + esc(iss.id) + '" title="By date">' +
+        '<select class="form-control ho-dept" data-id="' + esc(iss.id) + '" title="Department — change and Submit to transfer">' + hoDeptOpts(iss.dept) + '</select>' +
         '<button class="btn btn-sm btn-blue ho-add" data-id="' + esc(iss.id) + '">' + (lines.length ? 'Update' : 'Submit') + '</button>' +
         '<button class="btn btn-sm btn-green ho-done" data-id="' + esc(iss.id) + '">Done</button>' +
         histBtn +
@@ -3405,28 +3493,19 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     } else {
       actHtml = '<div class="ho-act-row"><span class="small text3">Closed · ' + esc(recent ? ((recent.byName || '') + ' · ' + (recent.byEmp || '')) : '') + '</span>' + histBtn + '</div>' + histBox;
     }
-    var fuBlock = '';
-    if (iss.residualFollowUps && iss.residualFollowUps.length) {
-      fuBlock = '<div class="ho-fu">';
-      iss.residualFollowUps.forEach(function (d) {
-        fuBlock += '<div><b>' + esc(d.qLabel) + ':</b> ' + esc(d.answer || '—') + (d.remark ? ' <span class="text3">· 📝 ' + esc(d.remark) + '</span>' : '') + '</div>';
-      });
-      fuBlock += '</div>';
-    }
+    var fuBlock = '';   /* v33 — follow-up questions hidden on HO Support */
     /* v30: manually-merged questions render as their own column table (auto-fit),
        separate from the residual free-text follow-ups above. */
-    var mergeBlock = '';
-    if (iss.mergeCols && iss.mergeCols.length) {
-      mergeBlock = '<div style="overflow-x:auto;margin:6px 0"><table style="border-collapse:collapse;width:100%;font-size:12px">' +
-        '<thead><tr>' + iss.mergeCols.map(function (m) { return '<th style="text-align:left;padding:3px 8px;border:1px solid var(--border,#d0d7de);background:var(--blue-ll,#E3F2FD);white-space:nowrap">' + esc(m.qLabel) + '</th>'; }).join('') + '</tr></thead>' +
-        '<tbody><tr>' + iss.mergeCols.map(function (m) { return '<td style="padding:3px 8px;border:1px solid var(--border,#d0d7de)">' + esc(m.answer || '—') + (m.remark ? ' <span class="text3">(📝 ' + esc(m.remark) + ')</span>' : '') + '</td>'; }).join('') + '</tr></tbody>' +
-        '</table></div>';
-    }
+    var mergeBlock = (iss.mergeCols || []).map(function (m) {
+      return '<div class="ho-sub"><div class="ho-sub-l">' + esc(m.qLabel) + '</div><div class="ho-sub-v">' + esc(m.answer || '—') + (m.remark ? ' <span class="small text3">(📝 ' + esc(m.remark) + ')</span>' : '') + '</div></div>';
+    }).join('');
     card.innerHTML =
       '<div class="ho-line1">' +
         '<span class="ho-q">Q' + (iss.qIdx + 1) + '. ' + esc(iss.qLabel) + '</span>' +
-        '<span class="ho-ans">Ans: ' + esc(iss.answer) + '</span>' +
-        remInline + fuInline + latestInline + badge +
+        '<span class="ho-ans">Ans: <span class="ho-ans-big">' + esc(iss.answer) + '</span></span>' +
+        remInline + fuInline + latestInline +
+        (iss.moved ? '<span class="ho-move-tag" title="Transferred from ' + esc(iss.origDept) + '">↪ from ' + esc(iss.origDept) + '</span>' : '') +
+        badge +
       '</div>' + mergeBlock + fuBlock + actHtml;
     var tog = card.querySelector('.ho-hist-tog');
     if (tog) tog.addEventListener('click', function () {
@@ -3444,25 +3523,41 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var iss = hoFindIssue(id); if (!iss) return;
     var dateEl = document.querySelector('.ho-date[data-id="' + id + '"]');
     var solEl = document.querySelector('.ho-sol[data-id="' + id + '"]');
+    var deptEl = document.querySelector('.ho-dept[data-id="' + id + '"]');
     var byDate = dateEl ? dateEl.value : '';
     var solution = solEl ? (solEl.value || '').trim() : '';
-    if (!solution) { toast('Enter solution details first'); return; }
-    if (!byDate) { toast('Pick solution-by date'); return; }
+    var newDept = deptEl ? (deptEl.value || '').trim() : iss.dept;
+    var moving = !forceDone && !!newDept && normDept(newDept) !== normDept(iss.dept);
+    if (moving) {
+      if (!confirm('Transfer ' + iss.storeCode + ' · Q' + (iss.qIdx + 1) + ' from ' + iss.dept + ' to ' + newDept + '?\n\nIt leaves your queue and opens as Not Initiated for ' + newDept + '.')) return;
+    } else {
+      if (!solution) { toast('Enter solution details first'); return; }
+      if (!byDate) { toast('Pick solution-by date'); return; }
+    }
     var lines = (iss.sol && iss.sol.lines) ? iss.sol.lines.slice() : [];
-    var extended = lines.length >= 1;
-    lines.push({ byDate: byDate, solution: solution, byEmp: S.empcode, byName: S.empName, ts: nowISO(), extended: extended });
+    var extended = !moving && lines.some(function (l) { return !l.moveTo; });
+    if (moving) lines.push({ byDate: byDate || '', solution: solution || ('Transferred to ' + newDept), byEmp: S.empcode, byName: S.empName, ts: nowISO(), extended: false, moveFrom: iss.dept, moveTo: newDept });
+    else lines.push({ byDate: byDate, solution: solution, byEmp: S.empcode, byName: S.empName, ts: nowISO(), extended: extended });
     var doc = {
       subjectId: iss.subjectId, subjectName: iss.subjectName, storeCode: iss.storeCode, storeName: iss.storeName,
-      qIdx: iss.qIdx, qLabel: iss.qLabel, dept: iss.dept, answerValue: iss.answer, storeRemark: iss.remark || '',
+      qIdx: iss.qIdx, qLabel: iss.qLabel, dept: moving ? newDept : iss.dept, origDept: iss.origDept || iss.dept,
+      deptOverride: moving ? newDept : ((iss.sol && iss.sol.deptOverride) || ''),
+      answerValue: iss.answer, storeRemark: iss.remark || '',
       followUps: iss.followUps || [], detailText: iss.detailText || '',
-      status: forceDone ? 'done' : 'wip', lines: lines, updatedAt: nowISO(),
+      status: forceDone ? 'done' : (moving ? 'not_initiated' : 'wip'), lines: lines, updatedAt: nowISO(),
       updatedBy: S.empcode, updatedByName: S.empName || '', updatedByDept: S.dept || ''
     };
-    loader(true, 'Saving…');
+    if (moving) { doc.movedAt = nowISO(); doc.movedBy = S.empcode; doc.movedByName = S.empName || ''; doc.movedFrom = iss.dept; }
+    loader(true, moving ? 'Transferring…' : 'Saving…');
     db.collection('hosolutions').doc(id).set(doc, { merge: true }).then(function () {
-      loader(false); toast(forceDone ? 'Marked done' : (extended ? 'Update added (extension in red)' : 'Solution submitted'));
-      // local refresh without full reload
+      loader(false);
       _hoSolMap[id] = doc;
+      if (moving) {
+        toast('↪ Transferred to ' + newDept);
+        _hoIssues = _hoIssues.filter(function (x) { return x.id !== id; });   /* leaves this dept's queue */
+        paintHOIssueList(); return;
+      }
+      toast(forceDone ? 'Marked done' : (extended ? 'Update added (extension in red)' : 'Solution submitted'));
       iss.sol = doc; iss.status = doc.status;
       paintHOIssueList();
     }).catch(function (e) { loader(false); toast(e.message); });
@@ -3474,7 +3569,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var byDate = dateEl ? dateEl.value : '';
     var solution = solEl ? (solEl.value || '').trim() : '';
     if (byDate && solution) { hoAddLine(id, true); return; }
-    if (!(iss.sol && iss.sol.lines && iss.sol.lines.length)) { toast('Add a solution before marking done'); return; }
+    if (!(iss.sol && iss.sol.lines && iss.sol.lines.some(function (l) { return !l.moveTo; }))) { toast('Add a solution before marking done'); return; }
     loader(true, 'Saving…');
     db.collection('hosolutions').doc(id).set({ status: 'done', updatedAt: nowISO(), updatedBy: S.empcode, updatedByName: S.empName || '', updatedByDept: S.dept || '' }, { merge: true }).then(function () {
       loader(false); toast('Marked done');
@@ -3663,7 +3758,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       var solTxt = last ? esc(last.solution || '') : '—';
       var dateTxt = last ? ('<span' + (last.extended ? ' class="ho-ext"' : '') + '>' + esc(last.byDate || '') + (last.extended ? ' (ext)' : '') + '</span>') : '—';
       var hoBy = last ? (esc(last.byName || '') + (last.byEmp ? ' · ' + esc(last.byEmp) : '')) : (x.sol && x.sol.updatedByName ? esc(x.sol.updatedByName) + (x.sol.updatedBy ? ' · ' + esc(x.sol.updatedBy) : '') : '—');
-      h2 += '<tr><td class="mono">' + esc(x.storeCode) + '</td><td>' + esc(x.amName || '—') + '</td><td>' + esc(x.zfmName || '—') + '</td><td>' + esc(x.dept) + '</td><td>' + esc(x.qLabel) + '</td><td style="color:var(--red)">' + esc(x.answer) + '</td><td class="small">' + esc(x.detailText || '—') + '</td><td>' + esc(x.remark || '—') + '</td><td>' + stBadge + '</td><td>' + solTxt + '</td><td>' + dateTxt + '</td><td>' + hoBy + '</td></tr>';
+      h2 += '<tr><td class="mono">' + esc(x.storeCode) + '</td><td>' + esc(x.amName || '—') + '</td><td>' + esc(x.zfmName || '—') + '</td><td>' + esc(x.dept) + (x.moved ? ' <span class="ho-move-tag">from ' + esc(x.origDept) + '</span>' : '') + '</td><td>' + esc(x.qLabel) + '</td><td style="color:var(--red)">' + esc(x.answer) + '</td><td class="small">' + esc(x.detailText || '—') + '</td><td>' + esc(x.remark || '—') + '</td><td>' + stBadge + '</td><td>' + solTxt + '</td><td>' + dateTxt + '</td><td>' + hoBy + '</td></tr>';
     });
     h2 += '</tbody></table></div>';
     box.innerHTML = h2;
