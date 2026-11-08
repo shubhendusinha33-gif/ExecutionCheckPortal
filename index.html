@@ -542,7 +542,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     </div>
     <div id="loginErr" class="small" style="color:var(--red);margin-bottom:8px;display:none"></div>
     <button class="btn btn-pink btn-lg btn-full" id="btnContinue">Continue →</button>
-    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v33 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v34 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
   </div>
 </div>
 
@@ -1016,6 +1016,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
               <div style="flex:1"></div>
               <button class="btn btn-sm btn-green" id="btnSubXls">⬇ Export Excel (mini-DB)</button>
               <button class="btn btn-sm btn-blue" id="btnSubPhotos">⬇ Export Photos (zip)</button>
+              <button class="btn btn-sm btn-blue" id="btnSubBundle" title="Excel + all photos in one zip — extract it and the photo links in Excel open the pictures">⬇ Excel + Photos (zip)</button>
             </div>
             <div id="subTable"></div>
           </div>
@@ -1685,7 +1686,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
      Identity is unknown at consent time by design, so it is back-filled on the
      first login from this device (e.g. HH01_SUMIT_6115513).
      ========================================================================== */
-  var APP_VERSION = 'v33';
+  var APP_VERSION = 'v34';
   var CONSENT_KEY = 'vmm_exec_consent_v22';
   var POLICY_KEY = 'vmm_exec_policy_v22';
   var DEVICE_KEY = 'vmm_exec_device_id';
@@ -5276,10 +5277,32 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     })();
   }
   // === Excel export — MS-Forms-style mini-DB: one sheet per data subject (rows=stores, cols=questions) ===
-  function exportSubXls() {
-    if (typeof XLSX === 'undefined') { toast('Excel library not loaded — check your internet / unblock cdnjs.cloudflare.com'); return; }
-    try {
-    var rows = filteredSubs(); if (!rows.length) { toast('Nothing to export for this filter'); return; }
+  /* ===== v34 — photo file naming shared by Excel links + zip ===== */
+  function subSafe(t, n) { return String(t || '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, n || 40) || 'x'; }
+  function subPhotoFolder(o) { return 'Photos/' + subSafe(o.subjectName || 'subject', 40) + '/'; }
+  function subDataPhotoName(o, a, ai) {
+    var qn = (a.qIdx != null ? Number(a.qIdx) : ai) + 1;
+    var lbl = String(a.label || '').replace(/^\s*Q\s*\d+\s*[\.\):\-]\s*/i, '');
+    return (o.storeCode || 'ST') + '_Q' + qn + '_' + subSafe(lbl, 40) + '.jpg';
+  }
+  function subB64(durl) { var m = /^data:image\/[a-z]+;base64,(.*)$/i.exec(durl || ''); return m ? m[1] : null; }
+  /* Adds exec pics + data-question photos to the zip. Returns count. */
+  function addSubPhotosToZip(zip, rows) {
+    var count = 0, used = {};
+    function put(path, b64) { var p = path, k = 2; while (used[p.toLowerCase()]) { p = path.replace(/\.jpg$/i, '_' + k + '.jpg'); k++; } used[p.toLowerCase()] = 1; zip.file(p, b64, { base64: true }); count++; return p; }
+    rows.forEach(function (o) {
+      var folder = subPhotoFolder(o);
+      if (o.type === 'pic') {
+        var list = (o.pics && o.pics.length) ? o.pics : (o.pic ? [o.pic] : []);
+        var safe = subSafe(o.subjectName || 'subject', 40);
+        list.forEach(function (durl, i) { var b = subB64(durl); if (!b) return; put(folder + o.storeCode + '_' + safe + (list.length > 1 ? '_' + (i + 1) : '') + '.jpg', b); });
+      } else {
+        (o.answers || []).forEach(function (a, ai) { if (a.type !== 'livepic' || !a.photo) return; var b = subB64(a.photo); if (!b) return; put(folder + subDataPhotoName(o, a, ai), b); });
+      }
+    });
+    return count;
+  }
+  function buildSubWorkbook(rows) {
     var wb = XLSX.utils.book_new();
     // Overview sheet
     var ov = [['Store Code', 'Store Name', 'Subject', 'Type', 'Mode', 'Filled By', 'Emp Code', 'Status', 'AM Validated', 'AM Action', 'AM Validated By', 'AM Remark', 'Gate %', 'Flagged', 'AM', 'ZFM', 'GPS', 'When']];
@@ -5291,7 +5314,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var used = {};
     Object.keys(bySubj).forEach(function (sn) {
       var list = bySubj[sn], mode = list[0].dataMode;
-      var aoa;
+      var aoa, links = [];
       if (mode === 'sysphy') {
         aoa = [['Store Code', 'Store Name', 'Filled By', 'When', 'AM Validated', 'AM Action', 'Descriptor', 'System', 'Physical', 'Diff', 'Diff %']];
         list.forEach(function (o) { (o.rows || []).forEach(function (r) { var ds = r.descs ? r.descs.join(' · ') : (r.desc || ''); aoa.push([o.storeCode, o.storeName || '', (o.designation || '') + ' ' + (o.empName || ''), o.ts ? new Date(o.ts).toLocaleString() : '', amValYesNo(o), o.amAction || '', ds, r.sys, r.phy, r.diff, (r.diffPct != null ? r.diffPct : r.shrinkPct)]); }); });
@@ -5302,41 +5325,62 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         var headerCols = []; labels.forEach(function (l) { headerCols.push(l); if (refLabelOf[l]) headerCols.push(l + ' — As per HO record'); });
         aoa = [['Store Code', 'Store Name', 'Filled By', 'When', 'AM Validated', 'AM Action'].concat(headerCols)];
         list.forEach(function (o) {
-          var m = {}, rm = {}; (o.answers || []).forEach(function (a) { var val = a.value; if (a.type === 'physcount') val = 'Phy ' + a.value + ' (Diff ' + a.diff + ', ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%)'; m[a.label] = val; if (a.refOn) rm[a.label] = a.refValue || ''; });
+          var m = {}, rm = {}, lk = {}; (o.answers || []).forEach(function (a, ai) { var val = a.value; if (a.type === 'physcount') val = 'Phy ' + a.value + ' (Diff ' + a.diff + ', ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%)'; if (a.type === 'livepic' && a.photo && subB64(a.photo)) { val = subDataPhotoName(o, a, ai); lk[a.label] = subPhotoFolder(o) + val; } m[a.label] = val; if (a.refOn) rm[a.label] = a.refValue || ''; });
           var row = [o.storeCode, o.storeName || '', (o.designation || '') + ' ' + (o.empName || ''), o.ts ? new Date(o.ts).toLocaleString() : '', amValYesNo(o), o.amAction || ''];
-          labels.forEach(function (l) { row.push(m[l] != null ? m[l] : ''); if (refLabelOf[l]) row.push(rm[l] != null ? rm[l] : ''); });
+          labels.forEach(function (l) { if (lk[l]) links.push({ r: aoa.length, c: row.length, t: lk[l] }); row.push(m[l] != null ? m[l] : ''); if (refLabelOf[l]) row.push(rm[l] != null ? rm[l] : ''); });
           aoa.push(row);
         });
       }
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      links.forEach(function (L) { var ref = XLSX.utils.encode_cell({ r: L.r, c: L.c }); if (ws[ref]) ws[ref].l = { Target: L.t, Tooltip: 'Open photo (extract the zip first)' }; });
       var nm = sn.replace(/[\\\/\?\*\[\]:]/g, ' ').slice(0, 28) || 'Subject'; var base = nm, k = 2; while (used[nm.toLowerCase()]) { nm = (base.slice(0, 25) + ' ' + k); k++; } used[nm.toLowerCase()] = 1;
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), nm);
+      XLSX.utils.book_append_sheet(wb, ws, nm);
     });
-    XLSX.writeFile(wb, 'ExecSubmissions_' + toDateStr(new Date()) + '.xlsx');
-    toast('Excel exported (' + (Object.keys(bySubj).length) + ' data sheet(s) + overview)');
+    return { wb: wb, nData: Object.keys(bySubj).length };
+  }
+  function exportSubXls() {
+    if (typeof XLSX === 'undefined') { toast('Excel library not loaded — check your internet / unblock cdnjs.cloudflare.com'); return; }
+    try {
+    var rows = filteredSubs(); if (!rows.length) { toast('Nothing to export for this filter'); return; }
+    var r = buildSubWorkbook(rows);
+    XLSX.writeFile(r.wb, 'ExecSubmissions_' + toDateStr(new Date()) + '.xlsx');
+    toast('Excel exported (' + r.nData + ' data sheet(s) + overview) — use Excel + Photos (zip) for clickable photos');
     } catch (e) { loader(false); toast('Export failed: ' + e.message); }
   }
-  // === Photo export — zip of execution photos renamed StCd_Subject_n.jpg ===
+  function zipDownload(zip, fname, okMsg) {
+    zip.generateAsync({ type: 'blob', compression: 'STORE' }).then(function (blob) {
+      loader(false);
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(a.href); }, 8000);
+      toast(okMsg);
+    }).catch(function (e) { loader(false); toast('Zip failed: ' + e.message); });
+  }
+  // === Photo export — zip of execution + data-question photos, StCd_Subject_n.jpg / StCd_Q#_Question.jpg ===
   function exportSubPhotos() {
     if (typeof JSZip === 'undefined') { toast('Zip tool still loading — try again'); return; }
-    var pics = filteredSubs().filter(function (o) { return o.type === 'pic'; });
-    if (!pics.length) { toast('No execution photos in this filter'); return; }
+    var rows = filteredSubs(); if (!rows.length) { toast('Nothing to export for this filter'); return; }
     loader(true, 'Zipping photos…');
-    var zip = new JSZip(), count = 0;
-    pics.forEach(function (o) {
-      var list = (o.pics && o.pics.length) ? o.pics : (o.pic ? [o.pic] : []);
-      var safe = (o.subjectName || 'subject').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
-      list.forEach(function (durl, i) {
-        var m = /^data:image\/[a-z]+;base64,(.*)$/i.exec(durl); if (!m) return;
-        var fname = o.storeCode + '_' + safe + (list.length > 1 ? '_' + (i + 1) : '') + '.jpg';
-        zip.file(fname, m[1], { base64: true }); count++;
-      });
-    });
-    if (!count) { loader(false); toast('No embedded photos found'); return; }
-    zip.generateAsync({ type: 'blob' }).then(function (blob) {
-      loader(false);
-      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ExecPhotos_' + toDateStr(new Date()) + '.zip'; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(a.href); }, 8000);
-      toast('Zipped ' + count + ' photo(s) — named StCd_Subject.jpg');
-    }).catch(function (e) { loader(false); toast('Zip failed: ' + e.message); });
+    setTimeout(function () {
+      try {
+        var zip = new JSZip(), count = addSubPhotosToZip(zip, rows);
+        if (!count) { loader(false); toast('No photos in this filter'); return; }
+        zipDownload(zip, 'ExecPhotos_' + toDateStr(new Date()) + '.zip', 'Zipped ' + count + ' photo(s) — StCd_Q#_Question.jpg');
+      } catch (e) { loader(false); toast('Zip failed: ' + e.message); }
+    }, 30);
+  }
+  // === v34 — Excel + Photos in one zip (links in Excel open Photos/...) ===
+  function exportSubBundle() {
+    if (typeof XLSX === 'undefined') { toast('Excel library not loaded — check your internet / unblock cdnjs.cloudflare.com'); return; }
+    if (typeof JSZip === 'undefined') { toast('Zip tool still loading — try again'); return; }
+    var rows = filteredSubs(); if (!rows.length) { toast('Nothing to export for this filter'); return; }
+    loader(true, 'Building Excel + photos…');
+    setTimeout(function () {
+      try {
+        var d = toDateStr(new Date()), r = buildSubWorkbook(rows), zip = new JSZip();
+        zip.file('ExecSubmissions_' + d + '.xlsx', XLSX.write(r.wb, { bookType: 'xlsx', type: 'array' }));
+        var count = addSubPhotosToZip(zip, rows);
+        zipDownload(zip, 'ExecData_' + d + '.zip', 'Zipped Excel + ' + count + ' photo(s) — extract, then click photo cells');
+      } catch (e) { loader(false); toast('Export failed: ' + e.message); }
+    }, 30);
   }
   function showImgModal(title, src) { $('ovImgTitle').textContent = title; $('ovImgPic').src = src; $('ovImg').classList.add('show'); }
   function showSubDetail(id) {
@@ -6116,6 +6160,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     on('btnSubDateAll', 'click', function () { _subFilter.date = ''; if ($('subDate')) $('subDate').value = ''; applySubFilters(); });
     on('btnSubXls', 'click', exportSubXls);
     on('btnSubPhotos', 'click', exportSubPhotos);
+    on('btnSubBundle', 'click', exportSubBundle);
     on('btnSubPendXls', 'click', exportSubPendXls);
     wireCollToggle('subPendTog', 'subPendBody', 'subPendChev', 'subPendHint');
     // Dashboard: slicer + pending toggle + export + snapshot
