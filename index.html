@@ -542,7 +542,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     </div>
     <div id="loginErr" class="small" style="color:var(--red);margin-bottom:8px;display:none"></div>
     <button class="btn btn-pink btn-lg btn-full" id="btnContinue">Continue →</button>
-    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v34 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v35 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
   </div>
 </div>
 
@@ -1686,7 +1686,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
      Identity is unknown at consent time by design, so it is back-filled on the
      first login from this device (e.g. HH01_SUMIT_6115513).
      ========================================================================== */
-  var APP_VERSION = 'v34';
+  var APP_VERSION = 'v35';
   var CONSENT_KEY = 'vmm_exec_consent_v22';
   var POLICY_KEY = 'vmm_exec_policy_v22';
   var DEVICE_KEY = 'vmm_exec_device_id';
@@ -5280,24 +5280,35 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   /* ===== v34 — photo file naming shared by Excel links + zip ===== */
   function subSafe(t, n) { return String(t || '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, n || 40) || 'x'; }
   function subPhotoFolder(o) { return 'Photos/' + subSafe(o.subjectName || 'subject', 40) + '/'; }
-  function subDataPhotoName(o, a, ai) {
+  /* v35 — question-wise folders: Photos/<Subject>/Q#_<Question>/StCd_Q#_<Question>.jpg */
+  function subDataPhotoKey(a, ai) {
     var qn = (a.qIdx != null ? Number(a.qIdx) : ai) + 1;
     var lbl = String(a.label || '').replace(/^\s*Q\s*\d+\s*[\.\):\-]\s*/i, '');
-    return (o.storeCode || 'ST') + '_Q' + qn + '_' + subSafe(lbl, 40) + '.jpg';
+    return 'Q' + qn + '_' + subSafe(lbl, 40);
+  }
+  function subDataPhotoName(o, a, ai) { return (o.storeCode || 'ST') + '_' + subDataPhotoKey(a, ai) + '.jpg'; }
+  function subDataPhotoPath(o, a, ai) { return subPhotoFolder(o) + subDataPhotoKey(a, ai) + '/' + subDataPhotoName(o, a, ai); }
+  var _shotLblBySubj = {};   /* per subject: shot index -> label, so every store lands in the same folder */
+  function subShotKey(o, i) {
+    var sl = _shotLblBySubj[o.subjectName || ''] || {};
+    var m = (o.viewMeta && o.viewMeta[i]) || {};
+    var lbl = String(sl[i] || m.label || '').trim();
+    return 'Shot' + (i + 1) + (lbl && !/^photo\s*\d*$/i.test(lbl) ? '_' + subSafe(lbl, 40) : '');
   }
   function subB64(durl) { var m = /^data:image\/[a-z]+;base64,(.*)$/i.exec(durl || ''); return m ? m[1] : null; }
   /* Adds exec pics + data-question photos to the zip. Returns count. */
   function addSubPhotosToZip(zip, rows) {
     var count = 0, used = {};
+    _shotLblBySubj = {};
+    rows.forEach(function (o) { if (o.type !== 'pic' || !o.viewMeta) return; var mp = _shotLblBySubj[o.subjectName || ''] = _shotLblBySubj[o.subjectName || ''] || {}; o.viewMeta.forEach(function (v, i) { if (!mp[i] && v && v.label && !/^photo\s*\d*$/i.test(String(v.label).trim())) mp[i] = v.label; }); });
     function put(path, b64) { var p = path, k = 2; while (used[p.toLowerCase()]) { p = path.replace(/\.jpg$/i, '_' + k + '.jpg'); k++; } used[p.toLowerCase()] = 1; zip.file(p, b64, { base64: true }); count++; return p; }
     rows.forEach(function (o) {
       var folder = subPhotoFolder(o);
       if (o.type === 'pic') {
         var list = (o.pics && o.pics.length) ? o.pics : (o.pic ? [o.pic] : []);
-        var safe = subSafe(o.subjectName || 'subject', 40);
-        list.forEach(function (durl, i) { var b = subB64(durl); if (!b) return; put(folder + o.storeCode + '_' + safe + (list.length > 1 ? '_' + (i + 1) : '') + '.jpg', b); });
+        list.forEach(function (durl, i) { var b = subB64(durl); if (!b) return; var sk = subShotKey(o, i); put(folder + sk + '/' + (o.storeCode || 'ST') + '_' + sk + '.jpg', b); });
       } else {
-        (o.answers || []).forEach(function (a, ai) { if (a.type !== 'livepic' || !a.photo) return; var b = subB64(a.photo); if (!b) return; put(folder + subDataPhotoName(o, a, ai), b); });
+        (o.answers || []).forEach(function (a, ai) { if (a.type !== 'livepic' || !a.photo) return; var b = subB64(a.photo); if (!b) return; put(subDataPhotoPath(o, a, ai), b); });
       }
     });
     return count;
@@ -5325,7 +5336,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         var headerCols = []; labels.forEach(function (l) { headerCols.push(l); if (refLabelOf[l]) headerCols.push(l + ' — As per HO record'); });
         aoa = [['Store Code', 'Store Name', 'Filled By', 'When', 'AM Validated', 'AM Action'].concat(headerCols)];
         list.forEach(function (o) {
-          var m = {}, rm = {}, lk = {}; (o.answers || []).forEach(function (a, ai) { var val = a.value; if (a.type === 'physcount') val = 'Phy ' + a.value + ' (Diff ' + a.diff + ', ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%)'; if (a.type === 'livepic' && a.photo && subB64(a.photo)) { val = subDataPhotoName(o, a, ai); lk[a.label] = subPhotoFolder(o) + val; } m[a.label] = val; if (a.refOn) rm[a.label] = a.refValue || ''; });
+          var m = {}, rm = {}, lk = {}; (o.answers || []).forEach(function (a, ai) { var val = a.value; if (a.type === 'physcount') val = 'Phy ' + a.value + ' (Diff ' + a.diff + ', ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%)'; if (a.type === 'livepic' && a.photo && subB64(a.photo)) { val = subDataPhotoName(o, a, ai); lk[a.label] = subDataPhotoPath(o, a, ai); } m[a.label] = val; if (a.refOn) rm[a.label] = a.refValue || ''; });
           var row = [o.storeCode, o.storeName || '', (o.designation || '') + ' ' + (o.empName || ''), o.ts ? new Date(o.ts).toLocaleString() : '', amValYesNo(o), o.amAction || ''];
           labels.forEach(function (l) { if (lk[l]) links.push({ r: aoa.length, c: row.length, t: lk[l] }); row.push(m[l] != null ? m[l] : ''); if (refLabelOf[l]) row.push(rm[l] != null ? rm[l] : ''); });
           aoa.push(row);
@@ -5363,7 +5374,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       try {
         var zip = new JSZip(), count = addSubPhotosToZip(zip, rows);
         if (!count) { loader(false); toast('No photos in this filter'); return; }
-        zipDownload(zip, 'ExecPhotos_' + toDateStr(new Date()) + '.zip', 'Zipped ' + count + ' photo(s) — StCd_Q#_Question.jpg');
+        zipDownload(zip, 'ExecPhotos_' + toDateStr(new Date()) + '.zip', 'Zipped ' + count + ' photo(s) — folder per question');
       } catch (e) { loader(false); toast('Zip failed: ' + e.message); }
     }, 30);
   }
