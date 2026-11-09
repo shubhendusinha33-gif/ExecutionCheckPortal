@@ -476,6 +476,23 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
 .amview-wrap{display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:start}
 @media(max-width:860px){.amview-wrap{grid-template-columns:1fr}}
 
+/* ---- v36 — tracker: article lines, proof pages, group checks ---- */
+.art-row{display:grid;grid-template-columns:96px minmax(0,1fr) 62px 26px;gap:6px;align-items:center;margin-bottom:6px}
+.art-row .ms-in{border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;background:#fff}
+.art-x{border:none;background:none;color:var(--text3);font-size:18px;cursor:pointer;padding:0}
+.art-hd{display:grid;grid-template-columns:96px minmax(0,1fr) 62px 26px;gap:6px;font-size:11px;color:var(--text2);margin-bottom:4px}
+.q-artadd{border-style:dashed!important;width:100%}
+.proof-grid{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+.proof-th{position:relative;width:92px}
+.proof-th img{width:92px;height:120px;object-fit:cover;border-radius:6px;border:1px solid var(--border);display:block}
+.proof-th button{position:absolute;top:2px;right:2px;border:none;border-radius:50%;width:22px;height:22px;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;line-height:22px;padding:0}
+.grp-box{border:1px solid var(--border);border-left:4px solid var(--border);border-radius:0}
+.grp-box.ok{border-left-color:#2E7D32;background:#F1F8E9}
+.grp-box.bad{border-left-color:var(--red);background:#FFF5F5}
+.grp-st{font-size:13px;font-weight:600}
+.art-tbl{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:4px}
+.art-tbl td,.art-tbl th{border-bottom:1px solid var(--border);padding:3px 6px;text-align:left}
+
 /* ---- v33 — HO Support layout ---- */
 .ho-layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:12px;align-items:start}
 .ho-sum{position:sticky;top:64px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px;box-shadow:var(--shadow)}
@@ -542,7 +559,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     </div>
     <div id="loginErr" class="small" style="color:var(--red);margin-bottom:8px;display:none"></div>
     <button class="btn btn-pink btn-lg btn-full" id="btnContinue">Continue →</button>
-    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v35 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v36 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
   </div>
 </div>
 
@@ -913,13 +930,19 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
               </div>
               <div class="grid-2">
                 <div class="form-group"><label class="form-label">Question type</label><select class="form-control" id="qType">
-                  <option value="text">Short answer</option><option value="para">Paragraph</option><option value="number">Number</option><option value="email">Email</option><option value="phone">Phone</option><option value="date">Date</option><option value="time">Time</option><option value="choice">Single choice (radio)</option><option value="multi">Multiple choice (checkbox)</option><option value="dropdown">Dropdown</option><option value="rating">Rating (1–5 stars)</option><option value="physcount">Physical Count Check</option><option value="livepic">Live Picture (camera only)</option>
+                  <option value="text">Short answer</option><option value="para">Paragraph</option><option value="number">Number</option><option value="email">Email</option><option value="phone">Phone</option><option value="date">Date</option><option value="time">Time</option><option value="choice">Single choice (radio)</option><option value="multi">Multiple choice (checkbox)</option><option value="dropdown">Dropdown</option><option value="rating">Rating (1–5 stars)</option><option value="physcount">Physical Count Check</option><option value="livepic">Live Picture (camera only)</option><option value="artlines">Article lines (+ Add Another Article)</option><option value="fileproof">File upload — signed proof (camera, multi-page)</option>
                 </select></div>
                 <div class="form-group"><label class="form-label">System qty (Physical Count only)</label><input class="form-control" id="qSys" inputmode="numeric" placeholder="e.g. 120"></div>
               </div>
               <div class="form-group"><label class="form-label">Question label</label><input class="form-control" id="qLabel" placeholder="Question text"></div>
               <div class="form-group"><label class="form-label">Options (comma separated — choice / multi / dropdown only)</label><input class="form-control" id="qOptions" placeholder="Yes,No,N/A"></div>
               <div class="grid-2" id="qRangeWrap" style="display:none"><div class="form-group"><label class="form-label">Min (Number only — blank = any number)</label><input class="form-control" id="qMin" inputmode="numeric" placeholder="e.g. 1"></div><div class="form-group"><label class="form-label">Max</label><input class="form-control" id="qMax" inputmode="numeric" placeholder="e.g. 5"></div></div>
+              <div class="form-group" id="qTrkWrap" style="margin-bottom:8px;padding:8px 10px;background:#EDE7F6;border:1px solid #B39DDB;border-radius:8px">
+                <div class="small" style="margin-bottom:6px"><b>📦 Tracker (optional)</b> — <b>Qty Group</b> sums product rows (e.g. P1) and checks the total against staff-count questions whose <b>Eligible For</b> lists that group.</div>
+                <div class="grid-2"><input class="form-control" id="qGrp" placeholder="Qty Group — e.g. P1"><input class="form-control" id="qElig" placeholder="Eligible For — e.g. P1,P2"></div>
+                <div class="grid-2" style="margin-top:6px"><select class="form-control" id="qKind"><option value="">Main / Alt — none</option><option value="main">Main article</option><option value="alt">Alternate article</option></select>
+                <label class="flex center gap"><span class="tgl"><input type="checkbox" id="qReqIfAlt"><span class="tgl-sl"></span></span><span class="small">Required only if an Alt qty is used</span></label></div>
+              </div>
               <label class="flex center gap" style="margin-bottom:8px"><span class="tgl"><input type="checkbox" id="qRequired"><span class="tgl-sl"></span></span><span class="small"><b>Required</b></span></label>
               <label class="flex center gap" style="margin-bottom:8px"><span class="tgl"><input type="checkbox" id="qRemarks"><span class="tgl-sl"></span></span><span class="small"><b>Remarks box</b> — adds a free-text remarks box under this question</span></label>
               <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="qDeptOn"><span class="tgl-sl"></span></span><span class="small"><b>Department</b> — Y/N · tag this question to an HO dept</span></label>
@@ -1686,7 +1709,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
      Identity is unknown at consent time by design, so it is back-filled on the
      first login from this device (e.g. HH01_SUMIT_6115513).
      ========================================================================== */
-  var APP_VERSION = 'v35';
+  var APP_VERSION = 'v36';
   var CONSENT_KEY = 'vmm_exec_consent_v22';
   var POLICY_KEY = 'vmm_exec_policy_v22';
   var DEVICE_KEY = 'vmm_exec_device_id';
@@ -2270,6 +2293,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (!u) { toast('Capture failed — try again'); return; }
     var host = _qCamHost, i = _qCamIdx;
     stopCam(); $('ovQCam').classList.remove('show');
+    var proofEl = host ? host.querySelector('.q-proof[data-i="' + i + '"]') : null;   /* v36 — signed proof page */
+    if (proofEl) { proofAdd(proofEl, u); try { host.dispatchEvent(new Event('input')); } catch (e) { } _qCamIdx = -1; _qCamHost = null; return; }
     var slot = host ? host.querySelector('.q-pic[data-i="' + i + '"]') : null;
     if (slot) {
       slot.setAttribute('data-val', u);
@@ -2316,6 +2341,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (q.type === 'multi') { var cks = host.querySelectorAll('input[type="checkbox"][data-i="' + k + '"]:checked'), vals = []; for (var m = 0; m < cks.length; m++) vals.push(cks[m].value); return vals.join(', '); }
     if (q.type === 'rating') { var hin = host.querySelector('.ms-stars[data-i="' + k + '"] input'); return hin ? hin.value : ''; }
     if (q.type === 'livepic') { var ps = host.querySelector('.q-pic[data-i="' + k + '"]'); return ps && ps.getAttribute('data-val') ? 'photo' : ''; }
+    if (q.type === 'artlines') return String(artRead(host, k).total);
+    if (q.type === 'fileproof') { var pn = proofPages(host, k).length; return pn ? String(pn) : ''; }
     var gin = host.querySelector('.q-inp[data-i="' + k + '"]'); return gin ? gin.value : '';
   }
   function applyBranchVisibility(subj, host) {
@@ -2332,6 +2359,136 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       el.style.display = set[i] ? '' : 'none';
     });
   }
+  /* ===== v36 — tracker helpers: article lines, proof pages, group checks ===== */
+  function trkKind(q) { var k = String((q && q.kind) || '').toLowerCase(); return k.indexOf('alt') === 0 ? 'alt' : (k.indexOf('main') === 0 ? 'main' : ''); }
+  function trkCfg(subj) {
+    var qs = (subj && subj.questions) || [], g = {}, order = [];
+    qs.forEach(function (q, i) {
+      var k = q && q.qtyGroup ? String(q.qtyGroup).trim().toUpperCase() : ''; if (!k) return;
+      if (!g[k]) { g[k] = { key: k, items: [], elig: [], last: i, dept: '', name: (String(q.label || k).split(' - ')[0] || k).trim() }; order.push(k); }
+      g[k].items.push(i); g[k].last = i;
+      if (!g[k].dept && q.deptOn && q.dept) g[k].dept = q.dept;
+    });
+    qs.forEach(function (q, i) { (q && q.eligFor || []).forEach(function (k) { k = String(k).trim().toUpperCase(); if (g[k]) g[k].elig.push(i); }); });
+    return { groups: g, order: order, any: order.length > 0 };
+  }
+  /* qtyOf(i, q) → number. Returns { P1:{qty,elig,alt,diff,name}, …, _altUsed:bool } */
+  function grpCompute(subj, qtyOf) {
+    var cfg = trkCfg(subj), qs = subj.questions || [], out = { _altUsed: false };
+    cfg.order.forEach(function (k) {
+      var gr = cfg.groups[k], qty = 0, alt = 0, elig = 0;
+      gr.items.forEach(function (i) { var n = Number(qtyOf(i, qs[i])) || 0; qty += n; if (trkKind(qs[i]) === 'alt') alt += n; });
+      gr.elig.forEach(function (i) { elig += Number(qtyOf(i, qs[i])) || 0; });
+      if (alt > 0) out._altUsed = true;
+      out[k] = { name: gr.name, qty: qty, elig: elig, alt: alt, diff: qty - elig };
+    });
+    /* an alt row outside any group still counts as "alt used" */
+    qs.forEach(function (q, i) { if (!q.qtyGroup && trkKind(q) === 'alt' && (Number(qtyOf(i, q)) || 0) > 0) out._altUsed = true; });
+    return out;
+  }
+  function artRowHtml(l) {
+    l = l || {};
+    return '<div class="art-row"><input class="ms-in art-code" inputmode="numeric" placeholder="Article code" value="' + esc(l.code || '') + '"><input class="ms-in art-desc" placeholder="Article description" value="' + esc(l.desc || '') + '"><input class="ms-in art-qty" inputmode="numeric" placeholder="Qty" value="' + esc(l.qty != null && l.qty !== '' ? l.qty : '') + '"><button type="button" class="art-x" title="Remove line">×</button></div>';
+  }
+  function artRead(host, k) {
+    var box = host.querySelector('.q-art[data-i="' + k + '"]'), lines = [], total = 0, bad = '';
+    if (!box) return { lines: lines, total: 0, bad: '' };
+    box.querySelectorAll('.art-row').forEach(function (r) {
+      var c = (r.querySelector('.art-code').value || '').trim(), d = (r.querySelector('.art-desc').value || '').trim(), qv = (r.querySelector('.art-qty').value || '').trim();
+      if (!c && !d && !qv) return;
+      var n = Number(qv);
+      if (qv === '' || isNaN(n) || n < 0) { bad = bad || 'Enter a valid qty for article ' + (c || d); return; }
+      if (!c || !d) { bad = bad || 'Each article line needs Article Code and Description'; }
+      lines.push({ code: c, desc: d, qty: n }); total += n;
+    });
+    return { lines: lines, total: total, bad: bad };
+  }
+  function artWire(card, host) {
+    var box = card.querySelector('.q-art'), tot = card.querySelector('.q-arttot');
+    var recalc = function () { var k = box.getAttribute('data-i'), r = artRead(host, k); if (tot) tot.textContent = 'Total qty: ' + r.total + ' · ' + r.lines.length + ' article line(s)'; };
+    card.querySelector('.q-artadd').addEventListener('click', function () { box.insertAdjacentHTML('beforeend', artRowHtml()); recalc(); try { host.dispatchEvent(new Event('input')); } catch (e) { } });
+    box.addEventListener('click', function (e) { if (e.target.classList.contains('art-x')) { var row = e.target.closest('.art-row'); if (row) row.remove(); if (!box.querySelector('.art-row')) box.insertAdjacentHTML('beforeend', artRowHtml()); recalc(); try { host.dispatchEvent(new Event('input')); } catch (e2) { } } });
+    box.addEventListener('input', recalc);
+    card._artRecalc = recalc; recalc();
+  }
+  function proofPages(host, k) { var el = host.querySelector('.q-proof[data-i="' + k + '"]'); return (el && el._pages) ? el._pages.slice() : []; }
+  function proofPaint(el) {
+    var pg = el._pages || [], max = Number(el.getAttribute('data-max')) || 5;
+    el.innerHTML = '<div class="proof-grid">' + pg.map(function (u, i) { return '<div class="proof-th"><img src="' + u + '"><button type="button" data-pi="' + i + '" title="Remove page">×</button><div class="small text3">Page ' + (i + 1) + '</div></div>'; }).join('') + '</div>' + (pg.length ? '' : '<div class="small text3">No page captured yet</div>');
+    var btn = el.parentNode && el.parentNode.querySelector('.q-proofbtn');
+    if (btn) { btn.disabled = pg.length >= max; btn.textContent = pg.length >= max ? 'Max ' + max + ' pages captured' : '📷 Capture page ' + (pg.length + 1); }
+  }
+  function proofAdd(el, u) { el._pages = (el._pages || []).concat([u]); proofPaint(el); }
+  /* Group check boxes — inserted after the last question of each group */
+  function grpInsertBoxes(subj, host) {
+    var cfg = trkCfg(subj); if (!cfg.any) return;
+    cfg.order.forEach(function (k) {
+      var gr = cfg.groups[k], els = host.querySelectorAll('.ms-q[data-qi="' + gr.last + '"]'), after = els[els.length - 1]; if (!after) return;
+      var b = document.createElement('div'); b.className = 'ms-q grp-box'; b.setAttribute('data-g', k);
+      b.innerHTML = '<div class="grp-st">' + esc(gr.name) + '</div><div class="small text2 grp-sub"></div><textarea class="ms-in grp-reason" data-g="' + esc(k) + '" placeholder="Reason for mismatch (required to submit)" style="display:none;margin-top:6px"></textarea>';
+      after.parentNode.insertBefore(b, after.nextSibling);
+    });
+  }
+  function domQtyOf(host) { return function (i, q) { if (q && q.type === 'artlines') return artRead(host, i).total; var el = host.querySelector('.q-inp[data-i="' + i + '"]'); var n = el ? Number(el.value) : 0; return isNaN(n) ? 0 : n; }; }
+  function grpPaint(subj, host) {
+    var cfg = trkCfg(subj); if (!cfg.any) return null;
+    var G = grpCompute(subj, domQtyOf(host));
+    cfg.order.forEach(function (k) {
+      var b = host.querySelector('.grp-box[data-g="' + k + '"]'); if (!b) return;
+      var g = G[k], ok = g.diff === 0, ta = b.querySelector('.grp-reason');
+      b.className = 'ms-q grp-box ' + (ok ? 'ok' : 'bad');
+      b.querySelector('.grp-st').innerHTML = esc(g.name) + ' — total <b>' + g.qty + '</b> vs eligible <b>' + g.elig + '</b> · ' + (ok ? '<span style="color:#2E7D32">✓ matches</span>' : '<span style="color:var(--red)">' + (g.diff < 0 ? 'short ' + (-g.diff) : 'excess ' + g.diff) + '</span>');
+      b.querySelector('.grp-sub').textContent = g.alt ? ('Alternate qty ' + g.alt + ' — flagged to HO; reason + approval ref required') : '';
+      if (ta) ta.style.display = ok ? 'none' : 'block';
+    });
+    return G;
+  }
+  function grpReasons(host) { var r = {}; host.querySelectorAll('.grp-reason').forEach(function (t) { r[t.getAttribute('data-g')] = (t.value || '').trim(); }); return r; }
+  /* Build grpChk for the submission doc; returns { chk, err } */
+  function grpCheckForSave(subj, host) {
+    var cfg = trkCfg(subj); if (!cfg.any) return { chk: null, err: '', altUsed: false };
+    var G = grpCompute(subj, domQtyOf(host)), R = grpReasons(host), chk = {}, err = '';
+    cfg.order.forEach(function (k) {
+      var g = G[k]; chk[k] = { name: g.name, qty: g.qty, elig: g.elig, alt: g.alt, diff: g.diff, reason: g.diff ? (R[k] || '') : '' };
+      if (g.diff && !R[k] && !err) err = g.name + ': total ' + g.qty + ' vs eligible ' + g.elig + ' — enter the mismatch reason';
+    });
+    return { chk: chk, err: err, altUsed: G._altUsed };
+  }
+  function grpSummaryHtml(o) {
+    var g = o && o.grpChk; if (!g) return '';
+    var ks = Object.keys(g); if (!ks.length) return '';
+    return '<div class="rem-lbl">Quantity check</div>' + ks.map(function (k) { var x = g[k], ok = !x.diff; return '<div class="ms-q grp-box ' + (ok ? 'ok' : 'bad') + '" style="margin-bottom:6px"><div class="grp-st">' + esc(x.name || k) + ' — total <b>' + esc(x.qty) + '</b> vs eligible <b>' + esc(x.elig) + '</b> · ' + (ok ? '<span style="color:#2E7D32">✓ matches</span>' : '<span style="color:var(--red)">' + (x.diff < 0 ? 'short ' + (-x.diff) : 'excess ' + x.diff) + '</span>') + (x.alt ? ' · <span style="color:#E65100">alt ' + esc(x.alt) + '</span>' : '') + '</div>' + (x.reason ? '<div class="small" style="margin-top:3px">Reason: ' + esc(x.reason) + '</div>' : '') + '</div>'; }).join('');
+  }
+  function subIdOf(o) { return o._id || ((o.subjectId || '') + '__' + (o.storeCode || '')); }
+  var _proofReg = {};   /* inline-fallback proofs, keyed by submission id */
+  /* Extra answer renderers for the new types; returns '' for every other type */
+  function ansExtraHtml(a, o) {
+    if (!a) return '';
+    if (a.type === 'artlines') {
+      var ls = a.lines || [];
+      return '<div>Total qty <b>' + esc(a.value != null && a.value !== '' ? a.value : 0) + '</b></div>' + (ls.length ? '<table class="art-tbl"><tr><th>Code</th><th>Description</th><th>Qty</th></tr>' + ls.map(function (l) { return '<tr><td>' + esc(l.code) + '</td><td>' + esc(l.desc) + '</td><td>' + esc(l.qty) + '</td></tr>'; }).join('') + '</table>' : '<div class="small text3">No article lines</div>');
+    }
+    if (a.type === 'fileproof') {
+      if (!a.pages) return '—';
+      var sid = subIdOf(o || {});
+      if (o && o.proofInline) _proofReg[sid] = o.proofInline;
+      return '<div class="proof-view" data-sub="' + esc(sid) + '" data-q="q' + esc(a.qIdx) + '"><button type="button" class="btn btn-outline btn-sm js-proof-load">📄 View signed proof — ' + esc(a.pages) + ' page(s)</button></div>';
+    }
+    return '';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('.js-proof-load') : null; if (!b) return;
+    e.preventDefault();
+    var box = b.parentNode, sid = box.getAttribute('data-sub'), qk = box.getAttribute('data-q');
+    var show = function (files) {
+      var pg = (files && files[qk]) || [];
+      box.innerHTML = pg.length ? pg.map(function (u, i) { return '<a href="' + u + '" download="' + esc(sid.split('__').pop() + '_proof_p' + (i + 1)) + '.jpg"><img src="' + u + '" style="width:100%;max-width:320px;border-radius:8px;margin:4px 0;display:block"></a><div class="small text3">Page ' + (i + 1) + ' · tap to download</div>'; }).join('') : '<div class="small text3">Proof not found</div>';
+    };
+    if (_proofReg[sid]) { show(_proofReg[sid]); return; }
+    b.disabled = true; b.textContent = 'Loading…';
+    db.collection('subfiles').doc(sid).get().then(function (d) { show(d.exists ? (d.data().files || {}) : {}); })
+      .catch(function (err) { b.disabled = false; b.textContent = 'Retry'; toast(err.message); });
+  });
   function renderOpenForm(subj, host) {
     (subj.questions || []).forEach(function (q, i) {
       var card = document.createElement('div'); card.className = 'ms-q'; card.setAttribute('data-qi', i);
@@ -2347,6 +2504,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       else if (q.type === 'date') body = '<input class="ms-in q-inp" type="date" data-i="' + i + '">';
       else if (q.type === 'time') body = '<input class="ms-in q-inp" type="time" data-i="' + i + '">';
       else if (q.type === 'livepic') body = '<div class="q-pic" data-i="' + i + '" data-val=""></div><button type="button" class="btn btn-blue btn-sm q-picbtn" data-i="' + i + '">📷 Open camera</button><div class="small text3" style="margin-top:4px">Live camera only — no gallery upload.</div>';
+      else if (q.type === 'artlines') body = '<div class="art-hd"><span>Article code</span><span>Description</span><span>Qty</span><span></span></div><div class="q-art" data-i="' + i + '">' + artRowHtml() + '</div><button type="button" class="btn btn-outline btn-sm q-artadd" data-i="' + i + '">+ Add Another Article</button><div class="small text3 q-arttot" style="margin-top:4px"></div>';
+      else if (q.type === 'fileproof') body = '<div class="q-proof" data-i="' + i + '" data-max="' + (Number(q.max) || 5) + '"></div><button type="button" class="btn btn-blue btn-sm q-proofbtn" data-i="' + i + '">📷 Capture page 1</button><div class="small text3" style="margin-top:4px">Live camera only · up to ' + (Number(q.max) || 5) + ' pages · photograph each signed sheet</div>';
       else if (q.type === 'dropdown') body = '<select class="ms-sel q-inp" data-i="' + i + '"><option value="">— Select —</option>' + (q.options || []).map(function (o) { return '<option>' + esc(o) + '</option>'; }).join('') + '</select>';
       else if (q.type === 'choice') body = (q.options || []).map(function (o) { return '<label class="ms-opt"><input type="radio" name="q' + i + '" class="q-inp" data-i="' + i + '" value="' + esc(o) + '"> ' + esc(o) + '</label>'; }).join('');
       else if (q.type === 'multi') body = (q.options || []).map(function (o) { return '<label class="ms-opt"><input type="checkbox" class="q-inp" data-i="' + i + '" value="' + esc(o) + '"> ' + esc(o) + '</label>'; }).join('');
@@ -2363,17 +2522,21 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       card.innerHTML = title + refBox + body; host.appendChild(card);
       if (q.remarks) { var rc = document.createElement('div'); rc.className = 'ms-q'; rc.setAttribute('data-qi', i); rc.innerHTML = '<div class="ms-q-t small text2"><span class="qn-chip rem">Q' + qNo + '</span><span class="qn-txt">📝 Remarks — ' + esc(q.label) + '</span></div><textarea class="ms-in q-rem" data-i="' + i + '" placeholder="Add remarks (optional)"></textarea>'; host.appendChild(rc); }
       if (q.type === 'livepic') { var pb = card.querySelector('.q-picbtn'); if (pb) pb.addEventListener('click', function () { openQCam(Number(this.getAttribute('data-i')), host, q.label); }); }
+      if (q.type === 'artlines') artWire(card, host);
+      if (q.type === 'fileproof') { var pfe = card.querySelector('.q-proof'); pfe._pages = []; proofPaint(pfe); pfe.addEventListener('click', function (e) { var pi = e.target.getAttribute && e.target.getAttribute('data-pi'); if (pi == null) return; this._pages.splice(Number(pi), 1); proofPaint(this); try { host.dispatchEvent(new Event('input')); } catch (e2) { } }); card.querySelector('.q-proofbtn').addEventListener('click', function () { var n = (pfe._pages || []).length; openQCam(Number(this.getAttribute('data-i')), host, 'Signed proof — page ' + (n + 1)); }); }
       if (q.type === 'number') { var ninp = card.querySelector('.q-inp'), nerr = card.querySelector('.ms-rangeerr'); if (ninp) ninp.addEventListener('input', function () { var mn = this.getAttribute('data-min'), mx = this.getAttribute('data-max'), v = this.value, num = Number(v); var bad = v !== '' && (isNaN(num) || (mn != null && num < Number(mn)) || (mx != null && num > Number(mx))); if (nerr) { nerr.style.display = bad ? 'block' : 'none'; nerr.textContent = bad ? ('Enter a number' + (mn != null && mx != null ? ' between ' + mn + ' and ' + mx : (mn != null ? ' ≥ ' + mn : ' ≤ ' + mx))) : ''; } this.style.borderColor = bad ? 'var(--red)' : ''; }); }
       if (q.type === 'physcount') { var inp = card.querySelector('.q-inp'); inp.addEventListener('input', function () { var sys = Number(this.getAttribute('data-sys')), phy = Number(this.value); var r = $('pcres' + i); if (this.value === '' || isNaN(phy)) { r.textContent = 'Diff – · Diff% –'; return; } var diff = sys - phy, shr = sys === 0 ? 0 : (diff / sys) * 100; r.textContent = 'Diff ' + diff + ' · Diff% ' + shr.toFixed(1) + '%'; }); }
       if (q.type === 'rating') { var wrap = card.querySelector('.ms-stars'), hid = wrap.querySelector('input'); var stars = wrap.querySelectorAll('.ms-star'); for (var t = 0; t < stars.length; t++) stars[t].addEventListener('click', function () { var v = Number(this.getAttribute('data-v')); hid.value = v; for (var u = 0; u < stars.length; u++) stars[u].classList.toggle('on', Number(stars[u].getAttribute('data-v')) <= v); applyBranchVisibility(subj, host); }); }
     });
+    // v36 — tracker group checks (no-op for subjects without Qty Group)
+    if (trkCfg(subj).any) { grpInsertBoxes(subj, host); host.addEventListener('input', function () { grpPaint(subj, host); }); grpPaint(subj, host); }
     // branch re-eval on any answer change
     host.addEventListener('change', function () { applyBranchVisibility(subj, host); });
     host.addEventListener('input', function () { applyBranchVisibility(subj, host); });
     applyBranchVisibility(subj, host);
   }
   function submitData() {
-    var subj = S.currentSubject, st = requireMasterStore('Data submit'), payload, host = $('dataFormHost');
+    var subj = S.currentSubject, st = requireMasterStore('Data submit'), payload, host = $('dataFormHost'), proofFiles = {};
     if (!st) return;
     if (subj.dataMode === 'sysphy') {
       var rows = (subj.hoData && subj.hoData[S.storeCode]) || [], labels = subj.descLabels || [], out = [], miss = false, phys = host.querySelectorAll('.phy');
@@ -2381,6 +2544,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       if (miss) { toast('Fill all physical counts'); return; } payload = { rows: out, descLabels: labels };
     } else {
       var ans = [], qs = subj.questions || [], missing = null, rangeErr = null;
+      var GC = grpCheckForSave(subj, host), artErr = '';   /* v36 */
       var hasBranch = qs.some(function (q) { return q && q.branchOn; });
       var visIdx = hasBranch ? computeVisiblePath(qs, function (i, q) { return readOpenAnswer(host, i, q); }) : qs.map(function (_, i) { return i; });
       var visSet = {}; visIdx.forEach(function (i) { visSet[i] = 1; });
@@ -2395,20 +2559,43 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         else if (q.type === 'rating') { var hin = host.querySelector('.ms-stars[data-i="' + k + '"] input'); val = hin ? hin.value : ''; entry.value = val; }
         else if (q.type === 'physcount') { var pin = host.querySelector('.q-inp[data-i="' + k + '"]'); val = pin ? pin.value : ''; var s2 = Number(q.sys), p2 = Number(val || 0); entry.value = val; entry.sys = s2; entry.diff = s2 - p2; entry.diffPct = s2 === 0 ? 0 : Number((((s2 - p2) / s2) * 100).toFixed(2)); entry.shrinkPct = entry.diffPct; }
         else if (q.type === 'livepic') { var ps = host.querySelector('.q-pic[data-i="' + k + '"]'); val = ps ? (ps.getAttribute('data-val') || '') : ''; entry.value = val ? 'photo' : ''; entry.photo = val; }
+        else if (q.type === 'artlines') { var ar = artRead(host, k); if (ar.bad && !artErr) artErr = q.label + ' — ' + ar.bad; entry.lines = ar.lines; entry.value = String(ar.total); val = entry.value; }
+        else if (q.type === 'fileproof') { var pgs = proofPages(host, k); entry.pages = pgs.length; entry.value = pgs.length ? pgs.length + ' page(s)' : ''; val = pgs.length ? 'x' : ''; if (pgs.length) proofFiles['q' + k] = pgs; }
         else { var gin = host.querySelector('.q-inp[data-i="' + k + '"]'); val = gin ? gin.value : ''; entry.value = val; }
+        if (q.qtyGroup) entry.qtyGroup = String(q.qtyGroup).toUpperCase();
+        if (trkKind(q)) entry.kind = trkKind(q);
         if (q.remarks) { var rem = host.querySelector('.q-rem[data-i="' + k + '"]'); entry.remark = rem ? (rem.value || '').trim() : ''; }
         if (q.type === 'number' && val !== '' && val != null) { var nv = Number(val); if (isNaN(nv) || (q.min != null && nv < q.min) || (q.max != null && nv > q.max)) { rangeErr = q.label + (q.min != null && q.max != null ? ' (must be ' + q.min + '–' + q.max + ')' : (q.min != null ? ' (min ' + q.min + ')' : ' (max ' + q.max + ')')); break; } }
-        if (q.required && (val === '' || val == null)) { missing = q.label; break; }
+        if ((q.required || (q.requiredIf === 'alt' && GC.altUsed)) && (val === '' || val == null)) { missing = q.label + (q.requiredIf === 'alt' ? ' (needed because an alternate article was used)' : ''); break; }
         ans.push(entry);
       }
       if (rangeErr) { toast('Out of allowed range: ' + rangeErr); return; }
       if (missing) { toast('Please answer (required): ' + missing); return; }
+      if (artErr) { toast(artErr); return; }
+      if (GC.err) { toast(GC.err); return; }
       payload = { answers: ans };
+      if (GC.chk) { payload.grpChk = GC.chk; payload.altUsed = !!GC.altUsed; payload.qtyMismatch = Object.keys(GC.chk).some(function (g) { return GC.chk[g].diff !== 0; }); }
     }
     loader(true, 'Submitting…');
     var doc = { type: 'data', subjectId: subj.id, subjectName: subj.name, dataMode: subj.dataMode, storeCode: S.storeCode, storeName: S.storeName, smEmail: st.smEmail || '', amEmail: st.amEmail || '', zfmEmail: st.zfmEmail || '', amName: st.amName || '', zfmName: storeZfmDisplay(st, ''), zfmCode: storeZfmCode(st), designation: S.designation, empcode: S.empcode, empName: S.empName, selfie: S.selfie, gps: S.gps, ts: nowISO() };
     if (payload.rows) { doc.rows = payload.rows; doc.descLabels = payload.descLabels || []; } else doc.answers = payload.answers;
-    db.collection('submissions').doc(subDocId(subj.id)).set(doc).then(function () { loader(false); doneMsg('Data submitted successfully.'); }).catch(function (e) { loader(false); toast(e.message); });
+    if (payload.grpChk) { doc.grpChk = payload.grpChk; doc.altUsed = payload.altUsed; doc.qtyMismatch = payload.qtyMismatch; }
+    var sid = subDocId(subj.id), okDone = function () { loader(false); doneMsg('Data submitted successfully.'); };
+    if (!Object.keys(proofFiles).length) {
+      db.collection('submissions').doc(sid).set(doc).then(okDone).catch(function (e) { loader(false); toast(e.message); });
+      return;
+    }
+    /* v36 — proof pages live in subfiles/{sid} so the submission doc stays light (lists never pull images) */
+    var bt = db.batch();
+    bt.set(db.collection('submissions').doc(sid), doc);
+    bt.set(db.collection('subfiles').doc(sid), { subjectId: subj.id, storeCode: S.storeCode, ts: doc.ts, files: proofFiles });
+    bt.commit().then(okDone).catch(function (e) {
+      if (/permission|insufficient/i.test((e && e.message) || '')) {
+        console.warn('[v36] subfiles write blocked by rules — storing proof inline', e.message);
+        doc.proofInline = proofFiles;
+        db.collection('submissions').doc(sid).set(doc).then(okDone).catch(function (e2) { loader(false); toast(e2.message); });
+      } else { loader(false); toast(e.message); }
+    });
   }
   function doneMsg(m) { $('successText').textContent = m; showScreen('scrDone'); }
 
@@ -2427,11 +2614,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       h += o.rows.map(function (r) { var ds = r.descs || (r.desc != null ? [r.desc] : []); return '<tr>' + ds.map(function (x) { return '<td>' + esc(x) + '</td>'; }).join('') + '<td>' + esc(r.sys) + '</td><td>' + esc(r.phy) + '</td><td>' + esc(r.diff) + '</td><td>' + esc(r.diffPct != null ? r.diffPct : r.shrinkPct) + '%</td></tr>'; }).join('');
       h += '</tbody></table></div>';
     } else if (o.answers) {
+      h += grpSummaryHtml(o);
       h += '<div class="rem-lbl">Your answers</div>';
       h += o.answers.map(function (a) {
         var val = a.value;
         if (a.type === 'physcount') val = 'Phy ' + a.value + ' · Diff ' + a.diff + ' · ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%';
-        var vHtml = (a.type === 'livepic' && a.photo) ? '<img src="' + a.photo + '" style="width:100%;max-width:260px;border-radius:8px;margin-top:6px">' : esc(val || '—');
+        var vHtml = ansExtraHtml(a, o) || ((a.type === 'livepic' && a.photo) ? '<img src="' + a.photo + '" style="width:100%;max-width:260px;border-radius:8px;margin-top:6px">' : esc(val || '—'));
         return '<div class="ms-q" style="margin-bottom:8px"><div class="ms-q-t">' + esc(a.label) + '</div>' + (a.refOn ? '<div class="small" style="color:#2E7D32;margin-bottom:4px">📋 As per HO record (' + esc(a.refField || '') + '): ' + esc(a.refValue || '—') + '</div>' : '') + '<div>' + vHtml + '</div>' + (a.remark ? '<div class="small" style="color:#1565C0;margin-top:4px">📝 ' + esc(a.remark) + '</div>' : '') + '</div>';
       }).join('');
     }
@@ -2458,6 +2646,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
      ========================================================================== */
   var _amTask = null;          // { subj:{}, rows:[{store, sub}] }
   var _amRec = null;           // row currently open in scrAMReview
+  var _amGrpPatch = null;      // v36 — recomputed tracker group check on AM Re-Edit
   var _amEditMode = false;     // AM is editing the store's answers
   var _amEditPics = null;      // pic re-edit working copy
   var _amCamIdx = -1;
@@ -2667,11 +2856,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   function amRenderAnswers(host, subj, o) {
     if (!_amEditMode) {
-      var w = document.createElement('div'); w.innerHTML = '<div class="rem-lbl">Answers submitted</div>'; host.appendChild(w);
+      var w = document.createElement('div'); w.innerHTML = grpSummaryHtml(o) + '<div class="rem-lbl">Answers submitted</div>'; host.appendChild(w);
       (o.answers || []).forEach(function (a, i) {
         var val = a.value;
         if (a.type === 'physcount') val = 'Phy ' + a.value + ' · Diff ' + a.diff + ' · ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%';
-        var vHtml = (a.type === 'livepic' && a.photo) ? '<img src="' + a.photo + '" style="width:100%;max-width:260px;border-radius:8px;margin-top:6px">' : esc(val || '—');
+        var vHtml = ansExtraHtml(a, o) || ((a.type === 'livepic' && a.photo) ? '<img src="' + a.photo + '" style="width:100%;max-width:260px;border-radius:8px;margin-top:6px">' : esc(val || '—'));
         var c = document.createElement('div'); c.className = 'ms-q';
         c.innerHTML = '<div class="ms-q-t"><span class="qn-chip">Q' + (i + 1) + '</span><span class="qn-txt">' + esc(a.label) + '</span></div>' + (a.refOn ? '<div class="small" style="color:#2E7D32;margin-bottom:4px">📋 As per HO record (' + esc(a.refField || '') + '): ' + esc(a.refValue || '—') + '</div>' : '') + '<div>' + vHtml + '</div>' + (a.remark ? '<div class="small" style="color:#1565C0;margin-top:4px">📝 ' + esc(a.remark) + '</div>' : '');
         host.appendChild(c);
@@ -2691,9 +2880,13 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       else if (q.type === 'multi') { var vals = a.values || String(a.value || '').split(',').map(function (x) { return x.trim(); }); var cks = host.querySelectorAll('input[type="checkbox"][data-i="' + k + '"]'); for (var m = 0; m < cks.length; m++) cks[m].checked = vals.indexOf(cks[m].value) > -1; }
       else if (q.type === 'rating') { var wr = host.querySelector('.ms-stars[data-i="' + k + '"]'); if (wr) { var hid = wr.querySelector('input'); if (hid) hid.value = a.value || ''; var stars = wr.querySelectorAll('.ms-star'); for (var t = 0; t < stars.length; t++) stars[t].classList.toggle('on', Number(stars[t].getAttribute('data-v')) <= Number(a.value || 0)); } }
       else if (q.type === 'livepic') { var slot = host.querySelector('.q-pic[data-i="' + k + '"]'); if (slot && a.photo) { slot.setAttribute('data-val', a.photo); slot.innerHTML = '<img src="' + a.photo + '" style="width:100%;max-width:260px;border-radius:8px;display:block;margin:6px 0">'; } }
+      else if (q.type === 'artlines') { var abox = host.querySelector('.q-art[data-i="' + k + '"]'); if (abox) { var al = a.lines || []; abox.innerHTML = (al.length ? al : [{}]).map(artRowHtml).join(''); var acard = abox.closest('.ms-q'); if (acard && acard._artRecalc) acard._artRecalc(); } }
+      else if (q.type === 'fileproof') { var pbx = host.querySelector('.q-proof[data-i="' + k + '"]'); if (pbx) { pbx.parentNode.innerHTML = '<div class="small text2">Signed proof kept as submitted by the store (' + esc(a.pages || 0) + ' page(s)).</div>'; } }
       else { var gin = host.querySelector('.q-inp[data-i="' + k + '"]'); if (gin) { gin.value = a.value != null ? a.value : ''; try { gin.dispatchEvent(new Event('input')); } catch (e) { } } }
       if (q.remarks) { var rem = host.querySelector('.q-rem[data-i="' + k + '"]'); if (rem) rem.value = a.remark || ''; }
     });
+    if (o.grpChk) host.querySelectorAll('.grp-reason').forEach(function (t) { var g = o.grpChk[t.getAttribute('data-g')]; if (g && g.reason) t.value = g.reason; });
+    try { grpPaint(subj, host); } catch (e) { }
     try { applyBranchVisibility(subj, host); } catch (e) { }
   }
   /* AM re-capture camera (pic tasks) */
@@ -2735,14 +2928,17 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       if (bad) { toast('Fill all physical counts'); return; }
       patch.rows = out;
     } else {
+      _amGrpPatch = null;
       var res = amCollectAnswers(subj, host); if (!res) return;
       patch.answers = res;
+      if (_amGrpPatch) { for (var gk in _amGrpPatch) if (_amGrpPatch.hasOwnProperty(gk)) patch[gk] = _amGrpPatch[gk]; }
     }
     amCommit('Re-Edit', '', patch);
   }
   /* mirror of the store-side extraction, used when the AM corrects a Raw Data form (v26: respects branching) */
   function amCollectAnswers(subj, host) {
-    var ans = [], qs = subj.questions || [];
+    var ans = [], qs = subj.questions || [], GC = grpCheckForSave(subj, host), orig = {};   /* v36 */
+    ((_amRec && _amRec.sub && _amRec.sub.answers) || []).forEach(function (a, ai) { orig[a.qIdx != null ? a.qIdx : ai] = a; });
     var hasBranch = qs.some(function (q) { return q && q.branchOn; });
     var visIdx = hasBranch ? computeVisiblePath(qs, function (i, q) { return readOpenAnswer(host, i, q); }) : qs.map(function (_, i) { return i; });
     var visSet = {}; visIdx.forEach(function (i) { visSet[i] = 1; });
@@ -2756,12 +2952,18 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       else if (q.type === 'rating') { var hin = host.querySelector('.ms-stars[data-i="' + k + '"] input'); val = hin ? hin.value : ''; entry.value = val; }
       else if (q.type === 'physcount') { var pin = host.querySelector('.q-inp[data-i="' + k + '"]'); val = pin ? pin.value : ''; var s2 = Number(q.sys), p2 = Number(val || 0); entry.value = val; entry.sys = s2; entry.diff = s2 - p2; entry.diffPct = s2 === 0 ? 0 : Number((((s2 - p2) / s2) * 100).toFixed(2)); entry.shrinkPct = entry.diffPct; }
       else if (q.type === 'livepic') { var ps = host.querySelector('.q-pic[data-i="' + k + '"]'); val = ps ? (ps.getAttribute('data-val') || '') : ''; entry.value = val ? 'photo' : ''; entry.photo = val; }
+      else if (q.type === 'artlines') { var ar = artRead(host, k); if (ar.bad) { toast(q.label + ' — ' + ar.bad); return null; } entry.lines = ar.lines; entry.value = String(ar.total); val = entry.value; }
+      else if (q.type === 'fileproof') { var oa = orig[k] || {}; entry.pages = oa.pages || 0; entry.value = oa.value || ''; val = entry.pages ? 'x' : ''; }
       else { var gin = host.querySelector('.q-inp[data-i="' + k + '"]'); val = gin ? gin.value : ''; entry.value = val; }
+      if (q.qtyGroup) entry.qtyGroup = String(q.qtyGroup).toUpperCase();
+      if (trkKind(q)) entry.kind = trkKind(q);
       if (q.remarks) { var rem = host.querySelector('.q-rem[data-i="' + k + '"]'); entry.remark = rem ? (rem.value || '').trim() : ''; }
       if (q.type === 'number' && val !== '' && val != null) { var nv = Number(val); if (isNaN(nv) || (q.min != null && nv < q.min) || (q.max != null && nv > q.max)) { toast('Out of allowed range: ' + q.label); return null; } }
-      if (q.required && (val === '' || val == null)) { toast('Please answer (required): ' + q.label); return null; }
+      if ((q.required || (q.requiredIf === 'alt' && GC.altUsed)) && (val === '' || val == null)) { toast('Please answer (required): ' + q.label); return null; }
       ans.push(entry);
     }
+    if (GC.err) { toast(GC.err); return null; }
+    if (GC.chk) { _amGrpPatch = { grpChk: GC.chk, altUsed: !!GC.altUsed, qtyMismatch: Object.keys(GC.chk).some(function (g) { return GC.chk[g].diff !== 0; }) }; }
     return ans;
   }
   function amValidateOk() { amCommit('All ok', '', {}); }
@@ -2965,6 +3167,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function isHoIssueAnswer(q, val) {
     var ty = (q && q.type) || '';
     if (ty === 'number') return isHoNumberIssue(q, val);
+    if (ty === 'artlines') return (Number(val) || 0) > 0;   /* v36 — any alternate article qty */
+    if (ty === 'fileproof') return !String(val == null ? '' : val).trim();   /* missing proof */
     if (ty === 'text' || ty === 'para' || ty === 'email' || ty === 'phone') {
       /* If a text answer is purely numeric (e.g. “0” on Mosambee NW), apply number smart filter */
       var raw = String(val == null ? '' : val).trim();
@@ -3099,6 +3303,17 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         if (!deptFilter || normDept(iss.dept) === normDept(deptFilter)) issues.push(iss);
       }
       i++;
+    }
+    /* v36 — tracker quantity mismatch → one HO issue per group (dept = group's dept) */
+    if (o.grpChk) {
+      var tcfg = trkCfg(subj);
+      tcfg.order.forEach(function (gk, gi) {
+        var gc = o.grpChk[gk], gq = tcfg.groups[gk]; if (!gc || !gc.diff || !gq.dept) return;
+        var lbl = (gc.name || gq.name) + ' — total vs eligible';
+        var gIss = buildHoIssueFromAnswer(subj, o, stores, solMap, 1000 + gi, { label: lbl, dept: gq.dept, deptOn: true }, { label: lbl, value: gc.qty + ' / ' + gc.elig + ' (' + (gc.diff < 0 ? 'short ' + (-gc.diff) : 'excess ' + gc.diff) + ')', remark: gc.reason || '', dept: gq.dept }, [], subDocId);
+        gIss.mergeCols = []; gIss.residualFollowUps = []; gIss.residualText = '';
+        if (!deptFilter || normDept(gIss.dept) === normDept(deptFilter)) issues.push(gIss);
+      });
     }
     return issues;
   }
@@ -4209,8 +4424,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       var i = 0;
       (function step() {
         if (i >= old.length) { loader(false); toast('Purged ' + old.length + ' old submission(s)'); return; }
-        var batch = db.batch(), end = Math.min(i + 400, old.length);
-        for (; i < end; i++) batch.delete(db.collection('submissions').doc(old[i]));
+        var batch = db.batch(), end = Math.min(i + 200, old.length);
+        for (; i < end; i++) { batch.delete(db.collection('submissions').doc(old[i])); batch.delete(db.collection('subfiles').doc(old[i])); }
         batch.commit().then(step).catch(function (e) { loader(false); toast('Purge error: ' + e.message); });
       })();
     }).catch(function (e) { loader(false); toast(e.message); });
@@ -4396,7 +4611,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   var _editQIdx = -1;   // index in _openQs currently being edited (-1 = adding new)
   function updateQTypeUI() {
     var t = $('qType') ? $('qType').value : '';
-    if ($('qRangeWrap')) $('qRangeWrap').style.display = (t === 'number') ? 'block' : 'none';
+    if ($('qRangeWrap')) $('qRangeWrap').style.display = (t === 'number' || t === 'fileproof') ? 'block' : 'none';
     renderBranchUI();
   }
   function toggleQDeptUI() {
@@ -4530,6 +4745,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ($('qRefOn')) $('qRefOn').checked = false; if ($('qRefField')) $('qRefField').value = '';
     if ($('qFlagHo')) $('qFlagHo').checked = false;
     if ($('qBranchOn')) $('qBranchOn').checked = false;
+    if ($('qGrp')) $('qGrp').value = ''; if ($('qElig')) $('qElig').value = ''; if ($('qKind')) $('qKind').value = ''; if ($('qReqIfAlt')) $('qReqIfAlt').checked = false;
     toggleQDeptUI(); toggleQRefUI(); toggleQBranchUI(); toggleQMergeUI();
     _editQIdx = -1; if ($('btnAddQ')) $('btnAddQ').textContent = '+ Add question'; if ($('btnCancelQEdit')) $('btnCancelQEdit').style.display = 'none';
   }
@@ -4553,6 +4769,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     q.branchOn = !!br.branchOn;
     if (br.branches) q.branches = br.branches; else delete q.branches;
     if (br.goTo != null) q.goTo = br.goTo; else delete q.goTo;
+    /* v36 — tracker fields */
+    var tGrp = (($('qGrp') && $('qGrp').value) || '').trim().toUpperCase(); if (tGrp) q.qtyGroup = tGrp;
+    var tEl = (($('qElig') && $('qElig').value) || '').split(',').map(function (x) { return x.trim().toUpperCase(); }).filter(Boolean); if (tEl.length) q.eligFor = tEl;
+    var tKd = $('qKind') ? $('qKind').value : ''; if (tKd) q.kind = tKd;
+    if ($('qReqIfAlt') && $('qReqIfAlt').checked) { q.requiredIf = 'alt'; q.required = false; }
+    if (ty === 'fileproof') { var pmx = readNum('qMax'); q.max = (pmx > 0 ? Math.min(pmx, 10) : 5); delete q.min; }
     if (_editQIdx > -1 && _openQs[_editQIdx]) _openQs[_editQIdx] = q; else _openQs.push(q);
     clearQForm(); renderOpenQs();
   }
@@ -4579,6 +4801,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ($('qRefOn')) $('qRefOn').checked = !!q.refOn;
     if ($('qFlagHo')) $('qFlagHo').checked = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : qFlagHoDefault(q);
     if ($('qBranchOn')) $('qBranchOn').checked = !!q.branchOn;
+    if ($('qGrp')) $('qGrp').value = q.qtyGroup || ''; if ($('qElig')) $('qElig').value = (q.eligFor || []).join(',');
+    if ($('qKind')) $('qKind').value = q.kind || ''; if ($('qReqIfAlt')) $('qReqIfAlt').checked = q.requiredIf === 'alt';
     toggleQDeptUI(); toggleQRefUI(); toggleQBranchUI(); toggleQMergeUI();
     if ($('qDept')) { fillDeptSelect($('qDept'), q.dept || '', false); $('qDept').value = q.dept || ''; }
     if ($('qRefField') && q.refField) $('qRefField').value = q.refField;
@@ -4604,7 +4828,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       var flagOn = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : qFlagHoDefault(q);
       var mergeTag = (q.mergeWith && q.mergeWith.length) ? ' · <span style="color:#1565C0;font-weight:700">🔗 merges ' + q.mergeWith.map(function (mi) { return 'Q' + (mi + 1); }).join(',') + '</span>' : '';
       if (mergedInto.hasOwnProperty(i)) mergeTag += ' · <span class="text3">(merged into Q' + (mergedInto[i] + 1) + ')</span>';
-      var sub = esc(q.type) + (hasOpts ? ' · ' + esc((q.options || []).join(', ')) : '') + (q.type === 'physcount' ? ' · Sys ' + esc(q.sys) : '') + (q.type === 'number' ? esc(rangeTxt(q)) : '') + (q.remarks ? ' · 📝 remarks' : '') + (q.deptOn ? ' · 🏢 ' + esc(q.dept || '') : '') + (q.refOn ? ' · <span style="color:#2E7D32;font-weight:700">📋 As per HO record: ' + esc(q.refField || '') + '</span>' : '') + (flagOn ? ' · <span style="color:#E65100;font-weight:800">🚩 Flag HO</span>' : ' · <span class="text3">no HO flag</span>') + (q.branchOn ? ' · ⑂ branch' : '') + mergeTag;
+      var sub = esc(q.type) + (hasOpts ? ' · ' + esc((q.options || []).join(', ')) : '') + (q.type === 'physcount' ? ' · Sys ' + esc(q.sys) : '') + (q.type === 'number' ? esc(rangeTxt(q)) : '') + (q.remarks ? ' · 📝 remarks' : '') + (q.deptOn ? ' · 🏢 ' + esc(q.dept || '') : '') + (q.refOn ? ' · <span style="color:#2E7D32;font-weight:700">📋 As per HO record: ' + esc(q.refField || '') + '</span>' : '') + (flagOn ? ' · <span style="color:#E65100;font-weight:800">🚩 Flag HO</span>' : ' · <span class="text3">no HO flag</span>') + (q.branchOn ? ' · ⑂ branch' : '') + mergeTag + (q.qtyGroup ? ' · <span style="color:#6A1B9A;font-weight:700">📦 ' + esc(q.qtyGroup) + (q.kind ? ' ' + esc(q.kind) : '') + '</span>' : '') + ((q.eligFor && q.eligFor.length) ? ' · <span style="color:#6A1B9A">👥 eligible for ' + esc(q.eligFor.join(',')) + '</span>' : '') + (q.requiredIf === 'alt' ? ' · <span style="color:var(--red)">* if alt used</span>' : '') + (q.type === 'fileproof' ? ' · up to ' + esc(q.max || 5) + ' pages' : '');
       var d = document.createElement('div'); d.className = 'lrow' + (i === _editQIdx ? ' editing' : '');
       var mv = '<div class="qmove"><button type="button" data-up="' + i + '" title="Move up"' + (i === 0 ? ' disabled' : '') + '>▲</button><button type="button" data-dn="' + i + '" title="Move down"' + (i === _openQs.length - 1 ? ' disabled' : '') + '>▼</button></div>';
       d.innerHTML = '<div class="linfo"><div class="lname">Q' + (i + 1) + '. ' + esc(q.label) + (q.required ? ' <span style="color:var(--red)">*</span>' : '') + '</div><div class="lsub">' + sub + '</div></div><div class="lactions">' + mv + '<button class="btn btn-xs btn-blue" data-ed="' + i + '">Edit</button><button class="btn btn-xs btn-red" data-i="' + i + '">×</button></div>';
@@ -4616,7 +4840,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     box.querySelectorAll('button[data-dn]').forEach(function (b) { b.addEventListener('click', function () { moveOpenQ(Number(this.getAttribute('data-dn')), 1); }); });
   }
   /* === Excel template / bulk import-export for Raw Data questions === */
-  var TYPE_ALIASES = { 'short answer': 'text', 'text': 'text', 'shortanswer': 'text', 'short': 'text', 'paragraph': 'para', 'para': 'para', 'long answer': 'para', 'longanswer': 'para', 'long text': 'para', 'number': 'number', 'numeric': 'number', 'email': 'email', 'phone': 'phone', 'mobile': 'phone', 'date': 'date', 'time': 'time', 'single choice': 'choice', 'single choice (radio)': 'choice', 'singlechoice': 'choice', 'choice': 'choice', 'radio': 'choice', 'multiple choice': 'multi', 'multiple choice (checkbox)': 'multi', 'multiplechoice': 'multi', 'multi': 'multi', 'checkbox': 'multi', 'dropdown': 'dropdown', 'drop down': 'dropdown', 'drop-down': 'dropdown', 'select': 'dropdown', 'rating': 'rating', 'rating (1-5 stars)': 'rating', 'physical count check': 'physcount', 'physcount': 'physcount', 'physical count': 'physcount', 'live picture': 'livepic', 'livepicture': 'livepic', 'live photo': 'livepic', 'live pic': 'livepic', 'livepic': 'livepic', 'camera': 'livepic', 'picture': 'livepic', 'photo': 'livepic' };
+  var TYPE_ALIASES = { 'short answer': 'text', 'text': 'text', 'shortanswer': 'text', 'short': 'text', 'paragraph': 'para', 'para': 'para', 'long answer': 'para', 'longanswer': 'para', 'long text': 'para', 'number': 'number', 'numeric': 'number', 'email': 'email', 'phone': 'phone', 'mobile': 'phone', 'date': 'date', 'time': 'time', 'single choice': 'choice', 'single choice (radio)': 'choice', 'singlechoice': 'choice', 'choice': 'choice', 'radio': 'choice', 'multiple choice': 'multi', 'multiple choice (checkbox)': 'multi', 'multiplechoice': 'multi', 'multi': 'multi', 'checkbox': 'multi', 'dropdown': 'dropdown', 'drop down': 'dropdown', 'drop-down': 'dropdown', 'select': 'dropdown', 'rating': 'rating', 'rating (1-5 stars)': 'rating', 'physical count check': 'physcount', 'physcount': 'physcount', 'physical count': 'physcount', 'live picture': 'livepic', 'livepicture': 'livepic', 'live photo': 'livepic', 'live pic': 'livepic', 'livepic': 'livepic', 'camera': 'livepic', 'picture': 'livepic', 'photo': 'livepic', 'article lines': 'artlines', 'articlelines': 'artlines', 'artlines': 'artlines', 'file upload': 'fileproof', 'fileupload': 'fileproof', 'fileproof': 'fileproof', 'signed proof': 'fileproof' };
   function normType(s) { return (s == null ? '' : s).toString().trim().toLowerCase().replace(/[_\-]+/g, ' ').replace(/\s+/g, ' '); }
   function resolveType(raw) { var k = normType(raw); if (TYPE_ALIASES[k]) return TYPE_ALIASES[k]; var k2 = k.replace(/\s+/g, ''); for (var a in TYPE_ALIASES) { if (TYPE_ALIASES.hasOwnProperty(a) && TYPE_ALIASES[a] && a.replace(/\s+/g, '') === k2) return TYPE_ALIASES[a]; } return null; }
   function dlOpenTemplate() {
@@ -4640,7 +4864,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         var cType = findCol(H, [/^type$/]), cLbl = findCol(H, [/^label$/, /question/]), cOpt = findCol(H, [/option/]),
           cReq = findCol(H, [/required/]), cRem = findCol(H, [/remark/]), cMin = findCol(H, [/^min/]), cMax = findCol(H, [/^max/]), cSys = findCol(H, [/sys/]),
           cDeptOn = findCol(H, [/^dept\s*\(y\/n\)$/, /^dept\s*y/, /department\s*\(y/]), cDept = findCol(H, [/^department$/, /^dept$/]),
-          cFlag = findCol(H, [/flag\s*to\s*ho/, /^flag\s*ho/, /flag\s*\(y/]);
+          cFlag = findCol(H, [/flag\s*to\s*ho/, /^flag\s*ho/, /flag\s*\(y/]),
+          cGrp = findCol(H, [/qty\s*group/]), cElig = findCol(H, [/^eligible/]), cKind = findCol(H, [/^main\s*\/?\s*alt/]);
         if (cType < 0) { cType = 0; cLbl = 1; cOpt = 2; cReq = 3; cSys = 4; }  // legacy positional fallback
         function cell(row, idx) { return idx > -1 && row[idx] != null ? row[idx].toString() : ''; }
         var yes = function (v) { return /^y(es)?$|^true$|^1$/i.test((v || '').trim()); };
@@ -4652,6 +4877,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           if ((ty === 'choice' || ty === 'multi' || ty === 'dropdown') && opts.length < 2) { bad++; continue; }
           var q = { type: ty, label: lbl, options: opts, sys: cell(rows[i], cSys) || 0, required: yes(cell(rows[i], cReq)), remarks: yes(cell(rows[i], cRem)) };
           if (ty === 'number') { var mn = cell(rows[i], cMin).trim(), mx = cell(rows[i], cMax).trim(); if (mn !== '' && !isNaN(Number(mn))) q.min = Number(mn); if (mx !== '' && !isNaN(Number(mx))) q.max = Number(mx); }
+          if (ty === 'fileproof') { var pmx = Number(cell(rows[i], cMax).trim()); q.max = (pmx > 0 ? Math.min(pmx, 10) : 5); }
+          if (/^if\s*alt/i.test(cell(rows[i], cReq).trim())) { q.required = false; q.requiredIf = 'alt'; }
+          var tGrp = cell(rows[i], cGrp).trim().toUpperCase(); if (tGrp) q.qtyGroup = tGrp;
+          var tEl = cell(rows[i], cElig).split(',').map(function (x) { return x.trim().toUpperCase(); }).filter(Boolean); if (tEl.length) q.eligFor = tEl;
+          var tKd = cell(rows[i], cKind).trim().toLowerCase(); if (/^main/.test(tKd)) q.kind = 'main'; else if (/^alt/.test(tKd)) q.kind = 'alt';
           q.deptOn = yes(cell(rows[i], cDeptOn)); q.dept = q.deptOn ? cell(rows[i], cDept).trim() : '';
           if (q.deptOn && !q.dept && cDept < 0) q.dept = '';
           if (cFlag > -1) q.flagHo = yes(cell(rows[i], cFlag));
@@ -4665,10 +4895,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   }
   function exportOpenQs() {
     if (!_openQs.length) { toast('No questions to export'); return; }
-    var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department', 'Flag to HO (Y/N)']];
+    var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department', 'Flag to HO (Y/N)', 'Qty Group', 'Eligible For', 'Main/Alt']];
+    var tyOut = { artlines: 'Article lines', fileproof: 'File upload' };
     _openQs.forEach(function (q) {
       var flag = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : !!q.deptOn;
-      aoa.push([q.type, q.label, (q.options || []).join(','), q.required ? 'Y' : 'N', q.remarks ? 'Y' : 'N', (q.min != null ? q.min : ''), (q.max != null ? q.max : ''), q.sys || '', q.deptOn ? 'Y' : 'N', q.dept || '', flag ? 'Y' : 'N']);
+      aoa.push([tyOut[q.type] || q.type, q.label, (q.options || []).join(','), q.requiredIf === 'alt' ? 'IF ALT' : (q.required ? 'Y' : 'N'), q.remarks ? 'Y' : 'N', (q.min != null ? q.min : ''), (q.max != null ? q.max : ''), q.sys || '', q.deptOn ? 'Y' : 'N', q.dept || '', flag ? 'Y' : 'N', q.qtyGroup || '', (q.eligFor || []).join(','), q.kind === 'alt' ? 'Alt' : (q.kind === 'main' ? 'Main' : '')]);
     });
     var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Questions'); XLSX.writeFile(wb, 'RawData_Questions.xlsx');
   }
@@ -5295,6 +5526,25 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var lbl = String(sl[i] || m.label || '').trim();
     return 'Shot' + (i + 1) + (lbl && !/^photo\s*\d*$/i.test(lbl) ? '_' + subSafe(lbl, 40) : '');
   }
+  function subProofName(o, a, ai, pn) { return (o.storeCode || 'ST') + '_' + subDataPhotoKey(a, ai) + '_p' + pn + '.jpg'; }
+  function subProofPath(o, a, ai, pn) { return subPhotoFolder(o) + subDataPhotoKey(a, ai) + '/' + subProofName(o, a, ai, pn); }
+  /* v36 — signed-proof pages: inline (fallback) or fetched from subfiles in small chunks; cb(count) */
+  function addSubProofsToZip(zip, rows, cb) {
+    var todo = rows.filter(function (o) { return o.type === 'data' && (o.answers || []).some(function (a) { return a.type === 'fileproof' && a.pages; }); });
+    var count = 0, i = 0, CH = 8;
+    var addFor = function (o, files) {
+      (o.answers || []).forEach(function (a, ai) { if (a.type !== 'fileproof' || !a.pages) return; var pg = (files && files['q' + (a.qIdx != null ? a.qIdx : ai)]) || []; pg.forEach(function (u, pi) { var b = subB64(u); if (!b) return; zip.file(subProofPath(o, a, ai, pi + 1), b, { base64: true }); count++; }); });
+    };
+    (function step() {
+      if (i >= todo.length) { cb(count); return; }
+      var chunk = todo.slice(i, i + CH); i += CH;
+      loader(true, 'Adding signed proofs… ' + Math.min(i, todo.length) + '/' + todo.length);
+      Promise.all(chunk.map(function (o) {
+        if (o.proofInline) { addFor(o, o.proofInline); return Promise.resolve(); }
+        return db.collection('subfiles').doc(subIdOf(o)).get().then(function (d) { if (d.exists) addFor(o, d.data().files || {}); }).catch(function () { });
+      })).then(step);
+    })();
+  }
   function subB64(durl) { var m = /^data:image\/[a-z]+;base64,(.*)$/i.exec(durl || ''); return m ? m[1] : null; }
   /* Adds exec pics + data-question photos to the zip. Returns count. */
   function addSubPhotosToZip(zip, rows) {
@@ -5331,14 +5581,16 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         list.forEach(function (o) { (o.rows || []).forEach(function (r) { var ds = r.descs ? r.descs.join(' · ') : (r.desc || ''); aoa.push([o.storeCode, o.storeName || '', (o.designation || '') + ' ' + (o.empName || ''), o.ts ? new Date(o.ts).toLocaleString() : '', amValYesNo(o), o.amAction || '', ds, r.sys, r.phy, r.diff, (r.diffPct != null ? r.diffPct : r.shrinkPct)]); }); });
       } else {
         // collect union of question labels in order (v31/v32: a "per HO record" question also gets a companion "<label> — As per HO record" column)
-        var labels = [], seen = {}, refLabelOf = {};
-        list.forEach(function (o) { (o.answers || []).forEach(function (a) { if (!seen[a.label]) { seen[a.label] = 1; labels.push(a.label); } if (a.refOn) refLabelOf[a.label] = true; }); });
-        var headerCols = []; labels.forEach(function (l) { headerCols.push(l); if (refLabelOf[l]) headerCols.push(l + ' — As per HO record'); });
+        var labels = [], seen = {}, refLabelOf = {}, artLabelOf = {}, grpKeys = [], grpSeen = {}, grpName = {};
+        list.forEach(function (o) { (o.answers || []).forEach(function (a) { if (!seen[a.label]) { seen[a.label] = 1; labels.push(a.label); } if (a.refOn) refLabelOf[a.label] = true; if (a.type === 'artlines') artLabelOf[a.label] = true; }); if (o.grpChk) Object.keys(o.grpChk).forEach(function (gk) { if (!grpSeen[gk]) { grpSeen[gk] = 1; grpKeys.push(gk); grpName[gk] = o.grpChk[gk].name || gk; } }); });
+        var headerCols = []; labels.forEach(function (l) { headerCols.push(l); if (refLabelOf[l]) headerCols.push(l + ' — As per HO record'); if (artLabelOf[l]) headerCols.push(l + ' — Article lines'); });
+        grpKeys.forEach(function (gk) { var gn = grpName[gk]; headerCols.push(gn + ' — Total', gn + ' — Eligible', gn + ' — Diff', gn + ' — Alt qty', gn + ' — Mismatch reason'); });
         aoa = [['Store Code', 'Store Name', 'Filled By', 'When', 'AM Validated', 'AM Action'].concat(headerCols)];
         list.forEach(function (o) {
-          var m = {}, rm = {}, lk = {}; (o.answers || []).forEach(function (a, ai) { var val = a.value; if (a.type === 'physcount') val = 'Phy ' + a.value + ' (Diff ' + a.diff + ', ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%)'; if (a.type === 'livepic' && a.photo && subB64(a.photo)) { val = subDataPhotoName(o, a, ai); lk[a.label] = subDataPhotoPath(o, a, ai); } m[a.label] = val; if (a.refOn) rm[a.label] = a.refValue || ''; });
+          var m = {}, rm = {}, lk = {}, am = {}; (o.answers || []).forEach(function (a, ai) { var val = a.value; if (a.type === 'physcount') val = 'Phy ' + a.value + ' (Diff ' + a.diff + ', ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%)'; if (a.type === 'livepic' && a.photo && subB64(a.photo)) { val = subDataPhotoName(o, a, ai); lk[a.label] = subDataPhotoPath(o, a, ai); } if (a.type === 'artlines') { val = Number(a.value) || 0; am[a.label] = (a.lines || []).map(function (l) { return l.code + ' ' + l.desc + ' ×' + l.qty; }).join('; '); } if (a.type === 'fileproof' && a.pages) { val = subProofName(o, a, ai, 1) + (a.pages > 1 ? ' (+' + (a.pages - 1) + ' more)' : ''); lk[a.label] = subProofPath(o, a, ai, 1); } m[a.label] = val; if (a.refOn) rm[a.label] = a.refValue || ''; });
           var row = [o.storeCode, o.storeName || '', (o.designation || '') + ' ' + (o.empName || ''), o.ts ? new Date(o.ts).toLocaleString() : '', amValYesNo(o), o.amAction || ''];
-          labels.forEach(function (l) { if (lk[l]) links.push({ r: aoa.length, c: row.length, t: lk[l] }); row.push(m[l] != null ? m[l] : ''); if (refLabelOf[l]) row.push(rm[l] != null ? rm[l] : ''); });
+          labels.forEach(function (l) { if (lk[l]) links.push({ r: aoa.length, c: row.length, t: lk[l] }); row.push(m[l] != null ? m[l] : ''); if (refLabelOf[l]) row.push(rm[l] != null ? rm[l] : ''); if (artLabelOf[l]) row.push(am[l] != null ? am[l] : ''); });
+          grpKeys.forEach(function (gk) { var g = (o.grpChk || {})[gk] || {}; row.push(g.qty != null ? g.qty : '', g.elig != null ? g.elig : '', g.diff != null ? g.diff : '', g.alt != null ? g.alt : '', g.reason || ''); });
           aoa.push(row);
         });
       }
@@ -5373,8 +5625,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     setTimeout(function () {
       try {
         var zip = new JSZip(), count = addSubPhotosToZip(zip, rows);
-        if (!count) { loader(false); toast('No photos in this filter'); return; }
-        zipDownload(zip, 'ExecPhotos_' + toDateStr(new Date()) + '.zip', 'Zipped ' + count + ' photo(s) — folder per question');
+        addSubProofsToZip(zip, rows, function (pc) {
+          if (!count && !pc) { loader(false); toast('No photos in this filter'); return; }
+          loader(true, 'Zipping photos…');
+          zipDownload(zip, 'ExecPhotos_' + toDateStr(new Date()) + '.zip', 'Zipped ' + (count + pc) + ' photo(s) — folder per question');
+        });
       } catch (e) { loader(false); toast('Zip failed: ' + e.message); }
     }, 30);
   }
@@ -5389,7 +5644,10 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         var d = toDateStr(new Date()), r = buildSubWorkbook(rows), zip = new JSZip();
         zip.file('ExecSubmissions_' + d + '.xlsx', XLSX.write(r.wb, { bookType: 'xlsx', type: 'array' }));
         var count = addSubPhotosToZip(zip, rows);
-        zipDownload(zip, 'ExecData_' + d + '.zip', 'Zipped Excel + ' + count + ' photo(s) — extract, then click photo cells');
+        addSubProofsToZip(zip, rows, function (pc) {
+          loader(true, 'Zipping Excel + photos…');
+          zipDownload(zip, 'ExecData_' + d + '.zip', 'Zipped Excel + ' + (count + pc) + ' photo(s) — extract, then click photo cells');
+        });
       } catch (e) { loader(false); toast('Export failed: ' + e.message); }
     }, 30);
   }
@@ -5426,8 +5684,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       h += o.rows.map(function (r) { var ds = r.descs || (r.desc != null ? [r.desc] : []); return '<tr>' + ds.map(function (x) { return '<td>' + esc(x) + '</td>'; }).join('') + '<td>' + esc(r.sys) + '</td><td>' + esc(r.phy) + '</td><td>' + esc(r.diff) + '</td><td style="color:' + (r.diff !== 0 ? 'var(--red)' : 'var(--green)') + '">' + esc((r.diffPct != null ? r.diffPct : r.shrinkPct)) + '%</td></tr>'; }).join('');
       h += '</tbody></table></div>';
     } else if (o.answers) {
+      h += grpSummaryHtml(o);
       h += '<div class="rem-lbl">Form answers</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Question</th><th>Answer</th></tr></thead><tbody>';
-      h += o.answers.map(function (a) { var val = a.value; if (a.type === 'physcount') val = 'Phy ' + a.value + ' · Diff ' + a.diff + ' · ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%'; var vc = (a.type === 'livepic' && a.photo) ? '<img src="' + a.photo + '" style="width:180px;border-radius:8px">' : esc(val || '—'); return '<tr><td>' + esc(a.label) + '</td><td>' + vc + (a.remark ? '<div class="small text3" style="color:#1565C0">📝 ' + esc(a.remark) + '</div>' : '') + '</td></tr>'; }).join('');
+      h += o.answers.map(function (a) { var val = a.value; if (a.type === 'physcount') val = 'Phy ' + a.value + ' · Diff ' + a.diff + ' · ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%'; var vc = ansExtraHtml(a, o) || ((a.type === 'livepic' && a.photo) ? '<img src="' + a.photo + '" style="width:180px;border-radius:8px">' : esc(val || '—')); return '<tr><td>' + esc(a.label) + '</td><td>' + vc + (a.remark ? '<div class="small text3" style="color:#1565C0">📝 ' + esc(a.remark) + '</div>' : '') + '</td></tr>'; }).join('');
       h += '</tbody></table></div>';
     }
     $('ovDetailBody').innerHTML = h;
