@@ -559,7 +559,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     </div>
     <div id="loginErr" class="small" style="color:var(--red);margin-bottom:8px;display:none"></div>
     <button class="btn btn-pink btn-lg btn-full" id="btnContinue">Continue →</button>
-    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v36 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v37 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
   </div>
 </div>
 
@@ -1709,7 +1709,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
      Identity is unknown at consent time by design, so it is back-filled on the
      first login from this device (e.g. HH01_SUMIT_6115513).
      ========================================================================== */
-  var APP_VERSION = 'v36';
+  var APP_VERSION = 'v37';
   var CONSENT_KEY = 'vmm_exec_consent_v22';
   var POLICY_KEY = 'vmm_exec_policy_v22';
   var DEVICE_KEY = 'vmm_exec_device_id';
@@ -2437,9 +2437,9 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       var b = host.querySelector('.grp-box[data-g="' + k + '"]'); if (!b) return;
       var g = G[k], ok = g.diff === 0, ta = b.querySelector('.grp-reason');
       b.className = 'ms-q grp-box ' + (ok ? 'ok' : 'bad');
-      b.querySelector('.grp-st').innerHTML = esc(g.name) + ' — total <b>' + g.qty + '</b> vs eligible <b>' + g.elig + '</b> · ' + (ok ? '<span style="color:#2E7D32">✓ matches</span>' : '<span style="color:var(--red)">' + (g.diff < 0 ? 'short ' + (-g.diff) : 'excess ' + g.diff) + '</span>');
+      b.querySelector('.grp-st').innerHTML = esc(g.name) + ' — total <b>' + g.qty + '</b> vs eligible <b>' + g.elig + '</b> · ' + (ok ? '<span style="color:#2E7D32">✓ matches</span>' : '<span style="color:var(--red)">' + (g.diff < 0 ? 'short ' + (-g.diff) : 'excess ' + g.diff) + ' — must match to submit</span>');
       b.querySelector('.grp-sub').textContent = g.alt ? ('Alternate qty ' + g.alt + ' — flagged to HO; reason + approval ref required') : '';
-      if (ta) ta.style.display = ok ? 'none' : 'block';
+      if (ta) ta.style.display = 'none';   /* v37 — no reason override; totals must match */
     });
     return G;
   }
@@ -2450,7 +2450,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var G = grpCompute(subj, domQtyOf(host)), R = grpReasons(host), chk = {}, err = '';
     cfg.order.forEach(function (k) {
       var g = G[k]; chk[k] = { name: g.name, qty: g.qty, elig: g.elig, alt: g.alt, diff: g.diff, reason: g.diff ? (R[k] || '') : '' };
-      if (g.diff && !R[k] && !err) err = g.name + ': total ' + g.qty + ' vs eligible ' + g.elig + ' — enter the mismatch reason';
+      if (g.diff && !err) err = g.name + ': total ' + g.qty + ' vs eligible ' + g.elig + ' (' + (g.diff < 0 ? 'short ' + (-g.diff) : 'excess ' + g.diff) + ') — quantities must match to submit';   /* v37 — hard block */
     });
     return { chk: chk, err: err, altUsed: G._altUsed };
   }
