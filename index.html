@@ -559,7 +559,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     </div>
     <div id="loginErr" class="small" style="color:var(--red);margin-bottom:8px;display:none"></div>
     <button class="btn btn-pink btn-lg btn-full" id="btnContinue">Continue →</button>
-    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v38 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v39 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
   </div>
 </div>
 
@@ -1751,7 +1751,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
      Identity is unknown at consent time by design, so it is back-filled on the
      first login from this device (e.g. HH01_SUMIT_6115513).
      ========================================================================== */
-  var APP_VERSION = 'v38';
+  var APP_VERSION = 'v39';
   var CONSENT_KEY = 'vmm_exec_consent_v22';
   var POLICY_KEY = 'vmm_exec_policy_v22';
   var DEVICE_KEY = 'vmm_exec_device_id';
@@ -3470,10 +3470,12 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (!force && !subjectId && _dashSubsLight && (Date.now() - _dashSubsLightAt) < 3 * 60 * 1000) { cb(_dashSubsLight); return; }
     var base = db.collection('submissions');
     if (subjectId) base = base.where('subjectId', '==', subjectId);
-    var q = withSelect(base, SUB_LIGHT_FIELDS);
     var t0 = Date.now();
-    q.get().then(function (qs) {
-      var arr = []; qs.forEach(function (d) { var o = d.data(); o._id = d.id; arr.push(o); });
+    /* v39 — server-side field projection via REST (Web SDK has no select()); photos are never downloaded */
+    fsRunQuery(subjectId ? 'subjectId' : null, subjectId || null, SUB_LIGHT_FIELDS).catch(function (e) {
+      console.warn('[SubsLight] REST projection failed, SDK fallback:', e && e.message);
+      return base.get().then(function (qs) { var a = []; qs.forEach(function (d) { var o = d.data(); o._id = d.id; a.push(o); }); return a; });
+    }).then(function (arr) {
       console.log('[SubsLight]', arr.length, 'docs in', Date.now() - t0, 'ms', subjectId ? ('subj ' + subjectId) : 'all');
       if (subjectId) _subsLightBySubj[subjectId] = { arr: arr, at: Date.now() };
       else { _dashSubsLight = arr; _dashSubsLightAt = Date.now(); }
@@ -5119,21 +5121,77 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       '</div></div>';
   }
   function subjInScope(subj, code) { return subj.scope !== 'select' || (Array.isArray(subj.storeList) && subj.storeList.indexOf(code) > -1); }
+  /* ===== v39 — projected submission reads for the mail generator ===== */
+  var EMAIL_SUB_FIELDS = ['reviewStatus', 'mailedAt', 'subjectId', 'storeCode', 'storeName', 'subjectName', 'type', 'dataMode', 'reviewRemark', 'amEmail', 'amName', 'zfmEmail'];
+  function fsDecode(v) {
+    if (!v) return null;
+    if ('stringValue' in v) return v.stringValue;
+    if ('integerValue' in v) return Number(v.integerValue);
+    if ('doubleValue' in v) return v.doubleValue;
+    if ('booleanValue' in v) return v.booleanValue;
+    if ('timestampValue' in v) return v.timestampValue;
+    if ('arrayValue' in v) return (v.arrayValue.values || []).map(fsDecode);
+    if ('mapValue' in v) { var o = {}, f = v.mapValue.fields || {}; Object.keys(f).forEach(function (k) { o[k] = fsDecode(f[k]); }); return o; }
+    return null;
+  }
+  /* Firestore REST runQuery with a field projection — the browser SDK has no select(), REST does. */
+  function fsRunQuery(field, value, fields) {
+    var u = firebase.auth().currentUser; if (!u) return Promise.reject(new Error('not signed in'));
+    var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null, to = ctl ? setTimeout(function () { ctl.abort(); }, 40000) : null;
+    return u.getIdToken().then(function (tok) {
+      return fetch('https://firestore.googleapis.com/v1/projects/' + encodeURIComponent(firebaseConfig.projectId) + '/databases/(default)/documents:runQuery', {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' }, signal: ctl ? ctl.signal : undefined,
+        body: JSON.stringify({ structuredQuery: (function () { var sq = { from: [{ collectionId: 'submissions' }], select: { fields: fields.map(function (f) { return { fieldPath: f }; }) } }; if (field) sq.where = { fieldFilter: { field: { fieldPath: field }, op: 'EQUAL', value: { stringValue: value } } }; return sq; })() })
+      });
+    }).then(function (r) {
+      if (to) clearTimeout(to);
+      if (!r.ok) return r.text().then(function (t) { throw new Error('REST ' + r.status + ' ' + String(t).slice(0, 140)); });
+      return r.json();
+    }).then(function (arr) {
+      return (arr || []).filter(function (x) { return x.document; }).map(function (x) { var d = x.document, o = {}, f = d.fields || {}; Object.keys(f).forEach(function (k) { o[k] = fsDecode(f[k]); }); o._id = String(d.name || '').split('/').pop(); return o; });
+    }).catch(function (e) { if (to) clearTimeout(to); throw e; });
+  }
+  function subsProjected(field, value) {
+    return fsRunQuery(field, value, EMAIL_SUB_FIELDS).catch(function (e) {
+      console.warn('[v39] projected read failed, scoped SDK fallback:', e && e.message);
+      return db.collection('submissions').where(field, '==', value).get().then(function (qs) { var a = []; qs.forEach(function (d) { var o = d.data(); o._id = d.id; a.push(o); }); return a; });
+    });
+  }
+  function fetchEmailSubs(ids, withRejected) {
+    var jobs = ids.map(function (id) { return ['subjectId', id]; }); if (withRejected) jobs.push(['reviewStatus', 'rejected']);
+    return new Promise(function (resolve, reject) {
+      var out = {}, done = 0, i = 0, total = jobs.length, failed = false;
+      if (!total) { resolve([]); return; }
+      function next() {
+        if (failed) return;
+        if (i >= total) { if (done >= total) resolve(Object.keys(out).map(function (k) { return out[k]; })); return; }
+        var j = jobs[i++];
+        subsProjected(j[0], j[1]).then(function (arr) { arr.forEach(function (o) { out[o._id] = o; }); done++; loader(true, 'Reading submissions… ' + done + '/' + total); next(); })
+          .catch(function (e) { failed = true; reject(e); });
+      }
+      for (var w = 0; w < Math.min(4, total); w++) next();
+    });
+  }
   function sendRejectMails() {
     var emailSubjId = ($('emailSubjectFilter') && $('emailSubjectFilter').value) || '';
     var emailSubjName = emailSubjId && $('emailSubjectFilter') ? ($('emailSubjectFilter').options[$('emailSubjectFilter').selectedIndex] || {}).text || '' : '';
     loader(true, 'Gathering rejected + pending…');
+    var t0 = Date.now();
     Promise.all([
-      db.collection('submissions').get(),
       emailSubjId
         ? db.collection('subjects').where(firebase.firestore.FieldPath.documentId(), '==', emailSubjId).get()
         : db.collection('subjects').where('active', '==', true).get(),
       db.collection('stores').get()
-    ]).then(function (res) {
-      var subs = [], activeSubs = [], stores = [];
-      res[0].forEach(function (d) { var o = d.data(); o._id = d.id; subs.push(o); });
-      res[1].forEach(function (d) { var o = d.data(); o.id = d.id; activeSubs.push(o); });
-      res[2].forEach(function (d) { stores.push(d.data()); });
+    ]).then(function (res0) {
+      /* v39 — never download the whole submissions collection (photos inside every doc made this hang).
+         Read only the fields the mail needs, per subject, plus all still-unmailed rejected ones. */
+      var aS = [], stS = [];
+      res0[0].forEach(function (d) { var o = d.data(); o.id = d.id; aS.push(o); });
+      res0[1].forEach(function (d) { stS.push(d.data()); });
+      return fetchEmailSubs(aS.map(function (x) { return x.id; }), !emailSubjId).then(function (arr) { return { subs: arr, activeSubs: aS, stores: stS }; });
+    }).then(function (res) {
+      console.log('[EmailMails] ' + res.subs.length + ' submission rows, ' + res.stores.length + ' stores in ' + (Date.now() - t0) + ' ms');
+      var subs = res.subs, activeSubs = res.activeSubs, stores = res.stores;
       // if a subject filter is set, only keep submissions for that subject
       if (emailSubjId) subs = subs.filter(function (o) { return o.subjectId === emailSubjId; });
       var stMap = {}; stores.forEach(function (s) { if (s.code) stMap[s.code] = s; });
