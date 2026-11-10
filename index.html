@@ -559,7 +559,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     </div>
     <div id="loginErr" class="small" style="color:var(--red);margin-bottom:8px;display:none"></div>
     <button class="btn btn-pink btn-lg btn-full" id="btnContinue">Continue →</button>
-    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v37 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v38 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
   </div>
 </div>
 
@@ -604,6 +604,43 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     <div class="small text3" style="margin-top:6px">Live camera only — gallery upload is disabled. Photo is auto-compressed to ~64&nbsp;KB.</div>
   </div>
 </div></div>
+
+<!-- STORE FORM (v38) -->
+<div class="overlay" id="ovStoreForm"><div class="modal modal-lg">
+  <div class="modal-head"><span class="modal-title" id="sfTitle">Add store</span><button class="modal-x" id="btnStoreFormClose">×</button></div>
+  <div class="modal-body">
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Store code *</label><input class="form-control" id="sfCode" placeholder="e.g. HB03" maxlength="12" style="text-transform:uppercase"></div>
+      <div class="form-group"><label class="form-label">Store name *</label><input class="form-control" id="sfName" placeholder="e.g. Buxar"></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">SM name</label><input class="form-control" id="sfSmName"></div>
+      <div class="form-group"><label class="form-label">SM mail</label><input class="form-control" id="sfSmMail" type="email"></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">AM name</label><input class="form-control" id="sfAmName"></div>
+      <div class="form-group"><label class="form-label">AM code (emp code — AM login)</label><input class="form-control" id="sfAmCode" inputmode="numeric"></div>
+    </div>
+    <div class="form-group"><label class="form-label">AM mail</label><input class="form-control" id="sfAmMail" type="email"></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">ZFM name</label><input class="form-control" id="sfZfmName"></div>
+      <div class="form-group"><label class="form-label">ZFM code</label><input class="form-control" id="sfZfmCode"></div>
+    </div>
+    <div class="form-group"><label class="form-label">ZFM mail</label><input class="form-control" id="sfZfmMail" type="email"></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">City</label><input class="form-control" id="sfCity"></div>
+      <div class="form-group"><label class="form-label">State</label><input class="form-control" id="sfState"></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Latitude</label><input class="form-control" id="sfLat" inputmode="decimal" placeholder="e.g. 25.5646"></div>
+      <div class="form-group"><label class="form-label">Longitude</label><input class="form-control" id="sfLng" inputmode="decimal" placeholder="e.g. 83.9778"></div>
+    </div>
+    <div class="small text3" style="margin:-4px 0 10px">Latitude / Longitude are required for the store to log in (geofence). Leave both blank only for a store that is not live yet.</div>
+    <label class="flex center gap" style="margin-bottom:6px"><span class="tgl"><input type="checkbox" id="sfActive" checked><span class="tgl-sl"></span></span><span class="small"><b>Active</b> — inactive stores cannot log in</span></label>
+    <div class="flex gap" style="margin-top:14px;justify-content:flex-end"><button class="btn btn-outline" id="btnStoreFormCancel" type="button">Cancel</button><button class="btn btn-blue" id="btnStoreFormSave" type="button">Save store</button></div>
+  </div>
+</div></div>
+<!-- /STORE FORM -->
 
 <!-- SUBJECT PREVIEW (store user view) -->
 <div class="overlay" id="ovPreview"><div class="modal modal-lg">
@@ -998,10 +1035,15 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       <div id="pg-stores" style="display:none">
         <div class="card"><div class="card-head"><span class="card-title">Store Master (StoreMapping.xlsx)</span><span class="badge badge-blue" id="storeCountBadge">0 stores</span></div><div class="card-body">
           <div class="info-box">DDR export format auto-detected by header: <b>StoreCode, StoreName, SM Name, SM Mail, AM Name, AM Code, AM Mail, ZFM Code, ZFM Email, City, State, Latitude, Longitude, Active</b>. Upload the same file you use for DDR (.csv or .xlsx). Junk/summary rows are skipped automatically.</div>
-          <label class="btn btn-pink" style="cursor:pointer">⬆ Upload Store Master<input type="file" id="btnStoreUp" accept=".csv,.xlsx,.xls" style="display:none"></label>
+          <label class="btn btn-pink" style="cursor:pointer" title="Replaces the whole master — stores not in the file are removed">⬆ Upload Store Master (replace all)<input type="file" id="btnStoreUp" accept=".csv,.xlsx,.xls" style="display:none"></label>
           <div class="small text2" id="storeStatus" style="margin-top:8px"></div>
         </div></div>
-        <div class="card"><div class="card-head"><span class="card-title">Store Master List</span></div>
+        <div class="card"><div class="card-head"><span class="card-title">Store Master List</span>
+          <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-blue btn-sm" id="btnStoreAdd">+ Add store</button>
+            <button class="btn btn-outline btn-sm" id="btnStoreExport">⬇ Export master</button>
+            <label class="btn btn-outline btn-sm" style="cursor:pointer" title="Adds new stores and updates existing ones. Blank cells keep the current value. Nothing is deleted.">⬆ Import (add / update only)<input type="file" id="btnStoreMerge" accept=".csv,.xlsx,.xls" style="display:none"></label>
+          </span></div>
           <div class="card-body" style="padding-bottom:8px">
             <div class="flex gap wrap" style="align-items:center;margin-bottom:10px">
               <input class="filter-input" id="storeSearch" placeholder="Search code / name / AM / ZFM / city…" style="max-width:260px">
@@ -1709,7 +1751,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
      Identity is unknown at consent time by design, so it is back-filled on the
      first login from this device (e.g. HH01_SUMIT_6115513).
      ========================================================================== */
-  var APP_VERSION = 'v37';
+  var APP_VERSION = 'v38';
   var CONSENT_KEY = 'vmm_exec_consent_v22';
   var POLICY_KEY = 'vmm_exec_policy_v22';
   var DEVICE_KEY = 'vmm_exec_device_id';
@@ -5185,8 +5227,8 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function paintStoreTable(list) {
     var wrap = $('storeTableWrap');
     if (!list.length) { wrap.innerHTML = '<div class="empty"><div class="empty-i">🏪</div><div class="empty-t">No stores match</div></div>'; return; }
-    var h = '<div class="small text2" style="margin-bottom:8px">Showing ' + list.length + ' of ' + _storeMaster.length + ' store(s)</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>StoreCode</th><th>StoreName</th><th>SM Name</th><th>SM Mail</th><th>AM Name</th><th>AM Code</th><th>AM Mail</th><th>ZFM Code</th><th>ZFM Email</th><th>City</th><th>State</th><th>Latitude</th><th>Longitude</th><th>Active</th><th>Updated By</th></tr></thead><tbody>';
-    list.forEach(function (s) { h += '<tr><td class="mono">' + esc(s.code) + '</td><td>' + esc(s.name || '') + '</td><td class="small">' + esc(s.smName || '') + '</td><td class="small">' + esc(s.smEmail || '') + '</td><td class="small">' + esc(s.amName || '') + '</td><td class="small mono">' + esc(s.amCode || '') + '</td><td class="small">' + esc(s.amEmail || '') + '</td><td class="small mono">' + esc(s.zfmCode || (s.zfmName || '')) + '</td><td class="small">' + esc(s.zfmEmail || '') + '</td><td class="small">' + esc(s.city || '') + '</td><td class="small">' + esc(s.state || '') + '</td><td class="small mono">' + esc(s.lat != null ? s.lat : '') + '</td><td class="small mono">' + esc(s.lng != null ? s.lng : '') + '</td><td class="small">' + (s.active === false ? 'N' : 'Y') + '</td><td class="small">' + esc(s.updatedBy || '') + '</td></tr>'; });
+    var h = '<div class="small text2" style="margin-bottom:8px">Showing ' + list.length + ' of ' + _storeMaster.length + ' store(s)</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>StoreCode</th><th>StoreName</th><th>SM Name</th><th>SM Mail</th><th>AM Name</th><th>AM Code</th><th>AM Mail</th><th>ZFM Code</th><th>ZFM Email</th><th>City</th><th>State</th><th>Latitude</th><th>Longitude</th><th>Active</th><th>Updated By</th><th></th></tr></thead><tbody>';
+    list.forEach(function (s) { h += '<tr><td class="mono">' + esc(s.code) + '</td><td>' + esc(s.name || '') + '</td><td class="small">' + esc(s.smName || '') + '</td><td class="small">' + esc(s.smEmail || '') + '</td><td class="small">' + esc(s.amName || '') + '</td><td class="small mono">' + esc(s.amCode || '') + '</td><td class="small">' + esc(s.amEmail || '') + '</td><td class="small mono">' + esc(s.zfmCode || (s.zfmName || '')) + '</td><td class="small">' + esc(s.zfmEmail || '') + '</td><td class="small">' + esc(s.city || '') + '</td><td class="small">' + esc(s.state || '') + '</td><td class="small mono">' + esc(s.lat != null ? s.lat : '') + '</td><td class="small mono">' + esc(s.lng != null ? s.lng : '') + '</td><td class="small">' + (s.active === false ? 'N' : 'Y') + '</td><td class="small">' + esc(s.updatedBy || '') + '</td><td><button class="btn btn-outline btn-sm js-st-edit" data-code="' + esc(s.code) + '">✎ Edit</button></td></tr>'; });
     h += '</tbody></table></div>'; wrap.innerHTML = h;
   }
   function filterStoreTable() {
@@ -5211,10 +5253,67 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     function next() {
       if (i >= total) { doneCb(total); return; }
       var batch = db.batch(), c = 0;
-      while (i < total && c < 450) { var op = ops[i++]; if (op.del) batch.delete(db.collection('stores').doc(op.code)); else batch.set(db.collection('stores').doc(op.code), op.rec, { merge: false }); c++; }
+      while (i < total && c < 450) { var op = ops[i++]; if (op.del) batch.delete(db.collection('stores').doc(op.code)); else batch.set(db.collection('stores').doc(op.code), op.rec, { merge: !!op.merge }); c++; }
       batch.commit().then(next).catch(function (e) { loader(false); toast('Write failed: ' + e.message); });
     }
     next();
+  }
+  var _storeMergeMode = false, _storeEditCode = '';
+  /* ===== v38 — single-store form + export ===== */
+  var SF_IDS = ['sfCode', 'sfName', 'sfSmName', 'sfSmMail', 'sfAmName', 'sfAmCode', 'sfAmMail', 'sfZfmName', 'sfZfmCode', 'sfZfmMail', 'sfCity', 'sfState', 'sfLat', 'sfLng'];
+  function storeFormOpen(code) {
+    var s = null; if (code) _storeMaster.forEach(function (x) { if (x.code === code) s = x; });
+    if (code && !s) { toast('Store not found — reload the Store Master'); return; }
+    _storeEditCode = s ? s.code : '';
+    $('sfTitle').textContent = s ? ('Edit store — ' + s.code) : 'Add store';
+    var v = s ? { sfCode: s.code, sfName: s.name, sfSmName: s.smName, sfSmMail: s.smEmail, sfAmName: s.amName, sfAmCode: s.amCode, sfAmMail: s.amEmail, sfZfmName: (s.zfmName && s.zfmName !== s.zfmCode ? s.zfmName : ''), sfZfmCode: s.zfmCode, sfZfmMail: s.zfmEmail, sfCity: s.city, sfState: s.state, sfLat: s.lat, sfLng: s.lng } : {};
+    SF_IDS.forEach(function (id) { $(id).value = v[id] != null ? v[id] : ''; });
+    $('sfCode').readOnly = !!s; $('sfActive').checked = s ? s.active !== false : true;
+    $('ovStoreForm').classList.add('show');
+    setTimeout(function () { try { (s ? $('sfName') : $('sfCode')).focus(); } catch (e) { } }, 60);
+  }
+  function storeFormClose() { $('ovStoreForm').classList.remove('show'); }
+  function storeFormSave() {
+    var v = function (id) { return ($(id).value || '').trim(); };
+    var code = v('sfCode').toUpperCase(), name = v('sfName');
+    if (!isStoreCode(code)) { toast('Enter a valid store code (letters / digits, no spaces)'); return; }
+    if (!name) { toast('Enter the store name'); return; }
+    var existing = null; _storeMaster.forEach(function (x) { if (x.code === code) existing = x; });
+    if (!_storeEditCode && existing) { toast('Store ' + code + ' already exists — find it in the list and use Edit'); return; }
+    var bad = ''; [['sfSmMail', 'SM mail'], ['sfAmMail', 'AM mail'], ['sfZfmMail', 'ZFM mail']].forEach(function (m) { var e = v(m[0]); if (e && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) bad = bad || m[1]; });
+    if (bad) { toast('Check the ' + bad + ' — not a valid email'); return; }
+    var la = v('sfLat'), ln = v('sfLng');
+    if ((la === '') !== (ln === '')) { toast('Enter both Latitude and Longitude (or leave both blank)'); return; }
+    if (la !== '' && (isNaN(Number(la)) || Math.abs(Number(la)) > 90)) { toast('Latitude must be a number between -90 and 90'); return; }
+    if (ln !== '' && (isNaN(Number(ln)) || Math.abs(Number(ln)) > 180)) { toast('Longitude must be a number between -180 and 180'); return; }
+    var rec = Object.assign({}, existing || {});   /* keep any fields this form does not show */
+    rec.code = code; rec.name = name; rec.smName = v('sfSmName'); rec.smEmail = v('sfSmMail'); rec.amName = v('sfAmName'); rec.amEmail = v('sfAmMail');
+    rec.zfmEmail = v('sfZfmMail'); rec.city = v('sfCity'); rec.state = v('sfState'); rec.active = !!$('sfActive').checked;
+    var zc = v('sfZfmCode'); rec.zfmName = v('sfZfmName') || zc; if (zc) rec.zfmCode = zc; else delete rec.zfmCode;
+    var ac = v('sfAmCode'); if (ac) rec.amCode = ac; else delete rec.amCode;
+    if (la !== '') { rec.lat = Number(la); rec.lng = Number(ln); } else { delete rec.lat; delete rec.lng; }
+    rec.updatedBy = ((S && (S.empName || S.empcode)) || 'Admin') + ' (form)'; rec.updatedAt = nowISO();
+    loader(true, 'Saving store…');
+    db.collection('stores').doc(code).set(rec).then(function () {
+      loader(false);
+      var hit = false; _storeMaster = _storeMaster.map(function (x) { if (x.code === code) { hit = true; return rec; } return x; }); if (!hit) _storeMaster.push(rec);
+      _storeMaster.sort(function (a, b) { return (a.code || '').localeCompare(b.code || ''); });
+      try { _hoStoreCache = null; _hoStoreCacheAt = 0; } catch (e) { }
+      $('storeCountBadge').textContent = _storeMaster.length + ' store' + (_storeMaster.length === 1 ? '' : 's');
+      populateStoreFilters(); filterStoreTable(); storeFormClose();
+      toast(existing ? ('Store ' + code + ' updated') : ('Store ' + code + ' added'));
+    }).catch(function (e) { loader(false); toast('Save failed: ' + e.message); });
+  }
+  /* Same columns the importer reads, so an exported file can be edited and uploaded straight back. */
+  function exportStoreMaster() {
+    if (typeof XLSX === 'undefined') { toast('Excel library not loaded — check your internet / unblock cdnjs.cloudflare.com'); return; }
+    if (!_storeMaster.length) { toast('Nothing to export — open Store Master and let it load first'); return; }
+    var aoa = [['StoreCode', 'StoreName', 'SM Name', 'SM Mail', 'AM Name', 'AM Code', 'AM Mail', 'ZFM Name', 'ZFM Code', 'ZFM Email', 'City', 'State', 'Latitude', 'Longitude', 'Active', 'Updated By']];
+    _storeMaster.forEach(function (s) { aoa.push([s.code || '', s.name || '', s.smName || '', s.smEmail || '', s.amName || '', s.amCode || '', s.amEmail || '', (s.zfmName && s.zfmName !== s.zfmCode ? s.zfmName : ''), s.zfmCode || '', s.zfmEmail || '', s.city || '', s.state || '', s.lat != null ? s.lat : '', s.lng != null ? s.lng : '', s.active === false ? 'N' : 'Y', s.updatedBy || '']); });
+    var ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols'] = [10, 22, 18, 26, 18, 10, 26, 18, 10, 26, 14, 14, 11, 11, 7, 18].map(function (w) { return { wch: w }; });
+    var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'StoreMaster');
+    XLSX.writeFile(wb, 'StoreMaster_' + toDateStr(new Date()) + '.xlsx');
+    toast('Exported ' + _storeMaster.length + ' store(s)');
   }
   function onStoreUpload(file) {
     if (!file) return; loader(true, 'Reading store master…'); var r = new FileReader();
@@ -5251,13 +5350,22 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           var amCd = g(row, C.amCode); if (amCd) rec.amCode = amCd;
           var zfCd = g(row, C.zfmCode); if (zfCd) { rec.zfmCode = zfCd; if (!rec.zfmName) rec.zfmName = zfCd; }
           var upBy = g(row, C.updatedBy); if (upBy) rec.updatedBy = upBy;
-          if (C.active > -1) { rec.active = !/^(n|no|0|inactive|false|closed)$/i.test(g(row, C.active)); if (rec.active === false) inactive++; }
+          if (C.active > -1 && (!_storeMergeMode || g(row, C.active) !== '')) { rec.active = !/^(n|no|0|inactive|false|closed)$/i.test(g(row, C.active)); if (rec.active === false) inactive++; }   /* v38: merge mode — blank Active cell leaves status unchanged */
           var la = g(row, C.lat), ln = g(row, C.lng);
           if (la !== '' && !isNaN(Number(la))) rec.lat = Number(la);
           if (ln !== '' && !isNaN(Number(ln))) rec.lng = Number(ln);
           recs.push(rec);
         }
         if (!recs.length) { loader(false); toast('No valid store rows found. Expected a header row with StoreCode/StoreName/AM Mail/ZFM Email.'); return; }
+        if (_storeMergeMode) {   /* v38 — add / update only, never deletes, blank cells keep current value */
+          var exSet = {}; _storeMaster.forEach(function (c) { exSet[c.code] = 1; });
+          var nNew = 0, nUpd = 0; recs.forEach(function (x) { if (exSet[x.code]) nUpd++; else nNew++; });
+          if (!confirm('Import ' + recs.length + ' row(s): ' + nNew + ' new store(s), ' + nUpd + ' existing store(s) updated.' + (skipped ? ' (' + skipped + ' junk row(s) ignored)' : '') + '\n\nBlank cells keep the current value. No store is deleted.')) { loader(false); return; }
+          loader(true, 'Updating store master…');
+          var mops = recs.map(function (rec) { var c = {}; Object.keys(rec).forEach(function (k) { if (rec[k] !== '' && rec[k] != null) c[k] = rec[k]; }); c.updatedAt = nowISO(); return { del: false, merge: true, code: rec.code, rec: c }; });
+          commitOps(mops, function () { loader(false); _storeMergeMode = false; try { _hoStoreCache = null; _hoStoreCacheAt = 0; } catch (e) { } $('storeStatus').textContent = 'Import done — ' + nNew + ' added, ' + nUpd + ' updated, none deleted.'; toast('Store master updated (' + nNew + ' new, ' + nUpd + ' updated)'); renderStoresTab(); });
+          return;
+        }
         if (!confirm('Replace the store master with ' + recs.length + ' store(s)?' + (skipped ? ' (' + skipped + ' junk/non-store row(s) ignored)' : '') + (inactive ? ' (' + inactive + ' marked inactive)' : '') + '\n\nDetected ' + (headerMode ? 'DDR headers' : 'legacy 7-column layout') + '. This removes any old/stale stores not in this file.')) { loader(false); return; }
         loader(true, 'Replacing store master…');
         var newSet = {}; recs.forEach(function (x) { newSet[x.code] = 1; });
@@ -6519,7 +6627,14 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     on('emailSubjectFilter', 'change', updateEmailFilterBadge);
     on('chkZfmCc', 'change', updateEmailFilterBadge);
     on('btnSendRejects', 'click', sendRejectMails);
-    on('btnStoreUp', 'change', function () { onStoreUpload(this.files[0]); });
+    on('btnStoreUp', 'change', function () { _storeMergeMode = false; onStoreUpload(this.files[0]); });
+    on('btnStoreMerge', 'change', function () { _storeMergeMode = true; var f = this.files[0]; this.value = ''; onStoreUpload(f); });
+    on('btnStoreAdd', 'click', function () { storeFormOpen(''); });
+    on('btnStoreExport', 'click', exportStoreMaster);
+    on('btnStoreFormSave', 'click', storeFormSave);
+    on('btnStoreFormCancel', 'click', storeFormClose);
+    on('btnStoreFormClose', 'click', storeFormClose);
+    if ($('storeTableWrap')) $('storeTableWrap').addEventListener('click', function (e) { var b = e.target && e.target.closest ? e.target.closest('.js-st-edit') : null; if (b) storeFormOpen(b.getAttribute('data-code')); });
     on('storeSearch', 'input', filterStoreTable);
     on('storeZfm', 'change', filterStoreTable);
     on('storeAm', 'change', filterStoreTable);
