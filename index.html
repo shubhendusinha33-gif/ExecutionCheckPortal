@@ -5729,6 +5729,98 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     });
     return count;
   }
+  /* ===== v39 — export data loader: the list is "light" (no answers/photos), so fetch them for the filtered rows only ===== */
+  var XP_BASE = ['gps', 'answers', 'rows', 'descLabels', 'grpChk', 'altUsed', 'qtyMismatch', 'proofInline', 'viewMeta'];
+  var XP_HEAVY = ['answers', 'rows', 'descLabels', 'pics', 'pic', 'proofInline'];
+  function fsBatchGet(ids, fields) {
+    var u = firebase.auth().currentUser; if (!u) return Promise.reject(new Error('not signed in'));
+    var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null, to = ctl ? setTimeout(function () { ctl.abort(); }, 90000) : null;
+    var root = 'projects/' + firebaseConfig.projectId + '/databases/(default)/documents';
+    return u.getIdToken().then(function (tok) {
+      return fetch('https://firestore.googleapis.com/v1/' + root + ':batchGet', {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' }, signal: ctl ? ctl.signal : undefined,
+        body: JSON.stringify({ documents: ids.map(function (id) { return root + '/submissions/' + id; }), mask: { fieldPaths: fields } })
+      });
+    }).then(function (r) {
+      if (to) clearTimeout(to);
+      if (!r.ok) return r.text().then(function (t) { throw new Error('REST ' + r.status + ' ' + String(t).slice(0, 140)); });
+      return r.json();
+    }).then(function (arr) {
+      var out = {};
+      (arr || []).forEach(function (x) { if (!x.found) return; var o = {}, f = x.found.fields || {}; Object.keys(f).forEach(function (k) { o[k] = fsDecode(f[k]); }); out[String(x.found.name).split('/').pop()] = o; });
+      return out;
+    }).catch(function (e) { if (to) clearTimeout(to); throw e; });
+  }
+  function sdkGetMany(ids, fields) {
+    var out = {};
+    return Promise.all(ids.map(function (id) { return db.collection('submissions').doc(id).get().then(function (d) { if (d.exists) { var o = d.data(), r = {}; fields.forEach(function (k) { if (o[k] !== undefined) r[k] = o[k]; }); out[id] = r; } }); })).then(function () { return out; });
+  }
+  /* Fills answers/rows/grpChk/gps (+ photos when withPhotos) into the filtered rows, in small parallel chunks. */
+  function ensureExportData(rows, withPhotos, cb) {
+    var need = rows.filter(function (o) { return !o._fullLoaded && !(o._xfull === 'p' || (o._xfull === 'x' && !withPhotos)); });
+    if (!need.length) { cb(null); return; }
+    var fields = XP_BASE.concat(withPhotos ? ['pics', 'pic'] : []), CH = 10, i = 0, done = 0, active = 0, failed = false, byId = {};
+    need.forEach(function (o) { byId[o._id] = o; });
+    function fin(err) { if (failed) return; if (err) { failed = true; cb(err); return; } if (done >= need.length) cb(null); }
+    function pump() {
+      if (failed) return;
+      while (active < 3 && i < need.length) {
+        (function (chunk) {
+          active++;
+          var ids = chunk.map(function (o) { return o._id; });
+          fsBatchGet(ids, fields).catch(function (e) { console.warn('[export] REST batchGet failed, SDK fallback:', e && e.message); return sdkGetMany(ids, fields); }).then(function (got) {
+            chunk.forEach(function (o) {
+              var g = got[o._id]; if (!g) return;
+              if (!withPhotos) (g.answers || []).forEach(function (a) { if (a && a.type === 'livepic' && a.photo) a.photo = 'data:image/jpeg;base64,AA=='; });
+              Object.keys(g).forEach(function (k) { o[k] = g[k]; });
+              o._xfull = withPhotos ? 'p' : 'x';
+            });
+            active--; done += chunk.length; loader(true, 'Fetching responses… ' + Math.min(done, need.length) + '/' + need.length);
+            if (done >= need.length) fin(null); else pump();
+          }).catch(function (e) { active--; fin(e); });
+        })(need.slice(i, i + CH)); i += CH;
+      }
+    }
+    loader(true, 'Fetching responses… 0/' + need.length);
+    pump();
+  }
+  function releaseExportData(rows) {
+    rows.forEach(function (o) { if (o._xfull && !o._fullLoaded) { XP_HEAVY.forEach(function (k) { delete o[k]; }); delete o._xfull; } });
+  }
+  /* MS-Forms style name: "<Subject>(1-N)" — N = responses in this download */
+  function expBaseName(rows) {
+    var names = {}; rows.forEach(function (o) { names[o.subjectName || ''] = 1; });
+    var k = Object.keys(names), nm = (k.length === 1 && k[0]) ? k[0] : 'Execution Submissions';
+    nm = nm.replace(/[\\\/:*?"<>|\[\]]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 90) || 'Execution Submissions';
+    return nm + '(1-' + rows.length + ')';
+  }
+  /* Calibri 10 default font + 80% sheet zoom (SheetJS community build can't style cells, so patch the xlsx package) */
+  function polishXlsx(u8) {
+    if (typeof JSZip === 'undefined') return Promise.resolve(u8);
+    return JSZip.loadAsync(u8).then(function (z) {
+      var jobs = [];
+      z.forEach(function (path, f) {
+        if (path === 'xl/styles.xml') jobs.push(f.async('string').then(function (x) {
+          x = x.replace(/<fonts([^>]*)>([\s\S]*?)<\/fonts>/, function (m, at, inner) {
+            inner = inner.replace(/<sz val="[^"]*"\s*\/>/g, '<sz val="10"/>').replace(/<name val="[^"]*"\s*\/>/g, '<name val="Calibri"/>').replace(/<scheme val="[^"]*"\s*\/>/g, '');
+            return '<fonts' + at + '>' + inner + '</fonts>';
+          });
+          z.file(path, x);
+        }));
+        else if (/^xl\/worksheets\/sheet\d+\.xml$/.test(path)) jobs.push(f.async('string').then(function (x) {
+          if (/<sheetView[ >\/]/.test(x)) x = x.replace(/<sheetView(?![A-Za-z])/, '<sheetView zoomScale="80" zoomScaleNormal="80"');
+          else if (/<sheetViews>/.test(x)) x = x.replace('<sheetViews>', '<sheetViews><sheetView zoomScale="80" zoomScaleNormal="80" workbookViewId="0"/>');
+          else x = x.replace(/(<dimension[^>]*\/>)/, '$1<sheetViews><sheetView zoomScale="80" zoomScaleNormal="80" workbookViewId="0"/></sheetViews>');
+          z.file(path, x);
+        }));
+      });
+      return Promise.all(jobs).then(function () { return z.generateAsync({ type: 'uint8array', compression: 'DEFLATE' }); });
+    }).catch(function (e) { console.warn('[polishXlsx]', e); return u8; });
+  }
+  function xlsxBytes(wb) { return polishXlsx(XLSX.write(wb, { bookType: 'xlsx', type: 'array' })); }
+  function downloadBlob(blob, fname) {
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(a.href); }, 8000);
+  }
   function buildSubWorkbook(rows) {
     var wb = XLSX.utils.book_new();
     // Overview sheet
@@ -5771,9 +5863,18 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (typeof XLSX === 'undefined') { toast('Excel library not loaded — check your internet / unblock cdnjs.cloudflare.com'); return; }
     try {
     var rows = filteredSubs(); if (!rows.length) { toast('Nothing to export for this filter'); return; }
-    var r = buildSubWorkbook(rows);
-    XLSX.writeFile(r.wb, 'ExecSubmissions_' + toDateStr(new Date()) + '.xlsx');
-    toast('Excel exported (' + r.nData + ' data sheet(s) + overview) — use Excel + Photos (zip) for clickable photos');
+    ensureExportData(rows, false, function (err) {
+      if (err) { loader(false); toast('Export failed: ' + err.message); return; }
+      try {
+        loader(true, 'Building Excel…');
+        var r = buildSubWorkbook(rows), fn = expBaseName(rows) + '.xlsx';
+        xlsxBytes(r.wb).then(function (u8) {
+          releaseExportData(rows); loader(false);
+          downloadBlob(new Blob([u8], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fn);
+          toast('Excel exported: ' + fn + ' — use Excel + Photos (zip) for clickable photos');
+        }).catch(function (e) { releaseExportData(rows); loader(false); toast('Export failed: ' + e.message); });
+      } catch (e) { releaseExportData(rows); loader(false); toast('Export failed: ' + e.message); }
+    });
     } catch (e) { loader(false); toast('Export failed: ' + e.message); }
   }
   function zipDownload(zip, fname, okMsg) {
@@ -5787,35 +5888,46 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function exportSubPhotos() {
     if (typeof JSZip === 'undefined') { toast('Zip tool still loading — try again'); return; }
     var rows = filteredSubs(); if (!rows.length) { toast('Nothing to export for this filter'); return; }
-    loader(true, 'Zipping photos…');
-    setTimeout(function () {
-      try {
-        var zip = new JSZip(), count = addSubPhotosToZip(zip, rows);
-        addSubProofsToZip(zip, rows, function (pc) {
-          if (!count && !pc) { loader(false); toast('No photos in this filter'); return; }
-          loader(true, 'Zipping photos…');
-          zipDownload(zip, 'ExecPhotos_' + toDateStr(new Date()) + '.zip', 'Zipped ' + (count + pc) + ' photo(s) — folder per question');
-        });
-      } catch (e) { loader(false); toast('Zip failed: ' + e.message); }
-    }, 30);
+    ensureExportData(rows, true, function (err) {
+      if (err) { loader(false); toast('Zip failed: ' + err.message); return; }
+      loader(true, 'Zipping photos…');
+      setTimeout(function () {
+        try {
+          var zip = new JSZip(), count = addSubPhotosToZip(zip, rows);
+          addSubProofsToZip(zip, rows, function (pc) {
+            if (!count && !pc) { releaseExportData(rows); loader(false); toast('No photos in this filter'); return; }
+            loader(true, 'Zipping photos…');
+            var zn = expBaseName(rows).replace(/\(1-/, ' Photos(1-') + '.zip';
+            releaseExportData(rows);
+            zipDownload(zip, zn, 'Zipped ' + (count + pc) + ' photo(s) — folder per question');
+          });
+        } catch (e) { releaseExportData(rows); loader(false); toast('Zip failed: ' + e.message); }
+      }, 30);
+    });
   }
   // === v34 — Excel + Photos in one zip (links in Excel open Photos/...) ===
   function exportSubBundle() {
     if (typeof XLSX === 'undefined') { toast('Excel library not loaded — check your internet / unblock cdnjs.cloudflare.com'); return; }
     if (typeof JSZip === 'undefined') { toast('Zip tool still loading — try again'); return; }
     var rows = filteredSubs(); if (!rows.length) { toast('Nothing to export for this filter'); return; }
-    loader(true, 'Building Excel + photos…');
-    setTimeout(function () {
-      try {
-        var d = toDateStr(new Date()), r = buildSubWorkbook(rows), zip = new JSZip();
-        zip.file('ExecSubmissions_' + d + '.xlsx', XLSX.write(r.wb, { bookType: 'xlsx', type: 'array' }));
-        var count = addSubPhotosToZip(zip, rows);
-        addSubProofsToZip(zip, rows, function (pc) {
-          loader(true, 'Zipping Excel + photos…');
-          zipDownload(zip, 'ExecData_' + d + '.zip', 'Zipped Excel + ' + (count + pc) + ' photo(s) — extract, then click photo cells');
-        });
-      } catch (e) { loader(false); toast('Export failed: ' + e.message); }
-    }, 30);
+    ensureExportData(rows, true, function (err) {
+      if (err) { loader(false); toast('Export failed: ' + err.message); return; }
+      loader(true, 'Building Excel + photos…');
+      setTimeout(function () {
+        try {
+          var bn = expBaseName(rows), r = buildSubWorkbook(rows), zip = new JSZip();
+          xlsxBytes(r.wb).then(function (u8) {
+            zip.file(bn + '.xlsx', u8);
+            var count = addSubPhotosToZip(zip, rows);
+            addSubProofsToZip(zip, rows, function (pc) {
+              loader(true, 'Zipping Excel + photos…');
+              releaseExportData(rows);
+              zipDownload(zip, bn + '.zip', 'Zipped Excel + ' + (count + pc) + ' photo(s) — extract, then click photo cells');
+            });
+          }).catch(function (e) { releaseExportData(rows); loader(false); toast('Export failed: ' + e.message); });
+        } catch (e) { releaseExportData(rows); loader(false); toast('Export failed: ' + e.message); }
+      }, 30);
+    });
   }
   function showImgModal(title, src) { $('ovImgTitle').textContent = title; $('ovImgPic').src = src; $('ovImg').classList.add('show'); }
   function showSubDetail(id) {
