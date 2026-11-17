@@ -482,6 +482,17 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
 .art-x{border:none;background:none;color:var(--text3);font-size:18px;cursor:pointer;padding:0}
 .art-hd{display:grid;grid-template-columns:96px minmax(0,1fr) 62px 26px;gap:6px;font-size:11px;color:var(--text2);margin-bottom:4px}
 .q-artadd{border-style:dashed!important;width:100%}
+.pl-yn{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.pl-scroll{overflow-x:auto;margin-top:6px}
+.pl-hd,.pl-row{display:grid;grid-template-columns:30px 128px minmax(130px,1fr) 124px minmax(150px,1.2fr) 64px 26px;gap:6px;align-items:center;min-width:700px}
+.pl-hd{font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600}
+.pl-hd small{display:block;font-weight:400;font-size:10px;color:var(--red)}
+.pl-row{margin-bottom:6px}
+.pl-row .ms-in,.pl-row .ms-sel{border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;background:#fff;width:100%;box-sizing:border-box}
+.pl-n{font-size:12px;color:var(--text2);text-align:center}
+.pl-n b{color:var(--red)}
+.pl-sum{font-size:12px;color:var(--text2);margin-top:6px}
+@media(max-width:640px){.pl-hd{display:none}.pl-hd,.pl-row{min-width:0}.pl-row{grid-template-columns:1fr 1fr;background:#f6f8fb;border-radius:8px;padding:8px}.pl-row .pl-n{grid-column:1/-1;text-align:left}.pl-row .pl-art{grid-column:1/-1}}
 .proof-grid{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
 .proof-th{position:relative;width:92px}
 .proof-th img{width:92px;height:120px;object-fit:cover;border-radius:6px;border:1px solid var(--border);display:block}
@@ -559,7 +570,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     </div>
     <div id="loginErr" class="small" style="color:var(--red);margin-bottom:8px;display:none"></div>
     <button class="btn btn-pink btn-lg btn-full" id="btnContinue">Continue →</button>
-    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v39 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:18px">v40 · Designed &amp; Developed by Shubhendu Sinha · VMM Central Ops &amp; BI</div>
   </div>
 </div>
 
@@ -967,12 +978,19 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
               </div>
               <div class="grid-2">
                 <div class="form-group"><label class="form-label">Question type</label><select class="form-control" id="qType">
-                  <option value="text">Short answer</option><option value="para">Paragraph</option><option value="number">Number</option><option value="email">Email</option><option value="phone">Phone</option><option value="date">Date</option><option value="time">Time</option><option value="choice">Single choice (radio)</option><option value="multi">Multiple choice (checkbox)</option><option value="dropdown">Dropdown</option><option value="rating">Rating (1–5 stars)</option><option value="physcount">Physical Count Check</option><option value="livepic">Live Picture (camera only)</option><option value="artlines">Article lines (+ Add Another Article)</option><option value="fileproof">File upload — signed proof (camera, multi-page)</option>
+                  <option value="text">Short answer</option><option value="para">Paragraph</option><option value="number">Number</option><option value="email">Email</option><option value="phone">Phone</option><option value="date">Date</option><option value="time">Time</option><option value="choice">Single choice (radio)</option><option value="multi">Multiple choice (checkbox)</option><option value="dropdown">Dropdown</option><option value="rating">Rating (1–5 stars)</option><option value="physcount">Physical Count Check</option><option value="livepic">Live Picture (camera only)</option><option value="artlines">Article lines (+ Add Another Article)</option><option value="fileproof">File upload — signed proof (camera, multi-page)</option><option value="pendlines">Pending gift lines (Yes/No → bill lines)</option>
                 </select></div>
                 <div class="form-group"><label class="form-label">System qty (Physical Count only)</label><input class="form-control" id="qSys" inputmode="numeric" placeholder="e.g. 120"></div>
               </div>
               <div class="form-group"><label class="form-label">Question label</label><input class="form-control" id="qLabel" placeholder="Question text"></div>
               <div class="form-group"><label class="form-label">Options (comma separated — choice / multi / dropdown only)</label><input class="form-control" id="qOptions" placeholder="Yes,No,N/A"></div>
+              <div class="form-group" id="qPendWrap" style="display:none;margin-bottom:8px;padding:8px 10px;background:#FFF3E0;border:1px solid #FFCC80;border-radius:8px">
+                <div class="small" style="margin-bottom:6px"><b>🧾 Pending gift lines</b> — store answers Yes/No. <b>No</b> ends it; <b>Yes</b> opens 10 bill lines (line 1 mandatory, 9 optional, store can add more).</div>
+                <label class="form-label">Article list for the dropdown — one per line as <b>code | description</b> (max 20)</label>
+                <textarea class="form-control" id="qPendArts" rows="5" placeholder="9102001060 | Black 48 cm Backpack&#10;1250009985 | 52 cm Teal Duffle Bag"></textarea>
+                <div class="small" style="margin:8px 0 4px"><b>Mandatory columns</b> (applies to line 1 and to any other line the store starts)</div>
+                <div class="flex gap" style="flex-wrap:wrap"><label class="small"><input type="checkbox" id="qPcDate" checked> Bill date</label><label class="small"><input type="checkbox" id="qPcBill" checked> Complete bill no</label><label class="small"><input type="checkbox" id="qPcMob" checked> Mobile (10 digits)</label><label class="small"><input type="checkbox" id="qPcArt" checked> Article</label><label class="small"><input type="checkbox" id="qPcQty" checked> Qty</label></div>
+              </div>
               <div class="grid-2" id="qRangeWrap" style="display:none"><div class="form-group"><label class="form-label">Min (Number only — blank = any number)</label><input class="form-control" id="qMin" inputmode="numeric" placeholder="e.g. 1"></div><div class="form-group"><label class="form-label">Max</label><input class="form-control" id="qMax" inputmode="numeric" placeholder="e.g. 5"></div></div>
               <div class="form-group" id="qTrkWrap" style="margin-bottom:8px;padding:8px 10px;background:#EDE7F6;border:1px solid #B39DDB;border-radius:8px">
                 <div class="small" style="margin-bottom:6px"><b>📦 Tracker (optional)</b> — <b>Qty Group</b> sums product rows (e.g. P1) and checks the total against staff-count questions whose <b>Eligible For</b> lists that group.</div>
@@ -1751,7 +1769,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
      Identity is unknown at consent time by design, so it is back-filled on the
      first login from this device (e.g. HH01_SUMIT_6115513).
      ========================================================================== */
-  var APP_VERSION = 'v39';
+  var APP_VERSION = 'v40';
   var CONSENT_KEY = 'vmm_exec_consent_v22';
   var POLICY_KEY = 'vmm_exec_policy_v22';
   var DEVICE_KEY = 'vmm_exec_device_id';
@@ -2384,6 +2402,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if (q.type === 'rating') { var hin = host.querySelector('.ms-stars[data-i="' + k + '"] input'); return hin ? hin.value : ''; }
     if (q.type === 'livepic') { var ps = host.querySelector('.q-pic[data-i="' + k + '"]'); return ps && ps.getAttribute('data-val') ? 'photo' : ''; }
     if (q.type === 'artlines') return String(artRead(host, k).total);
+    if (q.type === 'pendlines') { var pyn = host.querySelector('input[name="q' + k + '"]:checked'); return pyn ? pyn.value : ''; }
     if (q.type === 'fileproof') { var pn = proofPages(host, k).length; return pn ? String(pn) : ''; }
     var gin = host.querySelector('.q-inp[data-i="' + k + '"]'); return gin ? gin.value : '';
   }
@@ -2427,6 +2446,72 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     /* an alt row outside any group still counts as "alt used" */
     qs.forEach(function (q, i) { if (!q.qtyGroup && trkKind(q) === 'alt' && (Number(qtyOf(i, q)) || 0) > 0) out._altUsed = true; });
     return out;
+  }
+  /* ===== v40 — Pending gift lines: Yes/No gate → 10 bill lines (line 1 mandatory), + add more ===== */
+  var PL_COLS = [['date', 'Bill date'], ['bill', 'Complete bill no'], ['mobile', 'Mobile no'], ['article', 'Article'], ['qty', 'Qty']];
+  function plReq(q, c) { return !(q && q.pcols && q.pcols[c] === false); }
+  function plArts(q) { return (q.options || []).map(function (x) { var pp = String(x).split('|'); return { code: (pp[0] || '').trim(), desc: (pp[1] || '').trim() }; }).filter(function (a) { return a.code; }); }
+  function plRowHtml(q, n, l) {
+    l = l || {};
+    var today = new Date(), mx = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2) + '-' + ('0' + today.getDate()).slice(-2);
+    var arts = plArts(q), cur = l.code || '';
+    var opts = '<option value="">— Article —</option>' + arts.map(function (a) { return '<option value="' + esc(a.code) + '" data-d="' + esc(a.desc) + '"' + (a.code === cur ? ' selected' : '') + '>' + esc(a.code + (a.desc ? ' — ' + a.desc : '')) + '</option>'; }).join('');
+    if (cur && !arts.some(function (a) { return a.code === cur; })) opts += '<option value="' + esc(cur) + '" data-d="' + esc(l.desc || '') + '" selected>' + esc(cur + (l.desc ? ' — ' + l.desc : '')) + '</option>';
+    return '<div class="pl-row"><div class="pl-n">' + (n === 1 ? '<b>' + n + ' *</b>' : n) + '</div>' +
+      '<input class="ms-in pl-date" type="date" max="' + mx + '" title="Pending / Bill date" value="' + esc(l.date || '') + '">' +
+      '<input class="ms-in pl-bill" placeholder="Complete bill no" maxlength="40" value="' + esc(l.bill || '') + '">' +
+      '<input class="ms-in pl-mob" type="tel" inputmode="numeric" maxlength="10" placeholder="Mobile (10 digits)" value="' + esc(l.mobile || '') + '">' +
+      '<select class="ms-sel pl-art">' + opts + '</select>' +
+      '<input class="ms-in pl-qty" inputmode="numeric" placeholder="Qty" value="' + esc(l.qty != null && l.qty !== '' ? l.qty : '') + '">' +
+      (n === 1 ? '<span></span>' : '<button type="button" class="art-x pl-x" title="Remove line">×</button>') + '</div>';
+  }
+  function plBodyHtml(q, i) {
+    var th = PL_COLS.map(function (c) { return '<span>' + c[1] + (plReq(q, c[0]) ? ' <b style="color:var(--red)">*</b>' : '') + (c[0] === 'bill' ? '<small>Mandatory — do not write a few digits</small>' : '') + '</span>'; }).join('');
+    var rows = ''; for (var n = 1; n <= 10; n++) rows += plRowHtml(q, n);
+    return '<div class="pl-yn"><label class="ms-opt"><input type="radio" name="q' + i + '" class="q-inp" data-i="' + i + '" value="No"> No — nothing pending</label><label class="ms-opt"><input type="radio" name="q' + i + '" class="q-inp" data-i="' + i + '" value="Yes"> Yes — gift(s) pending</label></div>' +
+      '<div class="q-pend" data-i="' + i + '" style="display:none"><div class="small text2" style="margin-bottom:4px">Line 1 is mandatory · lines 2–10 optional (a line you start must be complete) · tap “+ Add Another Line” for more</div>' +
+      '<div class="pl-scroll"><div class="pl-hd"><span>#</span>' + th + '<span></span></div><div class="pl-rows" data-i="' + i + '">' + rows + '</div></div>' +
+      '<button type="button" class="btn btn-outline btn-sm q-artadd pl-add" style="margin-top:4px">+ Add Another Line</button><div class="pl-sum"></div></div>';
+  }
+  function plRenumber(box) { var rs = box.querySelectorAll('.pl-row'); for (var n = 0; n < rs.length; n++) { var el = rs[n].querySelector('.pl-n'); el.innerHTML = n === 0 ? '<b>1 *</b>' : String(n + 1); } }
+  function pendWire(card, host, q, k) {
+    var wrap = card.querySelector('.q-pend'), box = card.querySelector('.pl-rows'), sum = card.querySelector('.pl-sum');
+    var sync = function () { var yn = card.querySelector('input[name="q' + k + '"]:checked'); wrap.style.display = (yn && yn.value === 'Yes') ? 'block' : 'none'; };
+    var recalc = function () { var r = pendRead(host, k, q, true); sum.textContent = r.lines.length + ' line(s) filled · total qty ' + r.total; };
+    card.addEventListener('change', function () { sync(); recalc(); });
+    card.querySelector('.pl-add').addEventListener('click', function () { box.insertAdjacentHTML('beforeend', plRowHtml(q, box.querySelectorAll('.pl-row').length + 1)); recalc(); });
+    box.addEventListener('click', function (e) { if (e.target.classList.contains('pl-x')) { var row = e.target.closest('.pl-row'); if (row) row.remove(); plRenumber(box); recalc(); try { host.dispatchEvent(new Event('input')); } catch (e2) { } } });
+    box.addEventListener('input', function (e) { var t = e.target; if (t.classList.contains('pl-mob') || t.classList.contains('pl-qty')) { var v = String(t.value).replace(/\D/g, ''); if (t.classList.contains('pl-mob')) v = v.slice(0, 10); if (v !== t.value) t.value = v; } recalc(); });
+    card._plSync = sync; sync(); recalc();
+  }
+  /* quiet=true → never builds error text (used for the live summary) */
+  function pendRead(host, k, q, quiet) {
+    var yn = host.querySelector('input[name="q' + k + '"]:checked'), ans = yn ? yn.value : '', out = { value: ans, lines: [], total: 0, bad: '' };
+    if (ans !== 'Yes') return out;
+    var box = host.querySelector('.pl-rows[data-i="' + k + '"]'); if (!box) return out;
+    var rs = box.querySelectorAll('.pl-row');
+    for (var n = 0; n < rs.length; n++) {
+      var r = rs[n], sel = r.querySelector('.pl-art'), so = sel.options[sel.selectedIndex];
+      var l = { date: (r.querySelector('.pl-date').value || '').trim(), bill: (r.querySelector('.pl-bill').value || '').trim(), mobile: (r.querySelector('.pl-mob').value || '').trim(), code: sel.value || '', desc: (sel.value && so) ? (so.getAttribute('data-d') || '') : '', qty: (r.querySelector('.pl-qty').value || '').trim() };
+      var started = !!(l.date || l.bill || l.mobile || l.code || l.qty);
+      if (!started) { if (n === 0 && !quiet) out.bad = out.bad || 'Line 1 is mandatory — enter at least one pending bill'; continue; }
+      if (!quiet) {
+        var miss = [];
+        if (plReq(q, 'date') && !l.date) miss.push('Bill date'); if (plReq(q, 'bill') && !l.bill) miss.push('Complete bill no'); if (plReq(q, 'mobile') && !l.mobile) miss.push('Mobile no'); if (plReq(q, 'article') && !l.code) miss.push('Article'); if (plReq(q, 'qty') && !l.qty) miss.push('Qty');
+        if (miss.length) out.bad = out.bad || ('Line ' + (n + 1) + ': ' + miss.join(', ') + ' required');
+        else if (l.mobile && !/^\d{10}$/.test(l.mobile)) out.bad = out.bad || ('Line ' + (n + 1) + ': mobile no must be exactly 10 digits');
+        else if (l.qty && !(/^\d+$/.test(l.qty) && Number(l.qty) >= 1)) out.bad = out.bad || ('Line ' + (n + 1) + ': qty must be a whole number, 1 or more');
+      }
+      l.qty = l.qty === '' ? '' : Number(l.qty) || 0; out.lines.push(l); out.total += Number(l.qty) || 0;
+    }
+    return out;
+  }
+  function pendSummary(lines) { return (lines || []).map(function (l, i) { return (i + 1) + ') ' + [l.date, 'Bill ' + (l.bill || '—'), l.mobile, (l.code || '') + (l.desc ? ' ' + l.desc : ''), '×' + (l.qty === '' || l.qty == null ? '—' : l.qty)].filter(Boolean).join(' · '); }).join('  |  '); }
+  function pendPrefill(card, host, q, k, a) {
+    var r = host.querySelector('input[name="q' + k + '"][value="' + String(a.value || '').replace(/"/g, '') + '"]'); if (r) r.checked = true;
+    var box = card.querySelector('.pl-rows'), ls = a.lines || []; if (!box) return;
+    var rows = ''; for (var n = 0; n < Math.max(10, ls.length); n++) rows += plRowHtml(q, n + 1, ls[n]);
+    box.innerHTML = rows; if (card._plSync) card._plSync(); try { box.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { }
   }
   function artRowHtml(l) {
     l = l || {};
@@ -2510,6 +2595,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       var ls = a.lines || [];
       return '<div>Total qty <b>' + esc(a.value != null && a.value !== '' ? a.value : 0) + '</b></div>' + (ls.length ? '<table class="art-tbl"><tr><th>Code</th><th>Description</th><th>Qty</th></tr>' + ls.map(function (l) { return '<tr><td>' + esc(l.code) + '</td><td>' + esc(l.desc) + '</td><td>' + esc(l.qty) + '</td></tr>'; }).join('') + '</table>' : '<div class="small text3">No article lines</div>');
     }
+    if (a.type === 'pendlines') {
+      var pls = a.lines || [];
+      if (String(a.value) !== 'Yes') return esc(a.value || '—');
+      return '<div><b style="color:var(--red)">Yes — pending</b> · ' + pls.length + ' bill line(s) · total qty <b>' + esc(a.total != null ? a.total : '') + '</b></div>' + (pls.length ? '<div class="tbl-wrap"><table class="art-tbl"><tr><th>#</th><th>Bill date</th><th>Bill no</th><th>Mobile</th><th>Article</th><th>Qty</th></tr>' + pls.map(function (l, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(l.date) + '</td><td>' + esc(l.bill) + '</td><td>' + esc(l.mobile) + '</td><td>' + esc((l.code || '') + (l.desc ? ' — ' + l.desc : '')) + '</td><td>' + esc(l.qty) + '</td></tr>'; }).join('') + '</table></div>' : '');
+    }
     if (a.type === 'fileproof') {
       if (!a.pages) return '—';
       var sid = subIdOf(o || {});
@@ -2547,6 +2637,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       else if (q.type === 'time') body = '<input class="ms-in q-inp" type="time" data-i="' + i + '">';
       else if (q.type === 'livepic') body = '<div class="q-pic" data-i="' + i + '" data-val=""></div><button type="button" class="btn btn-blue btn-sm q-picbtn" data-i="' + i + '">📷 Open camera</button><div class="small text3" style="margin-top:4px">Live camera only — no gallery upload.</div>';
       else if (q.type === 'artlines') body = '<div class="art-hd"><span>Article code</span><span>Description</span><span>Qty</span><span></span></div><div class="q-art" data-i="' + i + '">' + artRowHtml() + '</div><button type="button" class="btn btn-outline btn-sm q-artadd" data-i="' + i + '">+ Add Another Article</button><div class="small text3 q-arttot" style="margin-top:4px"></div>';
+      else if (q.type === 'pendlines') body = plBodyHtml(q, i);
       else if (q.type === 'fileproof') body = '<div class="q-proof" data-i="' + i + '" data-max="' + (Number(q.max) || 5) + '"></div><button type="button" class="btn btn-blue btn-sm q-proofbtn" data-i="' + i + '">📷 Capture page 1</button><div class="small text3" style="margin-top:4px">Live camera only · up to ' + (Number(q.max) || 5) + ' pages · photograph each signed sheet</div>';
       else if (q.type === 'dropdown') body = '<select class="ms-sel q-inp" data-i="' + i + '"><option value="">— Select —</option>' + (q.options || []).map(function (o) { return '<option>' + esc(o) + '</option>'; }).join('') + '</select>';
       else if (q.type === 'choice') body = (q.options || []).map(function (o) { return '<label class="ms-opt"><input type="radio" name="q' + i + '" class="q-inp" data-i="' + i + '" value="' + esc(o) + '"> ' + esc(o) + '</label>'; }).join('');
@@ -2565,6 +2656,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       if (q.remarks) { var rc = document.createElement('div'); rc.className = 'ms-q'; rc.setAttribute('data-qi', i); rc.innerHTML = '<div class="ms-q-t small text2"><span class="qn-chip rem">Q' + qNo + '</span><span class="qn-txt">📝 Remarks — ' + esc(q.label) + '</span></div><textarea class="ms-in q-rem" data-i="' + i + '" placeholder="Add remarks (optional)"></textarea>'; host.appendChild(rc); }
       if (q.type === 'livepic') { var pb = card.querySelector('.q-picbtn'); if (pb) pb.addEventListener('click', function () { openQCam(Number(this.getAttribute('data-i')), host, q.label); }); }
       if (q.type === 'artlines') artWire(card, host);
+      if (q.type === 'pendlines') pendWire(card, host, q, i);
       if (q.type === 'fileproof') { var pfe = card.querySelector('.q-proof'); pfe._pages = []; proofPaint(pfe); pfe.addEventListener('click', function (e) { var pi = e.target.getAttribute && e.target.getAttribute('data-pi'); if (pi == null) return; this._pages.splice(Number(pi), 1); proofPaint(this); try { host.dispatchEvent(new Event('input')); } catch (e2) { } }); card.querySelector('.q-proofbtn').addEventListener('click', function () { var n = (pfe._pages || []).length; openQCam(Number(this.getAttribute('data-i')), host, 'Signed proof — page ' + (n + 1)); }); }
       if (q.type === 'number') { var ninp = card.querySelector('.q-inp'), nerr = card.querySelector('.ms-rangeerr'); if (ninp) ninp.addEventListener('input', function () { var mn = this.getAttribute('data-min'), mx = this.getAttribute('data-max'), v = this.value, num = Number(v); var bad = v !== '' && (isNaN(num) || (mn != null && num < Number(mn)) || (mx != null && num > Number(mx))); if (nerr) { nerr.style.display = bad ? 'block' : 'none'; nerr.textContent = bad ? ('Enter a number' + (mn != null && mx != null ? ' between ' + mn + ' and ' + mx : (mn != null ? ' ≥ ' + mn : ' ≤ ' + mx))) : ''; } this.style.borderColor = bad ? 'var(--red)' : ''; }); }
       if (q.type === 'physcount') { var inp = card.querySelector('.q-inp'); inp.addEventListener('input', function () { var sys = Number(this.getAttribute('data-sys')), phy = Number(this.value); var r = $('pcres' + i); if (this.value === '' || isNaN(phy)) { r.textContent = 'Diff – · Diff% –'; return; } var diff = sys - phy, shr = sys === 0 ? 0 : (diff / sys) * 100; r.textContent = 'Diff ' + diff + ' · Diff% ' + shr.toFixed(1) + '%'; }); }
@@ -2601,6 +2693,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         else if (q.type === 'rating') { var hin = host.querySelector('.ms-stars[data-i="' + k + '"] input'); val = hin ? hin.value : ''; entry.value = val; }
         else if (q.type === 'physcount') { var pin = host.querySelector('.q-inp[data-i="' + k + '"]'); val = pin ? pin.value : ''; var s2 = Number(q.sys), p2 = Number(val || 0); entry.value = val; entry.sys = s2; entry.diff = s2 - p2; entry.diffPct = s2 === 0 ? 0 : Number((((s2 - p2) / s2) * 100).toFixed(2)); entry.shrinkPct = entry.diffPct; }
         else if (q.type === 'livepic') { var ps = host.querySelector('.q-pic[data-i="' + k + '"]'); val = ps ? (ps.getAttribute('data-val') || '') : ''; entry.value = val ? 'photo' : ''; entry.photo = val; }
+        else if (q.type === 'pendlines') { var pr = pendRead(host, k, q); if (pr.bad && !artErr) artErr = q.label + ' — ' + pr.bad; entry.value = pr.value; entry.lines = pr.lines; entry.total = pr.total; val = pr.value; }
         else if (q.type === 'artlines') { var ar = artRead(host, k); if (ar.bad && !artErr) artErr = q.label + ' — ' + ar.bad; entry.lines = ar.lines; entry.value = String(ar.total); val = entry.value; }
         else if (q.type === 'fileproof') { var pgs = proofPages(host, k); entry.pages = pgs.length; entry.value = pgs.length ? pgs.length + ' page(s)' : ''; val = pgs.length ? 'x' : ''; if (pgs.length) proofFiles['q' + k] = pgs; }
         else { var gin = host.querySelector('.q-inp[data-i="' + k + '"]'); val = gin ? gin.value : ''; entry.value = val; }
@@ -2922,6 +3015,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       else if (q.type === 'multi') { var vals = a.values || String(a.value || '').split(',').map(function (x) { return x.trim(); }); var cks = host.querySelectorAll('input[type="checkbox"][data-i="' + k + '"]'); for (var m = 0; m < cks.length; m++) cks[m].checked = vals.indexOf(cks[m].value) > -1; }
       else if (q.type === 'rating') { var wr = host.querySelector('.ms-stars[data-i="' + k + '"]'); if (wr) { var hid = wr.querySelector('input'); if (hid) hid.value = a.value || ''; var stars = wr.querySelectorAll('.ms-star'); for (var t = 0; t < stars.length; t++) stars[t].classList.toggle('on', Number(stars[t].getAttribute('data-v')) <= Number(a.value || 0)); } }
       else if (q.type === 'livepic') { var slot = host.querySelector('.q-pic[data-i="' + k + '"]'); if (slot && a.photo) { slot.setAttribute('data-val', a.photo); slot.innerHTML = '<img src="' + a.photo + '" style="width:100%;max-width:260px;border-radius:8px;display:block;margin:6px 0">'; } }
+      else if (q.type === 'pendlines') { var pcard = host.querySelector('.ms-q[data-qi="' + k + '"]'); if (pcard) pendPrefill(pcard, host, q, k, a); }
       else if (q.type === 'artlines') { var abox = host.querySelector('.q-art[data-i="' + k + '"]'); if (abox) { var al = a.lines || []; abox.innerHTML = (al.length ? al : [{}]).map(artRowHtml).join(''); var acard = abox.closest('.ms-q'); if (acard && acard._artRecalc) acard._artRecalc(); } }
       else if (q.type === 'fileproof') { var pbx = host.querySelector('.q-proof[data-i="' + k + '"]'); if (pbx) { pbx.parentNode.innerHTML = '<div class="small text2">Signed proof kept as submitted by the store (' + esc(a.pages || 0) + ' page(s)).</div>'; } }
       else { var gin = host.querySelector('.q-inp[data-i="' + k + '"]'); if (gin) { gin.value = a.value != null ? a.value : ''; try { gin.dispatchEvent(new Event('input')); } catch (e) { } } }
@@ -2994,6 +3088,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       else if (q.type === 'rating') { var hin = host.querySelector('.ms-stars[data-i="' + k + '"] input'); val = hin ? hin.value : ''; entry.value = val; }
       else if (q.type === 'physcount') { var pin = host.querySelector('.q-inp[data-i="' + k + '"]'); val = pin ? pin.value : ''; var s2 = Number(q.sys), p2 = Number(val || 0); entry.value = val; entry.sys = s2; entry.diff = s2 - p2; entry.diffPct = s2 === 0 ? 0 : Number((((s2 - p2) / s2) * 100).toFixed(2)); entry.shrinkPct = entry.diffPct; }
       else if (q.type === 'livepic') { var ps = host.querySelector('.q-pic[data-i="' + k + '"]'); val = ps ? (ps.getAttribute('data-val') || '') : ''; entry.value = val ? 'photo' : ''; entry.photo = val; }
+      else if (q.type === 'pendlines') { var pr = pendRead(host, k, q); if (pr.bad) { toast(q.label + ' — ' + pr.bad); return null; } entry.value = pr.value; entry.lines = pr.lines; entry.total = pr.total; val = pr.value; }
       else if (q.type === 'artlines') { var ar = artRead(host, k); if (ar.bad) { toast(q.label + ' — ' + ar.bad); return null; } entry.lines = ar.lines; entry.value = String(ar.total); val = entry.value; }
       else if (q.type === 'fileproof') { var oa = orig[k] || {}; entry.pages = oa.pages || 0; entry.value = oa.value || ''; val = entry.pages ? 'x' : ''; }
       else { var gin = host.querySelector('.q-inp[data-i="' + k + '"]'); val = gin ? gin.value : ''; entry.value = val; }
@@ -3209,6 +3304,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function isHoIssueAnswer(q, val) {
     var ty = (q && q.type) || '';
     if (ty === 'number') return isHoNumberIssue(q, val);
+    if (ty === 'pendlines') return String(val == null ? '' : val).trim().toLowerCase() === 'yes';   /* v40 — pending gifts */
     if (ty === 'artlines') return (Number(val) || 0) > 0;   /* v36 — any alternate article qty */
     if (ty === 'fileproof') return !String(val == null ? '' : val).trim();   /* missing proof */
     if (ty === 'text' || ty === 'para' || ty === 'email' || ty === 'phone') {
@@ -3338,6 +3434,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         });
         var residual = collectHoFollowUps(qs, ansMap, path, qIdx, consumed);
         var details = mergeCols.concat(residual);
+        if (q.type === 'pendlines' && a.lines && a.lines.length) details = [{ qIdx: qIdx, qLabel: 'Pending bills (' + a.lines.length + ')', answer: pendSummary(a.lines), remark: '' }].concat(details);
         var iss = buildHoIssueFromAnswer(subj, o, stores, solMap, qIdx, q, a, details, subDocId);
         iss.mergeCols = mergeCols;
         iss.residualFollowUps = residual;
@@ -4656,6 +4753,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function updateQTypeUI() {
     var t = $('qType') ? $('qType').value : '';
     if ($('qRangeWrap')) $('qRangeWrap').style.display = (t === 'number' || t === 'fileproof') ? 'block' : 'none';
+    if ($('qPendWrap')) $('qPendWrap').style.display = (t === 'pendlines') ? 'block' : 'none';
     renderBranchUI();
   }
   function toggleQDeptUI() {
@@ -4790,6 +4888,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ($('qFlagHo')) $('qFlagHo').checked = false;
     if ($('qBranchOn')) $('qBranchOn').checked = false;
     if ($('qGrp')) $('qGrp').value = ''; if ($('qElig')) $('qElig').value = ''; if ($('qKind')) $('qKind').value = ''; if ($('qReqIfAlt')) $('qReqIfAlt').checked = false;
+    if ($('qPendArts')) $('qPendArts').value = ''; ['qPcDate', 'qPcBill', 'qPcMob', 'qPcArt', 'qPcQty'].forEach(function (id) { if ($(id)) $(id).checked = true; });
     toggleQDeptUI(); toggleQRefUI(); toggleQBranchUI(); toggleQMergeUI();
     _editQIdx = -1; if ($('btnAddQ')) $('btnAddQ').textContent = '+ Add question'; if ($('btnCancelQEdit')) $('btnCancelQEdit').style.display = 'none';
   }
@@ -4797,6 +4896,11 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function addOpenQ() {
     var lbl = ($('qLabel').value || '').trim(); if (!lbl) { toast('Enter question label'); return; }
     var ty = $('qType').value, opts = ($('qOptions').value || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    if (ty === 'pendlines') {
+      opts = (($('qPendArts') && $('qPendArts').value) || '').split(/\r?\n/).map(function (l) { var pp = l.split('|'); var c = (pp.shift() || '').replace(/[,|]/g, ' ').trim(), d = pp.join(' ').replace(/[,|]/g, ' ').trim(); return c ? (c + '|' + d) : ''; }).filter(Boolean);
+      if (!opts.length) { toast('Add at least 1 article (code | description) for the dropdown'); return; }
+      if (opts.length > 20) { toast('Maximum 20 articles — you have ' + opts.length); return; }
+    }
     if ((ty === 'choice' || ty === 'multi' || ty === 'dropdown') && opts.length < 2) { toast('Add at least 2 options (comma separated)'); return; }
     var q = { type: ty, label: lbl, options: opts, sys: $('qSys').value || 0, required: $('qRequired').checked, remarks: !!($('qRemarks') && $('qRemarks').checked) };
     if (ty === 'number') { var mn = readNum('qMin'), mx = readNum('qMax'); if (mn != null && mx != null && mn > mx) { toast('Min cannot be greater than Max'); return; } if (mn != null) q.min = mn; if (mx != null) q.max = mx; }
@@ -4819,6 +4923,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var tKd = $('qKind') ? $('qKind').value : ''; if (tKd) q.kind = tKd;
     if ($('qReqIfAlt') && $('qReqIfAlt').checked) { q.requiredIf = 'alt'; q.required = false; }
     if (ty === 'fileproof') { var pmx = readNum('qMax'); q.max = (pmx > 0 ? Math.min(pmx, 10) : 5); delete q.min; }
+    if (ty === 'pendlines') { q.pcols = { date: !!$('qPcDate').checked, bill: !!$('qPcBill').checked, mobile: !!$('qPcMob').checked, article: !!$('qPcArt').checked, qty: !!$('qPcQty').checked }; }
     if (_editQIdx > -1 && _openQs[_editQIdx]) _openQs[_editQIdx] = q; else _openQs.push(q);
     clearQForm(); renderOpenQs();
   }
@@ -4847,6 +4952,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     if ($('qBranchOn')) $('qBranchOn').checked = !!q.branchOn;
     if ($('qGrp')) $('qGrp').value = q.qtyGroup || ''; if ($('qElig')) $('qElig').value = (q.eligFor || []).join(',');
     if ($('qKind')) $('qKind').value = q.kind || ''; if ($('qReqIfAlt')) $('qReqIfAlt').checked = q.requiredIf === 'alt';
+    if (q.type === 'pendlines') { if ($('qPendArts')) $('qPendArts').value = (q.options || []).map(function (x) { var pp = String(x).split('|'); return pp[0] + ' | ' + (pp[1] || ''); }).join('\n'); var pc = q.pcols || {}; [['qPcDate', 'date'], ['qPcBill', 'bill'], ['qPcMob', 'mobile'], ['qPcArt', 'article'], ['qPcQty', 'qty']].forEach(function (x) { if ($(x[0])) $(x[0]).checked = pc[x[1]] !== false; }); }
     toggleQDeptUI(); toggleQRefUI(); toggleQBranchUI(); toggleQMergeUI();
     if ($('qDept')) { fillDeptSelect($('qDept'), q.dept || '', false); $('qDept').value = q.dept || ''; }
     if ($('qRefField') && q.refField) $('qRefField').value = q.refField;
@@ -4868,7 +4974,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     var mergedInto = {};   // qIdx -> base qIdx that claims it (v30 merge picker)
     _openQs.forEach(function (qq, qi) { (qq.mergeWith || []).forEach(function (mi) { mergedInto[mi] = qi; }); });
     _openQs.forEach(function (q, i) {
-      var hasOpts = (q.type === 'choice' || q.type === 'multi' || q.type === 'dropdown');
+      var hasOpts = (q.type === 'choice' || q.type === 'multi' || q.type === 'dropdown' || q.type === 'pendlines');
       var flagOn = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : qFlagHoDefault(q);
       var mergeTag = (q.mergeWith && q.mergeWith.length) ? ' · <span style="color:#1565C0;font-weight:700">🔗 merges ' + q.mergeWith.map(function (mi) { return 'Q' + (mi + 1); }).join(',') + '</span>' : '';
       if (mergedInto.hasOwnProperty(i)) mergeTag += ' · <span class="text3">(merged into Q' + (mergedInto[i] + 1) + ')</span>';
@@ -4884,7 +4990,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
     box.querySelectorAll('button[data-dn]').forEach(function (b) { b.addEventListener('click', function () { moveOpenQ(Number(this.getAttribute('data-dn')), 1); }); });
   }
   /* === Excel template / bulk import-export for Raw Data questions === */
-  var TYPE_ALIASES = { 'short answer': 'text', 'text': 'text', 'shortanswer': 'text', 'short': 'text', 'paragraph': 'para', 'para': 'para', 'long answer': 'para', 'longanswer': 'para', 'long text': 'para', 'number': 'number', 'numeric': 'number', 'email': 'email', 'phone': 'phone', 'mobile': 'phone', 'date': 'date', 'time': 'time', 'single choice': 'choice', 'single choice (radio)': 'choice', 'singlechoice': 'choice', 'choice': 'choice', 'radio': 'choice', 'multiple choice': 'multi', 'multiple choice (checkbox)': 'multi', 'multiplechoice': 'multi', 'multi': 'multi', 'checkbox': 'multi', 'dropdown': 'dropdown', 'drop down': 'dropdown', 'drop-down': 'dropdown', 'select': 'dropdown', 'rating': 'rating', 'rating (1-5 stars)': 'rating', 'physical count check': 'physcount', 'physcount': 'physcount', 'physical count': 'physcount', 'live picture': 'livepic', 'livepicture': 'livepic', 'live photo': 'livepic', 'live pic': 'livepic', 'livepic': 'livepic', 'camera': 'livepic', 'picture': 'livepic', 'photo': 'livepic', 'article lines': 'artlines', 'articlelines': 'artlines', 'artlines': 'artlines', 'file upload': 'fileproof', 'fileupload': 'fileproof', 'fileproof': 'fileproof', 'signed proof': 'fileproof' };
+  var TYPE_ALIASES = { 'short answer': 'text', 'text': 'text', 'shortanswer': 'text', 'short': 'text', 'paragraph': 'para', 'para': 'para', 'long answer': 'para', 'longanswer': 'para', 'long text': 'para', 'number': 'number', 'numeric': 'number', 'email': 'email', 'phone': 'phone', 'mobile': 'phone', 'date': 'date', 'time': 'time', 'single choice': 'choice', 'single choice (radio)': 'choice', 'singlechoice': 'choice', 'choice': 'choice', 'radio': 'choice', 'multiple choice': 'multi', 'multiple choice (checkbox)': 'multi', 'multiplechoice': 'multi', 'multi': 'multi', 'checkbox': 'multi', 'dropdown': 'dropdown', 'drop down': 'dropdown', 'drop-down': 'dropdown', 'select': 'dropdown', 'rating': 'rating', 'rating (1-5 stars)': 'rating', 'physical count check': 'physcount', 'physcount': 'physcount', 'physical count': 'physcount', 'live picture': 'livepic', 'livepicture': 'livepic', 'live photo': 'livepic', 'live pic': 'livepic', 'livepic': 'livepic', 'camera': 'livepic', 'picture': 'livepic', 'photo': 'livepic', 'article lines': 'artlines', 'pending lines': 'pendlines', 'pendlines': 'pendlines', 'pending gift lines': 'pendlines', 'pending gift': 'pendlines', 'articlelines': 'artlines', 'artlines': 'artlines', 'file upload': 'fileproof', 'fileupload': 'fileproof', 'fileproof': 'fileproof', 'signed proof': 'fileproof' };
   function normType(s) { return (s == null ? '' : s).toString().trim().toLowerCase().replace(/[_\-]+/g, ' ').replace(/\s+/g, ' '); }
   function resolveType(raw) { var k = normType(raw); if (TYPE_ALIASES[k]) return TYPE_ALIASES[k]; var k2 = k.replace(/\s+/g, ''); for (var a in TYPE_ALIASES) { if (TYPE_ALIASES.hasOwnProperty(a) && TYPE_ALIASES[a] && a.replace(/\s+/g, '') === k2) return TYPE_ALIASES[a]; } return null; }
   function dlOpenTemplate() {
@@ -4921,6 +5027,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
           if ((ty === 'choice' || ty === 'multi' || ty === 'dropdown') && opts.length < 2) { bad++; continue; }
           var q = { type: ty, label: lbl, options: opts, sys: cell(rows[i], cSys) || 0, required: yes(cell(rows[i], cReq)), remarks: yes(cell(rows[i], cRem)) };
           if (ty === 'number') { var mn = cell(rows[i], cMin).trim(), mx = cell(rows[i], cMax).trim(); if (mn !== '' && !isNaN(Number(mn))) q.min = Number(mn); if (mx !== '' && !isNaN(Number(mx))) q.max = Number(mx); }
+          if (ty === 'pendlines') { opts = opts.map(function (x) { var pp = x.split('|'); return pp[0].trim() + '|' + (pp[1] || '').trim(); }).slice(0, 20); if (!opts.length) { bad++; continue; } q.options = opts; }
           if (ty === 'fileproof') { var pmx = Number(cell(rows[i], cMax).trim()); q.max = (pmx > 0 ? Math.min(pmx, 10) : 5); }
           if (/^if\s*alt/i.test(cell(rows[i], cReq).trim())) { q.required = false; q.requiredIf = 'alt'; }
           var tGrp = cell(rows[i], cGrp).trim().toUpperCase(); if (tGrp) q.qtyGroup = tGrp;
@@ -4940,7 +5047,7 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
   function exportOpenQs() {
     if (!_openQs.length) { toast('No questions to export'); return; }
     var aoa = [['Type', 'Label', 'Options (comma)', 'Required (Y/N)', 'Remarks (Y/N)', 'Min', 'Max', 'System Qty', 'Dept (Y/N)', 'Department', 'Flag to HO (Y/N)', 'Qty Group', 'Eligible For', 'Main/Alt']];
-    var tyOut = { artlines: 'Article lines', fileproof: 'File upload' };
+    var tyOut = { artlines: 'Article lines', fileproof: 'File upload', pendlines: 'Pending lines' };
     _openQs.forEach(function (q) {
       var flag = Object.prototype.hasOwnProperty.call(q, 'flagHo') ? !!q.flagHo : !!q.deptOn;
       aoa.push([tyOut[q.type] || q.type, q.label, (q.options || []).join(','), q.requiredIf === 'alt' ? 'IF ALT' : (q.required ? 'Y' : 'N'), q.remarks ? 'Y' : 'N', (q.min != null ? q.min : ''), (q.max != null ? q.max : ''), q.sys || '', q.deptOn ? 'Y' : 'N', q.dept || '', flag ? 'Y' : 'N', q.qtyGroup || '', (q.eligFor || []).join(','), q.kind === 'alt' ? 'Alt' : (q.kind === 'main' ? 'Main' : '')]);
@@ -5839,15 +5946,15 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
         list.forEach(function (o) { (o.rows || []).forEach(function (r) { var ds = r.descs ? r.descs.join(' · ') : (r.desc || ''); aoa.push([o.storeCode, o.storeName || '', (o.designation || '') + ' ' + (o.empName || ''), o.ts ? new Date(o.ts).toLocaleString() : '', amValYesNo(o), o.amAction || '', ds, r.sys, r.phy, r.diff, (r.diffPct != null ? r.diffPct : r.shrinkPct)]); }); });
       } else {
         // collect union of question labels in order (v31/v32: a "per HO record" question also gets a companion "<label> — As per HO record" column)
-        var labels = [], seen = {}, refLabelOf = {}, artLabelOf = {}, grpKeys = [], grpSeen = {}, grpName = {};
-        list.forEach(function (o) { (o.answers || []).forEach(function (a) { if (!seen[a.label]) { seen[a.label] = 1; labels.push(a.label); } if (a.refOn) refLabelOf[a.label] = true; if (a.type === 'artlines') artLabelOf[a.label] = true; }); if (o.grpChk) Object.keys(o.grpChk).forEach(function (gk) { if (!grpSeen[gk]) { grpSeen[gk] = 1; grpKeys.push(gk); grpName[gk] = o.grpChk[gk].name || gk; } }); });
-        var headerCols = []; labels.forEach(function (l) { headerCols.push(l); if (refLabelOf[l]) headerCols.push(l + ' — As per HO record'); if (artLabelOf[l]) headerCols.push(l + ' — Article lines'); });
+        var labels = [], seen = {}, refLabelOf = {}, artLabelOf = {}, pendLabelOf = {}, pendSheet = [], grpKeys = [], grpSeen = {}, grpName = {};
+        list.forEach(function (o) { (o.answers || []).forEach(function (a) { if (!seen[a.label]) { seen[a.label] = 1; labels.push(a.label); } if (a.refOn) refLabelOf[a.label] = true; if (a.type === 'artlines') artLabelOf[a.label] = true; if (a.type === 'pendlines') pendLabelOf[a.label] = true; }); if (o.grpChk) Object.keys(o.grpChk).forEach(function (gk) { if (!grpSeen[gk]) { grpSeen[gk] = 1; grpKeys.push(gk); grpName[gk] = o.grpChk[gk].name || gk; } }); });
+        var headerCols = []; labels.forEach(function (l) { headerCols.push(l); if (refLabelOf[l]) headerCols.push(l + ' — As per HO record'); if (artLabelOf[l]) headerCols.push(l + ' — Article lines'); if (pendLabelOf[l]) headerCols.push(l + ' — Pending bills'); });
         grpKeys.forEach(function (gk) { var gn = grpName[gk]; headerCols.push(gn + ' — Total', gn + ' — Eligible', gn + ' — Diff', gn + ' — Alt qty', gn + ' — Mismatch reason'); });
         aoa = [['Store Code', 'Store Name', 'Filled By', 'When', 'AM Validated', 'AM Action'].concat(headerCols)];
         list.forEach(function (o) {
-          var m = {}, rm = {}, lk = {}, am = {}; (o.answers || []).forEach(function (a, ai) { var val = a.value; if (a.type === 'physcount') val = 'Phy ' + a.value + ' (Diff ' + a.diff + ', ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%)'; if (a.type === 'livepic' && a.photo && subB64(a.photo)) { val = subDataPhotoName(o, a, ai); lk[a.label] = subDataPhotoPath(o, a, ai); } if (a.type === 'artlines') { val = Number(a.value) || 0; am[a.label] = (a.lines || []).map(function (l) { return l.code + ' ' + l.desc + ' ×' + l.qty; }).join('; '); } if (a.type === 'fileproof' && a.pages) { val = subProofName(o, a, ai, 1) + (a.pages > 1 ? ' (+' + (a.pages - 1) + ' more)' : ''); lk[a.label] = subProofPath(o, a, ai, 1); } m[a.label] = val; if (a.refOn) rm[a.label] = a.refValue || ''; });
+          var m = {}, rm = {}, lk = {}, am = {}, pm = {}; (o.answers || []).forEach(function (a, ai) { var val = a.value; if (a.type === 'pendlines') { pm[a.label] = pendSummary(a.lines); (a.lines || []).forEach(function (pl, pi) { pendSheet.push([o.storeCode, o.storeName || '', (o.designation || '') + ' ' + (o.empName || ''), o.ts ? new Date(o.ts).toLocaleString() : '', a.label, pi + 1, pl.date || '', pl.bill || '', pl.mobile || '', pl.code || '', pl.desc || '', pl.qty === '' ? '' : pl.qty]); }); } if (a.type === 'physcount') val = 'Phy ' + a.value + ' (Diff ' + a.diff + ', ' + (a.diffPct != null ? a.diffPct : a.shrinkPct) + '%)'; if (a.type === 'livepic' && a.photo && subB64(a.photo)) { val = subDataPhotoName(o, a, ai); lk[a.label] = subDataPhotoPath(o, a, ai); } if (a.type === 'artlines') { val = Number(a.value) || 0; am[a.label] = (a.lines || []).map(function (l) { return l.code + ' ' + l.desc + ' ×' + l.qty; }).join('; '); } if (a.type === 'fileproof' && a.pages) { val = subProofName(o, a, ai, 1) + (a.pages > 1 ? ' (+' + (a.pages - 1) + ' more)' : ''); lk[a.label] = subProofPath(o, a, ai, 1); } m[a.label] = val; if (a.refOn) rm[a.label] = a.refValue || ''; });
           var row = [o.storeCode, o.storeName || '', (o.designation || '') + ' ' + (o.empName || ''), o.ts ? new Date(o.ts).toLocaleString() : '', amValYesNo(o), o.amAction || ''];
-          labels.forEach(function (l) { if (lk[l]) links.push({ r: aoa.length, c: row.length, t: lk[l] }); row.push(m[l] != null ? m[l] : ''); if (refLabelOf[l]) row.push(rm[l] != null ? rm[l] : ''); if (artLabelOf[l]) row.push(am[l] != null ? am[l] : ''); });
+          labels.forEach(function (l) { if (lk[l]) links.push({ r: aoa.length, c: row.length, t: lk[l] }); row.push(m[l] != null ? m[l] : ''); if (refLabelOf[l]) row.push(rm[l] != null ? rm[l] : ''); if (artLabelOf[l]) row.push(am[l] != null ? am[l] : ''); if (pendLabelOf[l]) row.push(pm[l] != null ? pm[l] : ''); });
           grpKeys.forEach(function (gk) { var g = (o.grpChk || {})[gk] || {}; row.push(g.qty != null ? g.qty : '', g.elig != null ? g.elig : '', g.diff != null ? g.diff : '', g.alt != null ? g.alt : '', g.reason || ''); });
           aoa.push(row);
         });
@@ -5856,6 +5963,10 @@ textarea.ms-in:focus{border:2px solid var(--blue);background:#fff}
       links.forEach(function (L) { var ref = XLSX.utils.encode_cell({ r: L.r, c: L.c }); if (ws[ref]) ws[ref].l = { Target: L.t, Tooltip: 'Open photo (extract the zip first)' }; });
       var nm = sn.replace(/[\\\/\?\*\[\]:]/g, ' ').slice(0, 28) || 'Subject'; var base = nm, k = 2; while (used[nm.toLowerCase()]) { nm = (base.slice(0, 25) + ' ' + k); k++; } used[nm.toLowerCase()] = 1;
       XLSX.utils.book_append_sheet(wb, ws, nm);
+      if (pendSheet && pendSheet.length) {
+        var pn = (nm.slice(0, 20) + ' Pending'), pb = pn, pk = 2; while (used[pn.toLowerCase()]) { pn = pb.slice(0, 28) + pk; pk++; } used[pn.toLowerCase()] = 1;
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Store Code', 'Store Name', 'Filled By', 'When', 'Question', 'Line #', 'Bill Date', 'Complete Bill No', 'Mobile No', 'Article Code', 'Article Description', 'Qty']].concat(pendSheet)), pn);
+      }
     });
     return { wb: wb, nData: Object.keys(bySubj).length };
   }
